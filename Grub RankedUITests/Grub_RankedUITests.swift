@@ -1,43 +1,50 @@
-//
-//  Grub_RankedUITests.swift
-//  Grub RankedUITests
-//
-//  Created by Guy Rettig on 10/1/26.
-//
-
 import XCTest
 
 final class Grub_RankedUITests: XCTestCase {
-
-    override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
-
-        // In UI tests it is usually best to stop immediately when a failure occurs.
-        continueAfterFailure = false
-
-        // In UI tests it’s important to set the initial state - such as interface orientation - required for your tests before they run. The setUp method is a good place to do this.
-    }
-
-    override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
-    }
+    override func setUpWithError() throws { continueAfterFailure = false }
 
     @MainActor
-    func testExample() throws {
-        // UI tests must launch the application that they test.
+    func testCreateCompareUndoAndRelaunch() throws {
         let app = XCUIApplication()
+        app.launchArguments = ["--ui-test-store", UUID().uuidString]
         app.launch()
+        let name = "Test \(UUID().uuidString.prefix(8))"
+        app.buttons["New Ranking"].tap()
+        // SwiftUI's native alert does not forward TextField accessibilityIdentifier
+        // on this OS. Scope to the actual alert and use its native field.
+        let field = app.alerts["New Ranking"].textFields.firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 15))
+        field.tap(); field.typeText(name)
+        app.buttons["Create"].tap()
+        app.staticTexts[name].tap()
+        XCTAssertTrue(app.navigationBars[name].waitForExistence(timeout: 15))
 
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
-        // XCUIAutomation Documentation
-        // https://developer.apple.com/documentation/xcuiautomation
-    }
-
-    @MainActor
-    func testLaunchPerformance() throws {
-        // This measures how long it takes to launch your application.
-        measure(metrics: [XCTApplicationLaunchMetric()]) {
-            XCUIApplication().launch()
+        func add(_ name: String) {
+            let addButton = app.buttons["add-item"]
+            XCTAssertTrue(addButton.waitForExistence(timeout: 15))
+            let hittable = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"), object: addButton)
+            XCTAssertEqual(XCTWaiter.wait(for: [hittable], timeout: 15), .completed)
+            addButton.tap()
+            let itemField = app.textFields["item-name"]
+            XCTAssertTrue(itemField.waitForExistence(timeout: 15))
+            itemField.tap(); itemField.typeText(name)
+            app.buttons["Continue"].tap()
+            app.buttons["Liked it"].tap()
         }
+        add("Alpha")
+        XCTAssertTrue(app.navigationBars[name].waitForExistence(timeout: 15))
+        add("Beta")
+        XCTAssertTrue(app.buttons["Prefer Beta"].waitForExistence(timeout: 15))
+        app.buttons["Prefer Beta"].tap()
+        XCTAssertTrue(app.buttons["Undo last answer"].waitForExistence(timeout: 15))
+        app.buttons["Undo last answer"].tap()
+        XCTAssertTrue(app.buttons["Prefer Alpha"].waitForExistence(timeout: 15))
+        app.buttons["Prefer Alpha"].tap()
+        XCTAssertTrue(app.buttons["add-item"].waitForExistence(timeout: 15))
+        let firstRank = app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH %@", "Rank 1, Alpha, score")).firstMatch
+        XCTAssertTrue(firstRank.exists)
+        app.terminate(); app.launch()
+        app.staticTexts[name].tap()
+        XCTAssertTrue(firstRank.waitForExistence(timeout: 15))
     }
 }
