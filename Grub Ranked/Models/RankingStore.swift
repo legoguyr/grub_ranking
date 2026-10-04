@@ -5,6 +5,16 @@ import SwiftData
 @MainActor
 enum RankingStore {
     static func save(name: String, session: RankingEngine, to list: RankingList, context: ModelContext) throws {
+        do {
+            _ = try stage(name: name, session: session, to: list, context: context)
+            try context.save()
+        } catch { context.rollback(); throw error }
+    }
+
+    /// Shared transaction staging for domain adapters. The caller owns save/rollback.
+    @discardableResult
+    static func stage(name: String, session: RankingEngine, to list: RankingList, context: ModelContext) throws -> RankedItem {
+        guard !list.items.contains(where: { $0.id == session.itemID }) else { throw EvidenceError.invalidComparison }
         let item = RankedItem(id: session.itemID, name: name)
         context.insert(item)
         list.items.append(item)
@@ -13,11 +23,9 @@ enum RankingStore {
             context.insert(comparison)
             list.comparisons.append(comparison)
         }
-        do {
-            let analysis = list.recompute()
-            item.sessionDiagnosticsData = try JSONEncoder().encode(session.diagnostics(analysis: analysis, rank: analysis.rankEstimates()[item.id]))
-            try context.save()
-        } catch { context.rollback(); throw error }
+        let analysis = list.recompute()
+        item.sessionDiagnosticsData = try JSONEncoder().encode(session.diagnostics(analysis: analysis, rank: analysis.rankEstimates()[item.id]))
+        return item
     }
 
     enum EvidenceError: Error { case invalidComparison, sessionHasNewEvidence }
@@ -25,12 +33,17 @@ enum RankingStore {
     /// Engine-facing entry point for future Improve Ranking. Always append, even when
     /// this pair already exists; timestamps are preserved and no decay is applied.
     static func record(_ evidence: PreferenceEvidence, in list: RankingList, context: ModelContext) throws {
+        try record([evidence], in: list, context: context)
+    }
+
+    static func record(_ evidence: [PreferenceEvidence], in list: RankingList, context: ModelContext) throws {
         let ids = Set(list.items.map(\.id))
-        guard ids.contains(evidence.first), ids.contains(evidence.second), evidence.first != evidence.second,
-              [0.0, 0.5, 1.0].contains(evidence.outcome) else { throw EvidenceError.invalidComparison }
-        let comparison = Comparison(evidence: evidence)
-        context.insert(comparison)
-        list.comparisons.append(comparison)
+        guard evidence.allSatisfy({ ids.contains($0.first) && ids.contains($0.second) && $0.first != $0.second && [0.0, 0.5, 1.0].contains($0.outcome) }) else { throw EvidenceError.invalidComparison }
+        for observation in evidence {
+            let comparison = Comparison(evidence: observation)
+            context.insert(comparison)
+            list.comparisons.append(comparison)
+        }
         list.recompute()
         do { try context.save() } catch { context.rollback(); throw error }
     }

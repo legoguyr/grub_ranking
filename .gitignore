@@ -1,0 +1,3 @@
+
+# Local migration checkpoints contain personal app data.
+.local-backups/

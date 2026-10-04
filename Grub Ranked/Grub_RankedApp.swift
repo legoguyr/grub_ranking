@@ -1,43 +1,31 @@
-//
-//  Grub_RankedApp.swift
-//  Grub Ranked
-//
-//  Created by Guy Rettig on 10/1/26.
-//
-
 import SwiftUI
 import SwiftData
 
 @main
 struct Grub_RankedApp: App {
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self, // Retained so the starter store can migrate without dropping its schema.
-            RankingList.self, RankedItem.self, Comparison.self,
-        ])
-        var modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false, cloudKitDatabase: .none)
+    private let storage: Result<ModelContainer, Error> = Result {
+        var testURL: URL?
         #if DEBUG
-        // UI tests get an isolated disk store, retained across their relaunch check.
-        // Never clear or seed the user's ranking history to make a test pass.
         let arguments = ProcessInfo.processInfo.arguments
-        if let index = arguments.firstIndex(of: "--ui-test-store"), arguments.indices.contains(index + 1),
-           let identifier = UUID(uuidString: arguments[index + 1]) {
-            let url = FileManager.default.temporaryDirectory.appendingPathComponent("ui-test-\(identifier.uuidString).store")
-            modelConfiguration = ModelConfiguration(schema: schema, url: url, cloudKitDatabase: .none)
+        var token = ProcessInfo.processInfo.environment["GRUB_TEST_STORE"]
+        if let index = arguments.firstIndex(of: "--ui-test-store"), arguments.indices.contains(index + 1) {
+            token = arguments[index + 1]
+        }
+        if let token, let identifier = UUID(uuidString: token) {
+            testURL = FileManager.default.temporaryDirectory.appendingPathComponent("ui-test-\(identifier.uuidString).store")
         }
         #endif
-
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
+        return try AppPersistence.open(url: testURL)
+    }
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            switch storage {
+            case .success(let container): ContentView().modelContainer(container)
+            case .failure(let error):
+                ContentUnavailableView("Couldn't open local data", systemImage: "externaldrive.badge.exclamationmark",
+                    description: Text("Your store has not been reset.\n\(error.localizedDescription)"))
+            }
         }
-        .modelContainer(sharedModelContainer)
     }
 }

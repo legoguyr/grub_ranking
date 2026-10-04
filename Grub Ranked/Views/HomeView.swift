@@ -7,10 +7,22 @@ struct HomeView: View {
     @State private var creating = false
     @State private var name = ""
     @State private var error: String?
+    @State private var cookingList: RankingList?
 
     var body: some View {
         NavigationStack {
             List {
+                Section {
+                    if let cookingList {
+                        NavigationLink {
+                            CookingRankingView(list: cookingList)
+                        } label: {
+                            Label("My Cooking", systemImage: "fork.knife")
+                        }.accessibilityIdentifier("my-cooking")
+                    } else {
+                        Button("Prepare Cooking Library", action: prepareCooking)
+                    }
+                }
                 Section("My Rankings") {
                     if lists.isEmpty {
                         ContentUnavailableView("Your preferences, in order", systemImage: "list.number",
@@ -32,6 +44,7 @@ struct HomeView: View {
                 }
             }
             .navigationTitle("Grub Ranked")
+            .task { prepareCooking() }
             .alert("New Ranking", isPresented: $creating) {
                 TextField("Ranking name", text: $name)
                 Button("Cancel", role: .cancel) {}
@@ -41,6 +54,10 @@ struct HomeView: View {
                 Button("OK") { error = nil }
             } message: { Text(error ?? "") }
         }
+    }
+    private func prepareCooking() {
+        do { cookingList = try CookingStore.prepare(context: context) }
+        catch { self.error = error.localizedDescription }
     }
     private func create() {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)

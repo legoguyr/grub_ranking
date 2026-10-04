@@ -6,5 +6,6 @@ struct ContentView: View {
 }
 
 #Preview {
-    ContentView().modelContainer(for: [RankingList.self, RankedItem.self, Comparison.self], inMemory: true)
+    ContentView().modelContainer(try! ModelContainer(for: AppPersistence.schema,
+        configurations: [ModelConfiguration(isStoredInMemoryOnly: true)]))
 }

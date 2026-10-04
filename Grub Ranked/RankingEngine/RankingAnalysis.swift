@@ -86,12 +86,13 @@ nonisolated struct RankingAnalysis {
 
     /// Existing pairs may be revisited: repeated answers remain independent observations.
     /// `excluding` is session-local (e.g. Skip); it does not remove saved evidence.
-    func nextRefinement(excluding: Set<ComparisonPair> = [], confidenceLimit: Double = 0.975,
+    func nextRefinement(involving itemID: UUID? = nil, excluding: Set<ComparisonPair> = [], confidenceLimit: Double = 0.975,
                         minimumInformationBits: Double = 0.01) -> RefinementSuggestion? {
         guard diagnostics.converged else { return nil }
         var best: RefinementSuggestion?
         for a in ids.indices {
             for b in (a + 1)..<ids.count {
+                if let itemID, ids[a] != itemID && ids[b] != itemID { continue }
                 let pair = ComparisonPair(ids[a], ids[b])
                 guard !excluding.contains(pair), let relationship = relationship(pair.first, pair.second),
                       relationship.orderConfidence < confidenceLimit,
