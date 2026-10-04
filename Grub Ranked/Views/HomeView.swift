@@ -43,7 +43,7 @@ struct HomeView: View {
                     Label("New Ranking", systemImage: "plus").frame(minHeight: 44)
                 }
             }
-            .navigationTitle("Grub Ranked")
+            .navigationTitle("StayGrubby")
             .task { prepareCooking() }
             .alert("New Ranking", isPresented: $creating) {
                 TextField("Ranking name", text: $name)

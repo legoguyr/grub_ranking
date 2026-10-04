@@ -1,6 +1,6 @@
 import Foundation
 
-struct CookingDraft {
+@MainActor struct CookingDraft {
     var dishName = ""
     var category: DishCategory = .main
     var cookedAt: Date? = .now
@@ -9,14 +9,19 @@ struct CookingDraft {
     var dietary: Set<DietaryTag> = []
     var allergy: Set<AllergyTag> = []
     var customTags: [String] = []
+    var source: DishSourceDraft?
 
     init() {}
-    init(dish: Dish) { dishName = dish.name; category = dish.defaultCategory }
+    init(dish: Dish) {
+        dishName = dish.name; category = dish.defaultCategory
+        source = dish.source.map(DishSourceDraft.init(source:))
+    }
     init(attempt: CookingAttempt) {
         dishName = attempt.dish?.name ?? attempt.rankedItem?.name ?? ""
         category = attempt.category; cookedAt = attempt.cookedAt
         versionTitle = attempt.versionTitle ?? ""; notes = attempt.notes ?? ""
         dietary = attempt.dietaryTags; allergy = attempt.allergyTags; customTags = attempt.customTags
+        source = attempt.dish?.source.map(DishSourceDraft.init(source:))
     }
     var cleanDishName: String { dishName.trimmingCharacters(in: .whitespacesAndNewlines) }
     var cleanTitle: String? { Self.optional(versionTitle) }

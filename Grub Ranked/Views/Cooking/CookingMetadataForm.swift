@@ -60,6 +60,38 @@ struct CookingMetadataForm: View {
                 Button("Add tag", action: addTag).disabled(TagNormalization.display(newTag).isEmpty).buttonStyle(.borderless)
             }
         }
+        Section("Source (optional)") {
+            if existingDish && !editing {
+                Text(draft.source?.summary ?? "No source")
+                    .foregroundStyle(draft.source == nil ? .secondary : .primary)
+                Text("Shared with this dish. You can edit it from a saved cook.")
+                    .font(.footnote).foregroundStyle(.secondary)
+            } else {
+                Picker("Source type", selection: sourceType) {
+                    Text("No source").tag(DishSourceType?.none)
+                    ForEach(DishSourceType.allCases) { type in
+                        Text(type.label).tag(Optional(type))
+                    }
+                }.accessibilityIdentifier("dish-source-type")
+                if draft.source != nil {
+                    DishSourceFields(source: Binding(
+                        get: { draft.source ?? DishSourceDraft() },
+                        set: { draft.source = $0 }
+                    ))
+                }
+                if editing {
+                    Text("Changing the source updates every version of this dish.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+    private var sourceType: Binding<DishSourceType?> {
+        Binding(get: { draft.source?.type }, set: { type in
+            if let type {
+                if draft.source?.type != type { draft.source = DishSourceDraft(type: type) }
+            } else { draft.source = nil }
+        })
     }
     private func addTag() {
         draft.customTags = TagNormalization.deduplicated(draft.customTags + [newTag]); newTag = ""

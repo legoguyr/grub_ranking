@@ -7,7 +7,7 @@ enum AppPersistence {
     /// semantic legacy bridging is a separate idempotent transaction.
     static var schema: Schema {
         Schema([Item.self, RankingList.self, RankedItem.self, Comparison.self,
-                Dish.self, CookingAttempt.self, CookingTag.self, CookingLibrary.self])
+                Dish.self, DishSource.self, CookingAttempt.self, CookingTag.self, CookingLibrary.self])
     }
     static func open(url: URL? = nil) throws -> ModelContainer {
         let schema = schema

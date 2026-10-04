@@ -28,6 +28,14 @@ struct AttemptDetailView: View {
                 header: { Text("Allergy") } footer: { Text("User-entered labels; not verified allergy safety information.") }
             }
             if !attempt.customTags.isEmpty { Section("Custom tags") { Text(attempt.customTags.joined(separator: ", ")) } }
+            if let source = attempt.dish?.source {
+                Section("Source") {
+                    Text(source.summary).font(.headline)
+                    ForEach(source.detailRows, id: \.label) { row in
+                        LabeledContent(row.label, value: row.value)
+                    }
+                }
+            }
             Section {
                 Button("Edit Cook") { editing = true }
                 Button("Re-rank") { reranking = true }

@@ -8,6 +8,7 @@ final class Dish {
     var defaultCategoryCode: String
     var createdAt: Date
     @Relationship(deleteRule: .cascade, inverse: \CookingAttempt.dish) var attempts: [CookingAttempt] = []
+    @Relationship(deleteRule: .cascade, inverse: \DishSource.dish) var source: DishSource?
     var defaultCategory: DishCategory {
         get { DishCategory(rawValue: defaultCategoryCode) ?? .other }
         set { defaultCategoryCode = newValue.rawValue }

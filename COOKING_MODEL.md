@@ -1,4 +1,4 @@
-# Cooking data foundation
+# StayGrubby cooking data foundation
 
 Phase 1 adds local cooking metadata around the existing generic ranking system. The Bradley–Terry fit, score mapping, insertion policy, confidence calculation, and original ranking tests are unchanged. See `RANKING_MODEL.md` for inference details.
 
@@ -9,6 +9,7 @@ Phase 1 adds local cooking metadata around the existing generic ranking system. 
 - **RankedItem**: owns ranking identity, cached display name, creation date, estimated strength/uncertainty and insertion diagnostics. Every cook has its own item. All new cooks, including versions of one dish, enter the same global RankingList.
 - **CookingLibrary**: persists the UUID of the chosen global list. This application adapter keeps cooking ownership out of RankingList and the inference engine.
 - **CookingTag**: shared structured rows identified by `kind:value`, with separate dietary, allergy, and custom kinds. Relationships support filtering by a tag; scalar raw codes support SwiftData predicates. Unused tag rows are retained for reuse.
+- **DishSource**: optional, single Dish-owned attribution record with its own UUID, controlled type code, type-specific manual metadata and timestamps. The dish cascades deletion to its Source. Source does not carry a score or recipe instructions.
 
 SwiftData references are optional to support nullification and additive migration; `CookingStore` is the application write boundary and creates complete Dish → cook → RankedItem links atomically. Do not delete cooking-related RankedItems or Dishes directly through a ModelContext: use the cooking service so scalar comparison references are cleaned up too.
 
@@ -21,6 +22,26 @@ Dietary: Kosher, Vegetarian, Vegan, Dairy-Free, Gluten-Free, Halal.
 Allergy: Peanut-Free, Tree-Nut-Free, Sesame-Free, Milk-Free, Egg-Free, Wheat-Free, Soy-Free, Fish-Free, Shellfish-Free. These are user-entered labels, never a safety certification.
 
 Custom labels trim/collapse whitespace; identity also folds case and character width. The first saved display spelling is retained. Blank labels are ignored. Standard tags and identically named custom tags remain distinct kinds. Tags are separate records, not a hashtag string or comma-delimited database field.
+
+## Source attribution
+
+Source records **where the dish idea came from**. A future Recipe would record **how the user makes it**. Neither concept enters the ranking engine. Source is optional: leaving the picker at No source creates no record and adds no questions to ranking.
+
+`DishSourceType` stores stable codes for Original / My Recipe, Cookbook, Restaurant, Online Recipe, Social Media, Friend / Family, and Other. Each type has separate nullable fields; the form only shows the fields relevant to the selected type:
+
+- Original / My Recipe: type alone.
+- Cookbook: manually entered title, authors, recipe/dish name, optional page.
+- Restaurant: name, original dish name, optional location.
+- Online Recipe: recipe name, website/creator, URL.
+- Social Media: creator, platform, post/video URL, dish name.
+- Friend / Family: person's name and optional note.
+- Other: source name and details.
+
+The New Dish form adds one optional Source picker below the existing fields. New Version displays the parent Dish's Source as inherited, without asking for the same attribution again or creating a copy. Editing any cook can edit the shared Dish Source; the form says this affects every version. Type changes clear fields from the old type but update the same Source record. Removing Source deletes its record. These writes share `CookingStore`'s transaction with the other metadata; they do not create a RankedItem, refit strengths, or change comparison evidence. Deleting one of several cooks retains the shared Source. Deleting the last cook cascades through the empty Dish and removes its Source.
+
+Existing dishes have no Source after the additive schema migration; no origin is inferred from their names. A future attempt-level override could be an optional `CookingAttempt.sourceOverride` with effective attribution `sourceOverride ?? dish.source`, while keeping the current Dish Source as the default. That relationship and its deletion rules need explicit product requirements before implementation.
+
+A future canonical Cookbook entity can own a StayGrubby UUID, provider/book IDs, ISBN, authors, cover reference and publication metadata. Add an optional relationship from `DishSource` to it. Existing V1 manual cookbook fields remain on the Source during migration; link a canonical record only after a user chooses or confirms a match, and keep manually entered recipe name/page at the Dish Source. Do not silently replace manual attribution with provider data. Source stores attribution only: no scanned pages, copyrighted cookbook photos or prose, imported recipes, or extracted instructions are stored in this phase.
 
 ## Creation, editing, deletion
 
@@ -38,7 +59,7 @@ Save Answers appends the complete batch through `RankingStore.record`, preservin
 
 ## Exact legacy handling
 
-1. Keep the four original model definitions (`Item`, `RankingList`, `RankedItem`, `Comparison`) and default store location. `AppPersistence` adds four new entities. SwiftData/Core Data performs an automatic lightweight additive schema migration; no custom destructive migration, reset, or replacement store is used.
+1. Keep the four original model definitions (`Item`, `RankingList`, `RankedItem`, `Comparison`) and default store location. Phase 1 added four cooking entities; the Source phase adds `DishSource` and a nullable relationship on Dish. SwiftData/Core Data performs automatic lightweight additive schema migration; no custom destructive migration, reset, or replacement store is used.
 2. On Home, run `CookingStore.prepare` as an idempotent transaction. For each RankedItem not already represented by the unique `rankedItemID`, create one separate Dish and one imported cook pointing at the **same** RankedItem. Do not group similar or duplicate names into an inferred dish.
 3. Copy only the old item name and creation timestamp. Use category Other as an explicit unclassified default. Cooked date, title and notes are nil; tags are empty. “Version 1” is a generated display fallback, not an inferred recipe or cooking date. `isLegacyImport` records provenance.
 4. Do not rename or refit existing items during bridging. Item/list UUIDs, names, creation dates, strengths, uncertainties, diagnostic bytes, comparison IDs, endpoints, winners/ties and timestamps remain unchanged.
@@ -48,9 +69,11 @@ Save Answers appends the complete batch through `RankingStore.record`, preservin
 
 A consistent SQLite backup of the user's simulator store was made before changes at `.local-backups/phase1-20261003/before.store`, with baseline inventory alongside it. That directory is git-ignored because it contains personal app data. Keep the checkpoint for rollback investigation; do not copy an old store over a running app.
 
+Before the Source schema change, a second consistent checkpoint was made at `.local-backups/phase1-source-20261004/before.store`. Its `verification.json` records exact before/after semantic-field hashes for the ranking, comparison, Dish, and cook tables after the simulator build launched on the saved store. The test runner changed the app container path during installation; the verification located the active store and matched its contents to the checkpoint.
+
 ## Extension points and constraints
 
-A future Recipe/source relationship belongs to Dish; an individual cook could later record a recipe revision if needed. A future Media entity should relate many media records to a CookingAttempt, with ordering/type metadata to support photos and videos. There is deliberately no single-image property, media backend, recipe placeholder graph, account, or cloud subsystem in this phase.
+A future Recipe relationship belongs to Dish; an individual cook could later record a recipe revision if needed. A future Media entity should relate many media records to a CookingAttempt, with ordering/type metadata to support photos and videos. There is deliberately no single-image property, media backend, recipe placeholder graph, account, or cloud subsystem in this phase.
 
 Cooking UI and CookingStore understand categories, tags, dates and parent dishes. The ranking system only receives IDs and preference evidence. Generic save staging and batched evidence recording allow atomic domain writes without importing cooking models into the engine.
 
@@ -68,5 +91,7 @@ Validated on **October 4, 2026**, iPhone 17 / iOS 26.5 Simulator:
 - The complete suite was exercised; simulator resource exhaustion and accessibility-query timeouts required isolated sequential reruns of the UI workflows. The existing UI test and all its assertions remain unchanged. The final cooking workflow and original undo/relaunch workflow both passed.
 - Final build and launch succeeded against the real local simulator store. Exact before/after comparison verified 1 RankingList, 14 RankedItems, and 34 Comparisons, including original names, IDs, relationships, scores/uncertainty, diagnostic bytes, winners/ties, and timestamps. The bridge added 14 Dishes and 14 completely linked cooks with safe legacy defaults, one CookingLibrary and no tags. The checkpoint's `verification.json` records counts and matching semantic-field hashes.
 - Validation applies to the inspected simulator store; no physical-device store was opened or changed.
+
+The Source extension was validated on **October 4, 2026**, iPhone 17 / iOS 26.5 Simulator. The complete existing and new test suite passed: 44 test cases, 57 parameterized/configuration executions, zero failures. `DishSourceTests` checks all seven types across disk reload, type-specific fields, no-source and legacy defaults, shared New Version inheritance, edits/removal without rank or comparison changes, cancellation, and Source cleanup after deletion. `DishSourceUITests` checks cookbook entry, switching to restaurant, removal, and relaunch. The final build launched with the saved user store. Its 1 RankingList, 14 RankedItems, 34 Comparisons, 14 Dishes, and 14 CookingAttempts matched the pre-change checkpoint exactly on semantic fields, including IDs, scores, uncertainty, diagnostics, evidence, timestamps, and links. It has zero DishSource rows and all 14 Dishes have a null Source relationship. The app display name and Home title are StayGrubby; project, module, and bundle identifiers remain unchanged.
 
 Substantially changed files: `Cooking/` (models, taxonomy, drafts, persistence, write service and re-ranking session), `Views/Cooking/` (forms, global cooking list and details/re-ranking screens), `Grub_RankedApp.swift`, `ContentView.swift`, `Views/HomeView.swift`, `Models/RankingStore.swift` (transaction staging/batching), and `RankingEngine/RankingAnalysis.swift` (optional focused refinement filter). Added `CookingModelTests.swift`, `CookingUITests.swift`, this document, and a `.gitignore` entry for private backups. The original four model files, fitting code, insertion engine and original test files are unchanged.

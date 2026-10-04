@@ -72,7 +72,11 @@ enum CookingStore {
         do {
             let dish: Dish
             if let existingDish { dish = existingDish }
-            else { dish = Dish(name: draft.cleanDishName, category: draft.category); context.insert(dish) }
+            else {
+                dish = Dish(name: draft.cleanDishName, category: draft.category)
+                context.insert(dish)
+                DishSourceStore.apply(draft.source, to: dish, context: context)
+            }
             let number = (dish.attempts.map(\.sequenceNumber).max() ?? 0) + 1
             let label = "\(dish.name) — \(draft.cleanTitle ?? "Version \(number)")"
             let item = try RankingStore.stage(name: label, session: session, to: global, context: context)
@@ -92,6 +96,7 @@ enum CookingStore {
         do {
             let renamed = dish.name != draft.cleanDishName
             dish.name = draft.cleanDishName
+            DishSourceStore.apply(draft.source, to: dish, context: context)
             apply(draft, to: attempt)
             attempt.tags = try tags(for: draft, context: context)
             // Renaming the shared dish updates display caches only, never preference evidence.
