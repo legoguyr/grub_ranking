@@ -8,6 +8,7 @@ final class DishSourceUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-test-store", UUID().uuidString]
         app.launch()
+        XCTAssertTrue(app.navigationBars["Rankings"].waitForExistence(timeout: 15))
 
         func tapWhenVisible(_ element: XCUIElement) {
             for _ in 0..<6 {
@@ -26,7 +27,6 @@ final class DishSourceUITests: XCTestCase {
             XCTAssertTrue(option.waitForExistence(timeout: 5), "Missing source option \(name): \(app.debugDescription)")
             option.tap()
         }
-        tapWhenVisible(app.buttons["my-cooking"])
         tapWhenVisible(app.buttons["new-dish"])
         fill(app.textFields["dish-name"], "Pasta")
         chooseSource("Cookbook")
@@ -57,7 +57,7 @@ final class DishSourceUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Edit Cook"].waitForExistence(timeout: 15))
         XCTAssertFalse(app.staticTexts["Restaurant · Carbone"].exists)
         app.terminate(); app.launch()
-        tapWhenVisible(app.buttons["my-cooking"])
+        XCTAssertTrue(app.navigationBars["Rankings"].waitForExistence(timeout: 15))
         tapWhenVisible(row)
         XCTAssertFalse(app.staticTexts["Restaurant · Carbone"].exists)
     }

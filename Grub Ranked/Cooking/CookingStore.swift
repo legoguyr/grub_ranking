@@ -58,7 +58,8 @@ enum CookingStore {
     }
 
     @discardableResult
-    static func create(draft: CookingDraft, existingDish: Dish? = nil, session: RankingEngine, context: ModelContext) throws -> CookingAttempt {
+    static func create(draft: CookingDraft, existingDish: Dish? = nil, session: RankingEngine,
+                       context: ModelContext, mediaDirectory: URL? = nil) throws -> CookingAttempt {
         guard !draft.cleanDishName.isEmpty, draft.cookedAt != nil else { throw StoreError.invalidDraft }
         guard session.isComplete else { throw StoreError.incompleteSession }
         let global = try globalRanking(context: context)
@@ -69,6 +70,7 @@ enum CookingStore {
               Set(session.orderedIDs) == Set(global.items.map(\.id)),
               existingDish == nil || existingDish!.attempts.contains(where: { $0.rankedItem?.list?.id == global.id })
         else { throw RankingStore.EvidenceError.invalidComparison }
+        var writtenMedia: CookingMedia?
         do {
             let dish: Dish
             if let existingDish { dish = existingDish }
@@ -85,32 +87,63 @@ enum CookingStore {
             dish.attempts.append(attempt)
             apply(draft, to: attempt)
             attempt.tags = try tags(for: draft, context: context)
+            if let photo = draft.pendingPhoto {
+                let media = try LocalPhotoStore.write(photo, rootURL: mediaDirectory)
+                writtenMedia = media
+                context.insert(media)
+                attempt.media.append(media)
+            }
             try context.save()
             return attempt
-        } catch { context.rollback(); throw error }
+        } catch {
+            if let writtenMedia { LocalPhotoStore.deleteFiles(for: writtenMedia, rootURL: mediaDirectory) }
+            context.rollback(); throw error
+        }
     }
 
-    static func edit(_ attempt: CookingAttempt, draft: CookingDraft, context: ModelContext) throws {
+    static func edit(_ attempt: CookingAttempt, draft: CookingDraft, context: ModelContext,
+                     mediaDirectory: URL? = nil) throws {
         guard !draft.cleanDishName.isEmpty else { throw StoreError.invalidDraft }
         guard let dish = attempt.dish, attempt.rankedItem != nil else { throw StoreError.missingItem }
+        let replacingPhoto = draft.pendingPhoto != nil || draft.removeExistingPhoto
+        let retiredFiles = replacingPhoto ? attempt.media.map { ($0.displayFilename, $0.thumbnailFilename) } : []
+        var writtenMedia: CookingMedia?
         do {
             let renamed = dish.name != draft.cleanDishName
             dish.name = draft.cleanDishName
             DishSourceStore.apply(draft.source, to: dish, context: context)
             apply(draft, to: attempt)
             attempt.tags = try tags(for: draft, context: context)
+            if replacingPhoto {
+                for media in attempt.media { context.delete(media) }
+                attempt.media.removeAll()
+                if let photo = draft.pendingPhoto {
+                    let media = try LocalPhotoStore.write(photo, rootURL: mediaDirectory)
+                    writtenMedia = media
+                    context.insert(media)
+                    attempt.media.append(media)
+                }
+            }
             // Renaming the shared dish updates display caches only, never preference evidence.
             for sibling in dish.attempts where renamed || sibling.id == attempt.id {
                 sibling.rankedItem?.name = sibling.displayName
                 sibling.updatedAt = .now
             }
             try context.save()
-        } catch { context.rollback(); throw error }
+            for files in retiredFiles {
+                LocalPhotoStore.deleteFiles(displayFilename: files.0, thumbnailFilename: files.1,
+                                            rootURL: mediaDirectory)
+            }
+        } catch {
+            if let writtenMedia { LocalPhotoStore.deleteFiles(for: writtenMedia, rootURL: mediaDirectory) }
+            context.rollback(); throw error
+        }
     }
 
-    static func delete(_ attempt: CookingAttempt, context: ModelContext) throws {
+    static func delete(_ attempt: CookingAttempt, context: ModelContext, mediaDirectory: URL? = nil) throws {
         guard let item = attempt.rankedItem else { throw StoreError.missingItem }
         let list = item.list
+        let retiredFiles = attempt.media.map { ($0.displayFilename, $0.thumbnailFilename) }
         do {
             // IDs in evidence are scalar values; explicitly remove every incident edge,
             // including repeated/tie/refinement observations before deleting the item.
@@ -128,6 +161,10 @@ enum CookingStore {
             if let dish, dish.attempts.isEmpty { context.delete(dish) }
             list?.recompute()
             try context.save()
+            for files in retiredFiles {
+                LocalPhotoStore.deleteFiles(displayFilename: files.0, thumbnailFilename: files.1,
+                                            rootURL: mediaDirectory)
+            }
         } catch { context.rollback(); throw error }
     }
 

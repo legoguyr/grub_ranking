@@ -4,6 +4,7 @@ import SwiftData
 struct ReRankView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
+    @Query private var attempts: [CookingAttempt]
     let attempt: CookingAttempt
     @State private var session: ReRankingSession
     @State private var error: String?
@@ -17,7 +18,14 @@ struct ReRankView: View {
         NavigationStack {
             Group {
                 if let opponent = attempt.rankedItem?.list?.items.first(where: { $0.id == session.nextOpponent }) {
-                    ComparisonView(newName: attempt.displayName, existingName: opponent.name, canUndo: !session.answers.isEmpty,
+                    let opponentAttempt = attempts.first { $0.rankedItemID == opponent.id }
+                    ComparisonView(newName: attempt.dish?.name ?? attempt.displayName,
+                                   existingName: opponentAttempt?.dish?.name ?? opponent.name,
+                                   newVersion: attempt.versionLabel,
+                                   existingVersion: opponentAttempt?.versionLabel,
+                                   newPhoto: attempt.primaryImage,
+                                   existingPhoto: opponentAttempt?.primaryImage,
+                                   canUndo: !session.answers.isEmpty,
                                    onAnswer: { session.answer($0) }, onUndo: { session.undo() })
                 } else {
                     VStack(spacing: 20) {

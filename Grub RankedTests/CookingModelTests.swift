@@ -282,8 +282,10 @@ struct CookingModelTests {
                 #expect(attempt.createdAt == attempt.rankedItem?.createdAt)
                 #expect(attempt.dish?.attempts.count == 1)
                 #expect(attempt.dish?.source == nil)
+                #expect(attempt.media.isEmpty)
             }
             #expect(try context.fetchCount(FetchDescriptor<DishSource>()) == 0)
+            #expect(try context.fetchCount(FetchDescriptor<CookingMedia>()) == 0)
         }
         let reopened = try AppPersistence.open(url: url); let context = ModelContext(reopened)
         #expect(try CookingStore.prepare(context: context).id == primaryID)

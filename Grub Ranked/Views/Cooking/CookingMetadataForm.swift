@@ -9,6 +9,9 @@ struct CookingMetadataForm: View {
     @FocusState private var titleFocused: Bool
 
     var body: some View {
+        Section("Photo (optional)") {
+            CookingPhotoEditor(draft: $draft)
+        }
         Section("Dish") {
             TextField("Dish name", text: $draft.dishName)
                 .accessibilityIdentifier("dish-name").disabled(existingDish && !editing)

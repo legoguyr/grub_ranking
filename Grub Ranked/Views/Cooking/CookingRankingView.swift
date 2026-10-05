@@ -9,40 +9,53 @@ struct CookingRankingView: View {
     @State private var choosingDish = false
     @State private var selectedDish: Dish?
     @State private var pendingDish: Dish?
+    @State private var searchText = ""
     private var eligibleDishes: [Dish] { dishes.filter { dish in dish.attempts.contains { $0.rankedItem?.list?.id == list.id } } }
+    private var rankedAttempts: [(rank: Int, attempt: CookingAttempt)] {
+        list.orderedItems.enumerated().compactMap { index, item in
+            guard let attempt = attempts.first(where: { $0.rankedItemID == item.id }) else { return nil }
+            let search = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard search.isEmpty || attempt.displayName.localizedCaseInsensitiveContains(search) ||
+                    attempt.category.label.localizedCaseInsensitiveContains(search) else { return nil }
+            return (index + 1, attempt)
+        }
+    }
 
     var body: some View {
         List {
             Section {
-                Button("New Dish", systemImage: "plus") { newDish = true }.accessibilityIdentifier("new-dish")
-                Button("New Version", systemImage: "arrow.triangle.branch") { choosingDish = true }
-                    .disabled(eligibleDishes.isEmpty).accessibilityIdentifier("new-version")
-            }
-            Section("All cooks · global ranking") {
-                if list.items.isEmpty {
-                    Text("Log your first dish to start ranking what you cook.").foregroundStyle(.secondary)
-                }
-                ForEach(Array(list.orderedItems.enumerated()), id: \.element.id) { index, item in
-                    if let attempt = attempts.first(where: { $0.rankedItemID == item.id }) {
-                        NavigationLink { AttemptDetailView(attempt: attempt) } label: {
-                            HStack {
-                                Text("\(index + 1)").monospacedDigit().foregroundStyle(.secondary).frame(minWidth: 25)
-                                VStack(alignment: .leading) {
-                                    Text(attempt.dish?.name ?? item.name).font(.headline)
-                                    Text(attempt.versionLabel).font(.subheadline).foregroundStyle(.secondary)
-                                }
-                                Spacer()
-                                Text(item.score, format: .number.precision(.fractionLength(1))).font(.headline).monospacedDigit()
-                            }.padding(.vertical, 4)
-                        }.accessibilityIdentifier("cook-row-\(item.id)")
-                            .accessibilityLabel("Rank \(index + 1), \(attempt.displayName), score \(item.score.formatted(.number.precision(.fractionLength(1))))")
-                    } else {
-                        Text(item.name)
+                HStack(spacing: SGTheme.Space.small) {
+                    Button { newDish = true } label: {
+                        Label("New Dish", systemImage: "plus").frame(maxWidth: .infinity, minHeight: 44)
                     }
+                    .buttonStyle(.borderedProminent).accessibilityIdentifier("new-dish")
+                    Button { choosingDish = true } label: {
+                        Label("New Version", systemImage: "arrow.triangle.branch")
+                            .frame(maxWidth: .infinity, minHeight: 44)
+                    }
+                    .buttonStyle(.bordered).disabled(eligibleDishes.isEmpty).accessibilityIdentifier("new-version")
+                }
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+            }
+            Section {
+                if list.items.isEmpty {
+                    ContentUnavailableView("Your cooking, ranked", systemImage: "fork.knife",
+                                           description: Text("Add your first dish to begin."))
+                }
+                ForEach(rankedAttempts, id: \.attempt.id) { entry in
+                    NavigationLink { AttemptDetailView(attempt: entry.attempt) } label: {
+                        RankedDishRow(attempt: entry.attempt, rank: entry.rank)
+                    }
+                    .accessibilityIdentifier("cook-row-\(entry.attempt.rankedItemID)")
+                    .accessibilityLabel("Rank \(entry.rank), \(entry.attempt.displayName), score \(entry.attempt.rankedItem?.score.formatted(.number.precision(.fractionLength(1))) ?? "unknown")")
                 }
             }
         }
-        .navigationTitle("My Cooking")
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .background(SGTheme.ColorToken.background)
+        .navigationTitle("Rankings")
+        .searchable(text: $searchText, prompt: "Search dishes")
         .sheet(isPresented: $newDish) { AddCookingView(list: list) }
         .sheet(item: $selectedDish) { AddCookingView(list: list, dish: $0) }
         .sheet(isPresented: $choosingDish, onDismiss: {

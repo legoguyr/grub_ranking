@@ -4,6 +4,7 @@ import SwiftData
 struct AddCookingView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
+    @Query private var attempts: [CookingAttempt]
     let list: RankingList
     let dish: Dish?
     @State private var draft: CookingDraft
@@ -23,7 +24,14 @@ struct AddCookingView: View {
             Group {
                 if let session {
                     if let opponent = list.items.first(where: { $0.id == session.nextOpponent }) {
-                        ComparisonView(newName: displayName, existingName: opponent.name, canUndo: session.canUndo,
+                        let opponentAttempt = attempts.first { $0.rankedItemID == opponent.id }
+                        ComparisonView(newName: draft.cleanDishName,
+                                       existingName: opponentAttempt?.dish?.name ?? opponent.name,
+                                       newVersion: draft.cleanTitle ?? "Version \((dish?.attempts.map(\.sequenceNumber).max() ?? 0) + 1)",
+                                       existingVersion: opponentAttempt?.versionLabel,
+                                       newPreparedPhoto: draft.pendingPhoto,
+                                       existingPhoto: opponentAttempt?.primaryImage,
+                                       canUndo: session.canUndo,
                                        onAnswer: { self.session?.answer($0) }, onUndo: { self.session?.undo() })
                     } else {
                         VStack(spacing: 20) {
