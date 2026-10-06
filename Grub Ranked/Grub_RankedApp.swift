@@ -18,7 +18,13 @@ struct Grub_RankedApp: App {
             testURL = FileManager.default.temporaryDirectory.appendingPathComponent("ui-test-\(identifier.uuidString).store")
         }
         #endif
-        return try AppPersistence.open(url: testURL)
+        let container = try AppPersistence.open(url: testURL)
+        #if DEBUG
+        if testURL != nil && arguments.contains("--discovery-fixture") {
+            try DiscoveryReviewFixture.seed(container: container)
+        }
+        #endif
+        return container
     }
 
     var body: some Scene {

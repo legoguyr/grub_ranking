@@ -24,6 +24,8 @@ Allergy: Peanut-Free, Tree-Nut-Free, Sesame-Free, Milk-Free, Egg-Free, Wheat-Fre
 
 Custom labels trim/collapse whitespace; identity also folds case and character width. The first saved display spelling is retained. Blank labels are ignored. Standard tags and identically named custom tags remain distinct kinds. Tags are separate records, not a hashtag string or comma-delimited database field.
 
+Phase 2B discovery reads ranked CookingAttempts without introducing persistence entities or altering ranking evidence. Category is single-select; Dietary and Allergy selections OR within their own group and AND across groups and with text search. Custom tags are searchable text, not a structured filter taxonomy. Each matching version stays independently discoverable in global ranking order with its original global rank and score. Search reuses the same custom-tag normalization. See `UI_ARCHITECTURE.md` for exact searchable fields, state ownership, and empty states.
+
 ## Source attribution
 
 Source records **where the dish idea came from**. A future Recipe would record **how the user makes it**. Neither concept enters the ranking engine. Source is optional: leaving the picker at No source creates no record and adds no questions to ranking.

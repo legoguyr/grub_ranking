@@ -6,17 +6,24 @@ struct DishPhoto: View {
     var prepared: PreparedCookingPhoto?
     var thumbnail = false
     var name = "Dish"
+    @State private var loadedImage: UIImage?
 
-    private var image: UIImage? {
-        if let prepared { return UIImage(data: thumbnail ? prepared.thumbnailData : prepared.displayData) }
-        guard let media, let data = LocalPhotoStore.data(for: media, thumbnail: thumbnail) else { return nil }
-        return UIImage(data: data)
+    private struct ImageRequest: Equatable {
+        let mediaID: UUID?
+        let filename: String?
+        let thumbnail: Bool
+        let preparedData: Data?
+    }
+
+    private var request: ImageRequest {
+        ImageRequest(mediaID: media?.id, filename: thumbnail ? media?.thumbnailFilename : media?.displayFilename,
+                     thumbnail: thumbnail, preparedData: prepared.map { thumbnail ? $0.thumbnailData : $0.displayData })
     }
 
     var body: some View {
         Group {
-            if let image {
-                Image(uiImage: image).resizable().scaledToFill()
+            if let loadedImage {
+                Image(uiImage: loadedImage).resizable().scaledToFill()
             } else {
                 ZStack {
                     LinearGradient(colors: [Color.secondary.opacity(0.13), Color.secondary.opacity(0.05)],
@@ -28,7 +35,13 @@ struct DishPhoto: View {
         }
         .clipped()
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(image == nil ? "No photo for \(name)" : "Photo of \(name)")
+        .accessibilityLabel(loadedImage == nil ? "No photo for \(name)" : "Photo of \(name)")
+        .task(id: request) {
+            // Retain the decoded thumbnail through query/filter re-renders. Only a
+            // changed photo source or size triggers disk access and decoding.
+            let data = request.preparedData ?? media.flatMap { LocalPhotoStore.data(for: $0, thumbnail: thumbnail) }
+            loadedImage = data.flatMap(UIImage.init(data:))
+        }
     }
 }
 
