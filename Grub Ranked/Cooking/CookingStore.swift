@@ -194,6 +194,7 @@ enum CookingStore {
         }
         for tag in draft.dietary.sorted(by: { $0.rawValue < $1.rawValue }) { append(.dietary, tag.rawValue, tag.label) }
         for tag in draft.allergy.sorted(by: { $0.rawValue < $1.rawValue }) { append(.allergy, tag.rawValue, tag.label) }
+        for tag in draft.contains.sorted(by: { $0.rawValue < $1.rawValue }) { append(.contains, tag.rawValue, tag.label) }
         for label in TagNormalization.deduplicated(draft.customTags) { append(.custom, TagNormalization.key(label), label) }
         return result
     }

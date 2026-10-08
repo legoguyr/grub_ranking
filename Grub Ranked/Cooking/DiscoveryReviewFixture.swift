@@ -18,22 +18,22 @@ enum DiscoveryReviewFixture {
         }
 
         var cake = CookingDraft(); cake.dishName = "Apple Cake"; cake.category = .dessert
-        cake.dietary = [.vegetarian]; cake.allergy = [.peanutFree]
+        cake.dietary = [.vegetarian]; cake.contains = [.wheat, .egg]
         _ = try create(cake)
         var pasta = CookingDraft(); pasta.dishName = "Lemon Pasta"; pasta.category = .pastaNoodles
-        pasta.dietary = [.vegan]; pasta.allergy = [.milkFree, .sesameFree]; pasta.customTags = ["Weeknight"]
+        pasta.dietary = [.vegan]; pasta.contains = [.wheat]; pasta.customTags = ["Weeknight"]
         _ = try create(pasta)
         var bass = CookingDraft(); bass.dishName = "Sea Bass"; bass.category = .main
-        bass.dietary = [.kosher]; bass.allergy = [.peanutFree]
+        bass.dietary = [.kosher]; bass.contains = [.fish, .sesame]
         _ = try create(bass)
         var chicken = CookingDraft(); chicken.dishName = "Harissa Chicken"; chicken.category = .main
         chicken.versionTitle = "Golden sear"; chicken.dietary = [.kosher, .dairyFree]
-        chicken.allergy = [.sesameFree]; chicken.customTags = ["Date Night"]
+        chicken.contains = []; chicken.customTags = ["Date Night"]
         var source = DishSourceDraft(type: .cookbook); source.cookbookTitle = "Zahav"
         chicken.source = source
         let first = try create(chicken)
         chicken.versionTitle = "Smoky Sunday"
-        chicken.dietary = [.halal]; chicken.allergy = [.peanutFree]
+        chicken.dietary = [.halal]; chicken.contains = [.sesame, .peanuts]
         let data = UIGraphicsImageRenderer(size: CGSize(width: 360, height: 240)).jpegData(withCompressionQuality: 0.8) { context in
             UIColor.systemOrange.setFill(); context.fill(CGRect(x: 0, y: 0, width: 360, height: 240))
         }

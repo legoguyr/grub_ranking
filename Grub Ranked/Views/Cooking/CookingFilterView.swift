@@ -1,58 +1,65 @@
 import SwiftUI
 
+nonisolated enum CookingFilterGroup: String, Identifiable {
+    case course, dietary, avoid
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .course: CookingProductOptions.courseTitle
+        case .dietary: "Dietary"
+        case .avoid: "Avoid"
+        }
+    }
+}
+
 struct CookingFilterView: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var filters: CookingFilters
+    let group: CookingFilterGroup
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section {
-                    Picker("Category", selection: $filters.category) {
-                        Text("All categories").tag(DishCategory?.none)
-                        ForEach(DishCategory.allCases) { category in
-                            Text(category.label).tag(Optional(category))
+            ScrollView {
+                VStack(spacing: SGTheme.Space.xSmall) {
+                    switch group {
+                    case .course:
+                        SGSelectionRow(title: "All courses", selected: filters.category == nil) { filters.category = nil }
+                        ForEach(CookingProductOptions.courses) { course in
+                            SGSelectionRow(title: course.label, selected: filters.category == course) {
+                                filters.category = filters.category == course ? nil : course
+                            }.accessibilityIdentifier("filter-course-\(course.rawValue)")
                         }
+                    case .dietary:
+                        ForEach(CookingProductOptions.dietary) { tag in
+                            SGSelectionRow(title: tag.label, selected: filters.dietary.contains(tag)) {
+                                if filters.dietary.contains(tag) { filters.dietary.remove(tag) }
+                                else { filters.dietary.insert(tag) }
+                            }.accessibilityIdentifier("filter-dietary-\(tag.rawValue)")
+                        }
+                    case .avoid:
+                        SGAllergenChoices(selection: $filters.avoidedAllergens, identifierPrefix: "filter-avoid")
+                        Button("Clear Avoid") { filters.avoidedAllergens = [] }
+                            .buttonStyle(SGButtonStyle()).accessibilityIdentifier("clear-avoid")
                     }
-                    .accessibilityIdentifier("filter-category")
-                } header: { Text("Category / Meal Type") }
-                Section {
-                    ForEach(DietaryTag.allCases) { tag in
-                        Toggle(tag.label, isOn: Binding(
-                            get: { filters.dietary.contains(tag) },
-                            set: { selected in
-                                if selected { filters.dietary.insert(tag) } else { filters.dietary.remove(tag) }
-                            }))
-                        .accessibilityIdentifier("filter-dietary-\(tag.rawValue)")
+                    if group == .dietary {
+                        Text("Matches any selected \(group.title.lowercased()) label. Groups and search must all match.")
+                            .font(SGTheme.TypeRole.secondary).foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading).padding(.top, SGTheme.Space.small)
                     }
-                } header: { Text("Dietary") } footer: {
-                    Text("Matches any selected Dietary tag.")
-                }
-                Section {
-                    ForEach(AllergyTag.allCases) { tag in
-                        Toggle(tag.label, isOn: Binding(
-                            get: { filters.allergies.contains(tag) },
-                            set: { selected in
-                                if selected { filters.allergies.insert(tag) } else { filters.allergies.remove(tag) }
-                            }))
-                        .accessibilityIdentifier("filter-allergy-\(tag.rawValue)")
+                    if group == .avoid {
+                        Text(CookingProductOptions.allergenSafetyText).accessibilityIdentifier("allergen-safety")
+                            .font(SGTheme.TypeRole.secondary).foregroundStyle(.secondary)
                     }
-                } header: { Text("Allergies") } footer: {
-                    Text("Matches any selected Allergy tag. These are your own labels, not verified safety information.")
-                }
-                Section {
-                    Button("Clear Filters") { filters = CookingFilters() }
-                        .disabled(!filters.isActive).accessibilityIdentifier("sheet-clear-filters")
-                } footer: {
-                    Text("Category, Dietary, Allergies, and search must all match. Results keep their global ranking order and scores.")
-                }
+                }.padding(SGTheme.Space.medium)
             }
-            .navigationTitle("Filters").navigationBarTitleDisplayMode(.inline)
+            .background(SGTheme.ColorToken.background)
+            .navigationTitle(group.title).navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }.accessibilityIdentifier("filters-done")
                 }
             }
         }
+        .presentationDetents([.medium, .large]).presentationDragIndicator(.visible)
     }
 }

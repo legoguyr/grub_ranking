@@ -9,7 +9,9 @@ struct ContentView: View {
             NavigationStack {
                 ContentUnavailableView("Feed comes later", systemImage: "rectangle.stack",
                     description: Text("Your private cooking rankings stay local in this version."))
-                    .navigationTitle("Feed")
+                    .navigationTitle("Feed").toolbar(.hidden, for: .navigationBar)
+                    .safeAreaInset(edge: .top) { StayGrubbyHeader(page: "Feed", searchText: .constant(""), searching: .constant(false)) }
+                    .background(SGTheme.ColorToken.background)
             }
             .tabItem { Label("Feed", systemImage: "house") }.tag(StayGrubbyTab.feed)
 
@@ -20,7 +22,9 @@ struct ContentView: View {
             NavigationStack {
                 ContentUnavailableView("Profile comes later", systemImage: "person.crop.circle",
                     description: Text("Accounts and social profiles are outside the local app."))
-                    .navigationTitle("Profile")
+                    .navigationTitle("Profile").toolbar(.hidden, for: .navigationBar)
+                    .safeAreaInset(edge: .top) { StayGrubbyHeader(page: "Profile", searchText: .constant(""), searching: .constant(false)) }
+                    .background(SGTheme.ColorToken.background)
             }
             .tabItem { Label("Profile", systemImage: "person") }.tag(StayGrubbyTab.profile)
         }

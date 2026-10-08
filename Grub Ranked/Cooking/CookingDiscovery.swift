@@ -4,9 +4,9 @@ import Foundation
 nonisolated struct CookingFilters: Equatable {
     var category: DishCategory?
     var dietary: Set<DietaryTag> = []
-    var allergies: Set<AllergyTag> = []
+    var avoidedAllergens: Set<Allergen> = []
 
-    var count: Int { (category == nil ? 0 : 1) + dietary.count + allergies.count }
+    var count: Int { (category == nil ? 0 : 1) + dietary.count + avoidedAllergens.count }
     var isActive: Bool { count > 0 }
 }
 
@@ -35,10 +35,10 @@ enum CookingDiscovery {
         let dietary = attempt.dietaryTags
         let allergies = attempt.allergyTags
         if !filters.dietary.isEmpty && dietary.isDisjoint(with: filters.dietary) { return false }
-        if !filters.allergies.isEmpty && allergies.isDisjoint(with: filters.allergies) { return false }
+        if !attempt.containedAllergens.isDisjoint(with: filters.avoidedAllergens) { return false }
         guard !search.isEmpty else { return true }
         let fields = [attempt.dish?.name ?? attempt.rankedItem?.name ?? "", attempt.versionLabel,
-                      attempt.category.label] + attempt.customTags + dietary.map(\.label) + allergies.map(\.label)
+                      attempt.category.label] + attempt.customTags + dietary.map(\.label) + allergies.map(\.label) + attempt.containedAllergens.map { "Contains \($0.label)" }
         return fields.contains { TagNormalization.key($0).contains(search) }
     }
 }

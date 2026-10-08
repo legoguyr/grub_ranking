@@ -8,9 +8,12 @@ final class Grub_RankedUITests: XCTestCase {
         XCUIDevice.shared.orientation = .portrait
         let app = XCUIApplication()
         app.launchArguments = ["--ui-test-store", UUID().uuidString]
-        app.launch()
+        app.launchWithReviewOptions()
 
-        XCTAssertTrue(app.navigationBars["Rankings"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 15))
+        XCTAssertTrue(app.buttons["creation-toggle"].exists)
+        XCTAssertFalse(app.buttons["new-dish"].exists)
+        app.revealCreation()
         XCTAssertTrue(app.buttons["new-dish"].exists)
         XCTAssertTrue(app.buttons["new-version"].exists)
         XCTAssertFalse(app.buttons["my-cooking"].exists)
@@ -24,7 +27,7 @@ final class Grub_RankedUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-test-store", UUID().uuidString,
                                "--comparison-fixture", "11", "--test-dark"]
-        app.launch()
+        app.launchWithReviewOptions()
 
         let next = app.buttons["comparison-fixture-next"]
         XCTAssertTrue(next.waitForExistence(timeout: 15))
@@ -42,7 +45,14 @@ final class Grub_RankedUITests: XCTestCase {
             XCTAssertTrue((left.value as? String)?.contains("Square photo area") == true)
             XCTAssertGreaterThanOrEqual(left.frame.minX, 0)
             XCTAssertLessThanOrEqual(right.frame.maxX, app.windows.firstMatch.frame.maxX)
-            XCTAssertTrue(app.staticTexts["OR"].exists)
+            let separator = app.staticTexts["comparison-or"]
+            XCTAssertTrue(separator.exists)
+            XCTAssertGreaterThan(separator.frame.midX, left.frame.maxX)
+            XCTAssertLessThan(separator.frame.midX, right.frame.minX)
+            XCTAssertTrue(left.label.contains("Smoky Sunday version"))
+            XCTAssertTrue(right.label.contains("Version 2"))
+            XCTAssertTrue(app.scrollViews["comparison-content"].exists)
+        XCTAssertFalse(app.scrollViews["comparison-content"].staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Score '")).firstMatch.exists)
 
             let attachment = XCTAttachment(screenshot: app.screenshot())
             attachment.name = "Comparison \(mode) Dark"

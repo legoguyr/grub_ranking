@@ -8,47 +8,48 @@ Phase 1 adds local cooking metadata around the existing generic ranking system. 
 - **CookingAttempt**: unique UUID, parent Dish, unique `rankedItemID` plus a SwiftData reference to that RankedItem, cooked date, optional version title and notes, category snapshot, tags, sequence number, created/updated timestamps, and legacy-import provenance. The interface calls it a *cook* or *version*.
 - **RankedItem**: owns ranking identity, cached display name, creation date, estimated strength/uncertainty and insertion diagnostics. Every cook has its own item. All new cooks, including versions of one dish, enter the same global RankingList.
 - **CookingLibrary**: persists the UUID of the chosen global list. This application adapter keeps cooking ownership out of RankingList and the inference engine.
-- **CookingTag**: shared structured rows identified by `kind:value`, with separate dietary, allergy, and custom kinds. Relationships support filtering by a tag; scalar raw codes support SwiftData predicates. Unused tag rows are retained for reuse.
+- **CookingTag**: shared structured rows identified by `kind:value`, with separate dietary, legacy allergy, Contains, and custom kinds. Relationships support filtering by a tag; scalar raw codes support SwiftData predicates. Unused tag rows are retained for reuse.
 - **DishSource**: optional, single Dish-owned attribution record with its own UUID, controlled type code, type-specific manual metadata and timestamps. The dish cascades deletion to its Source. Source does not carry a score or recipe instructions.
 - **CookingMedia**: file-backed, ordered media metadata owned by one CookingAttempt. V1 writes at most one image with display and thumbnail filenames; bytes live under Application Support rather than in SwiftData. Media has no ranking identity or score.
 
 SwiftData references are optional to support nullification and additive migration; `CookingStore` is the application write boundary and creates complete Dish → cook → RankedItem links atomically. Do not delete cooking-related RankedItems or Dishes directly through a ModelContext: use the cooking service so scalar comparison references are cleaned up too.
 
-## Categories and tags
+## Courses and tags
 
-`DishCategory` is the controlled list: Main, Appetizer, Side, Soup, Salad, Pasta/Noodles, Sandwich, Breakfast/Brunch, Snack, Dessert, Baked Good, Sauce/Condiment, Drink, Other. Persisted raw codes are stable and separate from labels. The dish default initializes each new version; changing a cook's category changes only its snapshot. Phase 1 does not expose a separate default-category editor.
+`DishCategory` is the controlled Course list (the persisted category property/code is retained): Main, Appetizer, Side, Soup, Salad, Pasta/Noodles, Sandwich, Breakfast/Brunch, Snack, Dessert, Baked Good, Sauce/Condiment, Drink, Other. Persisted raw codes are stable and separate from labels. The dish default initializes each new version; changing a cook's category changes only its snapshot. Phase 1 does not expose a separate default-category editor.
 
 Dietary: Kosher, Vegetarian, Vegan, Dairy-Free, Gluten-Free, Halal.
 
-Allergy: Peanut-Free, Tree-Nut-Free, Sesame-Free, Milk-Free, Egg-Free, Wheat-Free, Soy-Free, Fish-Free, Shellfish-Free. These are user-entered labels, never a safety certification.
+Legacy Free labels (compatibility only): Peanut-Free, Tree-Nut-Free, Sesame-Free, Milk-Free, Egg-Free, Wheat-Free, Soy-Free, Fish-Free, Shellfish-Free. These are user-entered labels, never a safety certification.
 
 Custom labels trim/collapse whitespace; identity also folds case and character width. The first saved display spelling is retained. Blank labels are ignored. Standard tags and identically named custom tags remain distinct kinds. Tags are separate records, not a hashtag string or comma-delimited database field.
 
-Phase 2B discovery reads ranked CookingAttempts without introducing persistence entities or altering ranking evidence. Category is single-select; Dietary and Allergy selections OR within their own group and AND across groups and with text search. Custom tags are searchable text, not a structured filter taxonomy. Each matching version stays independently discoverable in global ranking order with its original global rank and score. Search reuses the same custom-tag normalization. See `UI_ARCHITECTURE.md` for exact searchable fields, state ownership, and empty states.
+The original Phase 2B discovery read ranked CookingAttempts without introducing persistence entities or altering ranking evidence. The Phase 2C polish replaces the earlier Allergy matching group with Avoid exclusion; see Contains and Avoid below. Course stays single-select and Dietary matches any selected dietary value. Custom tags are searchable text, not a structured filter taxonomy. Each matching version stays independently discoverable in global ranking order with its original global rank and score. Search reuses the same custom-tag normalization. See `UI_ARCHITECTURE.md` for exact searchable fields, state ownership, and empty states.
 
 ## Source attribution
 
-Source records **where the dish idea came from**. A future Recipe would record **how the user makes it**. Neither concept enters the ranking engine. Source is optional: leaving the picker at No source creates no record and adds no questions to ranking.
+Source records **where the dish idea came from**. A future Recipe would record **how the user makes it**. Neither concept enters the ranking engine. Source is optional: leaving the optional editor at No source creates no record and adds no questions to ranking.
 
-`DishSourceType` stores stable codes for Original / My Recipe, Cookbook, Restaurant, Online Recipe, Social Media, Friend / Family, and Other. Each type has separate nullable fields; the form only shows the fields relevant to the selected type:
+Phase 2C uses six centralized user-facing `SourceChoice` options: **My Own, Online, Cookbook, Restaurant, Friend / Family, Other**. `CookingProductOptions` is the product selection source for Courses, Dietary, Contains/Avoid allergens and Source choices. Views consume it rather than maintaining duplicate lists. Underlying raw enum codes remain unchanged for persistence and discovery compatibility; Category is called **Course** throughout the interface.
 
-- Original / My Recipe: type alone.
-- Cookbook: manually entered title, authors, recipe/dish name, optional page.
-- Restaurant: name, original dish name, optional location.
-- Online Recipe: recipe name, website/creator, URL.
-- Social Media: creator, platform, post/video URL, dish name.
-- Friend / Family: person's name and optional note.
-- Other: source name and details.
+Source asks only where the idea came from:
 
-The New Dish form adds one optional Source picker below the existing fields. New Version displays the parent Dish's Source as inherited, without asking for the same attribution again or creating a copy. Editing any cook can edit the shared Dish Source; the form says this affects every version. Type changes clear fields from the old type but update the same Source record. Removing Source deletes its record. These writes share `CookingStore`'s transaction with the other metadata; they do not create a RankedItem, refit strengths, or change comparison evidence. Deleting one of several cooks retains the shared Source. Deleting the last cook cascades through the empty Dish and removes its Source.
+- My Own: type alone.
+- Online: original URL, with no scraping or metadata lookup.
+- Cookbook: cookbook name as a lightweight local fallback.
+- Restaurant: restaurant name as a lightweight local fallback.
+- Friend / Family: optional person/source name.
+- Other: short free-text attribution.
 
-Existing dishes have no Source after the additive schema migration; no origin is inferred from their names. A future attempt-level override could be an optional `CookingAttempt.sourceOverride` with effective attribution `sourceOverride ?? dish.source`, while keeping the current Dish Source as the default. That relationship and its deletion rules need explicit product requirements before implementation.
+The seven existing `DishSourceType` codes and all nullable metadata fields are retained. Both `onlineRecipe` and `socialMedia` display as Online. Opening/reselecting Online on an old Social Media draft preserves its stored type and edits `socialURL`; new Online records use `onlineRecipe`/`onlineURL`. Hidden legacy authors/page/recipe/location/creator/platform/details remain in `DishSourceDraft` and round-trip when saving other fields. Detail continues displaying original saved metadata. There is no bulk conversion, launch-time migration or record deletion caused by the simpler UI.
 
-A future canonical Cookbook entity can own a StayGrubby UUID, provider/book IDs, ISBN, authors, cover reference and publication metadata. Add an optional relationship from `DishSource` to it. Existing V1 manual cookbook fields remain on the Source during migration; link a canonical record only after a user chooses or confirms a match, and keep manually entered recipe name/page at the Dish Source. Do not silently replace manual attribution with provider data. Source stores attribution only: no scanned pages, copyrighted cookbook photos or prose, imported recipes, or extracted instructions are stored in this phase.
+New Version inherits the parent's single Source without copying or overwriting it. Editing Source still affects every version and retains Source identity. Explicitly switching to a different Source choice or No source follows the existing deliberate replace/remove behavior; canceling the enclosing cook editor writes nothing. Source writes stay in the same cooking transaction and never refit scores or add comparison evidence. Removing one version retains the Dish's shared Source; removing its final cook cascades cleanup.
+
+`SourceChoice` separates presentation from stable storage. Future canonical Cookbook/Restaurant selection or optional Online metadata can supply the same draft through a lookup adapter; no provider/catalog, URL service, recipe instructions or fabricated metadata is part of local V1.
 
 ## Creation, editing, deletion
 
-**New Dish** collects metadata as a value-only draft, then uses the existing initial reaction and adaptive comparisons. **New Version** first selects a dish from the global cooking ranking, inherits its name/default category, then follows the identical global comparison flow. There is no per-dish ranking. Cooked dates default to today for new forms; legacy unknown dates remain unknown. Save Cook commits the dish (if new), cook, item, comparisons, and tags in one transaction. Cancel writes nothing. The completed comparison screen permits undo before saving.
+**New Dish** collects metadata as a value-only draft, then uses the existing initial reaction and adaptive comparisons. **New Version** first selects a dish from the global cooking ranking, inherits its name/default category, then follows the identical global comparison flow. There is no per-dish ranking. Cooked dates default to today for new forms; legacy unknown dates remain unknown. Ranking completion automatically commits the dish (if new), cook, item, comparisons, and tags in one transaction, then shows the saved result. Canceling an incomplete flow writes nothing. Undo remains available during comparisons; after completion, feedback describes an already saved cook.
 
 Editing metadata retains cook/item IDs, strengths, uncertainties, diagnostics, and all comparison IDs/timestamps. Renaming a dish updates every sibling's cached display name; the form explains the shared rename. Title, notes, date, category, and tags apply to the individual version. Empty optional text becomes nil.
 
@@ -102,3 +103,27 @@ The Source extension was validated on **October 4, 2026**, iPhone 17 / iOS 26.5 
 The Phase 2A media extension was validated on **October 5, 2026**, on the same simulator target. The complete suite passed: 49 tests, 62 parameterized/configuration executions, zero failures, and zero skips. `CookingMediaTests` verifies optimized display and thumbnail files, persistence after disk reload, replacement/removal invariants, deletion cleanup, the no-photo path, and independent New Version ownership. The final app build launched against the saved store. Its ranking, comparison, Dish, cook, Source, tag, and library semantic-field hashes matched the pre-media checkpoint exactly; the additive migration created zero media rows for the 14 existing cooks.
 
 Substantially changed files: `Cooking/` (models, taxonomy, drafts, persistence, write service and re-ranking session), `Views/Cooking/` (forms, global cooking list and details/re-ranking screens), `Grub_RankedApp.swift`, `ContentView.swift`, `Views/HomeView.swift`, `Models/RankingStore.swift` (transaction staging/batching), and `RankingEngine/RankingAnalysis.swift` (optional focused refinement filter). Added `CookingModelTests.swift`, `CookingUITests.swift`, this document, and a `.gitignore` entry for private backups. The original four model files, fitting code, insertion engine and original test files are unchanged.
+
+## Phase 2C polish: Contains and Avoid
+
+Allergen presence uses the existing CookingTag entity with **kindCode `contains`** and canonical Allergen codes `peanuts`, `treeNuts`, `sesame`, `milk`, `egg`, `wheat`, `soy`, `fish`, `shellfish`. No entity/property/schema migration or score mapping change is required. CookingProductOptions supplies the same canonical options to metadata entry, discovery, detail and search. CookingDraft.contains restores attempt.containedAllergens when editing; the existing creation/edit transaction persists these independently of other tag kinds.
+
+Existing `allergy:peanutFree` and the other `*Free` codes keep their original, explicit free-of meaning. They are never renamed, inverted, converted into presence, or automatically removed. Editing restores them separately, displays “Legacy free-of labels,” and offers explicit removal; canceling retains the saved values. Detail and search continue to expose their original labels. Presence can coexist with legacy claims without the application pretending to resolve ingredient truth.
+
+Avoid excludes a cook when its Contains set intersects ANY selected avoided allergen. Search, Course, Dietary and Avoid combine with AND; Dietary still matches any selected dietary value. Discovery is a read-only projection of the authoritative global ranking, retaining global ranks, scores, evidence and relationships. Clearing Avoid leaves other selections/search intact. Contains values are searchable as “Contains Milk,” etc.
+
+Absence means **not marked as containing**, never verified/certified allergen-free. The Avoid selector explains: “Based on the allergens you’ve marked. Not marked contains does not mean allergen-free. Always verify ingredients for allergy safety.” These labels are organizational metadata supplied by the user.
+
+Creation is still transactional: no models/files are written while metadata, initial reaction or comparisons remain incomplete. AddCookingView finalizes a complete RankingEngine session once, through CookingStore.create, before presenting its saved result. Persistence failure retains the draft and offers retry/cancel; success guards prevent repeated finalization. New Version reuses its selected Dish and creates one unique RankedItem in the existing global ranking.
+
+The existing disposable simulator seed receives a separate, explicit one-use metadata-only update via DevelopmentTools/OneTimeDevelopmentAllergenUpdate.swift, outside every Xcode target. It checks the simulator, default local store, bundle, exact dish/cook/item/evidence identities and backed-up manifest, consumes its marker before mutation, and changes only tag records/associations. It does not reset or recompute the library. Normal app launches and ordinary tests cannot run it. Legacy Free seed labels are explicitly removed only from these identified disposable fixtures.
+
+### Final polish persistence verification — October 6, 2026
+
+After the complete suite and a normal saved-store launch, the backed-up development library still has **1 RankingList, 1 CookingLibrary, 12 Dishes, 15 CookingAttempts, 15 RankedItems, 356 Comparisons, 10 DishSources, 0 CookingMedia**. The global ranking UUID remains `503B2E64-D08E-42F3-845B-F98096EC93E2`. Every non-allergen semantic field and relationship matches the consistent pre-polish backup, including Dish/cook/item/evidence IDs, dates/updatedAt, strengths, uncertainty, diagnostics, scores, notes, Sources, and dietary/custom memberships. SQLite integrity and schema comparisons pass. No duplicate global list or UI-test fixture records were introduced.
+
+The isolated metadata update removed exactly two unused legacy seed tag rows (Milk-Free/Egg-Free) and their five memberships, and added seven canonical Contains rows with sixteen memberships across eight existing cooks. Total tag rows/memberships are now **21/48**. Seven cooks remain unmarked. It neither rewrote ingredient notes nor inferred medically verified absence. The request marker and temporary target copies are absent; the utility remains outside all targets. Backups and semantic verification are retained under ignored `.local-backups/polish-20261005/`.
+
+All 62 unit functions / 82 configured unit executions passed, including all nine presence values across disk reload, coexisting legacy claims, explicit legacy removal, Contains edits without ranking changes, parent/version ownership, and combined Avoid discovery invariants. The full scheme ran 76 functions / 99 configured executions with one landscape UI failure and no skips; all new polish UI tests passed. That historical landscape expectation was superseded by the October 7, 2026 upright-portrait-only decision; see UI_ARCHITECTURE.md for final verification. Ranking mathematics, score mapping, persistence schema and migrations are unchanged.
+
+The **October 7, 2026 final portrait verification** passed the complete scheme: **77 tests / 98 configured executions, zero failures or skips**. After a normal saved-store launch, all entity semantic fields and relationships—including the complete tag rows/memberships and all ranking evidence—match the consistent pre-pass checkpoint. The library still has 12 Dishes, 15 cooks/items, 356 Comparisons, 10 Sources, 21 tags / 48 memberships (16 Contains memberships), and exactly one global ranking. No data or model/service code changed during this configuration pass. See UI_ARCHITECTURE.md for the portrait policy and full verification breakdown.

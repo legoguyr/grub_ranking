@@ -68,10 +68,11 @@ struct CookingModelTests {
             try CookingStore.prepare(context: context)
             var metadata = draft(); metadata.category = .pastaNoodles; metadata.versionTitle = " Sunday "; metadata.notes = " Extra lemon "
             metadata.dietary = Set(DietaryTag.allCases); metadata.allergy = Set(AllergyTag.allCases)
+            metadata.contains = Set(Allergen.allCases)
             metadata.customTags = ["  Family   Favorite ", "family favorite", "\nFAMILY\tFAVORITE", "", "Weeknight"]
             let attempt = try create(context, metadata); savedID = attempt.id
             _ = try create(context, metadata, dish: attempt.dish)
-            #expect(try context.fetchCount(FetchDescriptor<CookingTag>()) == 17)
+            #expect(try context.fetchCount(FetchDescriptor<CookingTag>()) == 26)
         }
         let container = try AppPersistence.open(url: url); let context = ModelContext(container)
         let attempt = try #require(context.fetch(FetchDescriptor<CookingAttempt>()).first { $0.id == savedID })
@@ -80,10 +81,13 @@ struct CookingModelTests {
         #expect(attempt.cookedAt == draft().cookedAt)
         #expect(attempt.dietaryTags == Set(DietaryTag.allCases))
         #expect(attempt.allergyTags == Set(AllergyTag.allCases))
+        #expect(attempt.containedAllergens == Set(Allergen.allCases))
         #expect(attempt.customTags == ["Family Favorite", "Weeknight"])
         #expect(attempt.dish?.attempts.count == 2 && attempt.rankedItem?.list?.items.count == 2)
         let filter = FetchDescriptor<CookingTag>(predicate: #Predicate { $0.kindCode == "dietary" && $0.value == "vegan" })
         #expect(try context.fetch(filter).first?.attempts.count == 2)
+        let contains = FetchDescriptor<CookingTag>(predicate: #Predicate { $0.kindCode == "contains" && $0.value == "milk" })
+        #expect(try context.fetch(contains).first?.attempts.count == 2)
         let category = FetchDescriptor<CookingAttempt>(predicate: #Predicate { $0.categoryCode == "pastaNoodles" })
         #expect(try context.fetchCount(category) == 2)
         #expect(attempt.updatedAt >= attempt.createdAt)

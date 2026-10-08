@@ -21,17 +21,20 @@ struct DishPhoto: View {
     }
 
     var body: some View {
-        Group {
-            if let loadedImage {
-                Image(uiImage: loadedImage).resizable().scaledToFill()
-            } else {
-                ZStack {
-                    LinearGradient(colors: [Color.secondary.opacity(0.13), Color.secondary.opacity(0.05)],
-                                   startPoint: .topLeading, endPoint: .bottomTrailing)
-                    Image(systemName: "fork.knife.circle.fill")
-                        .font(.system(size: thumbnail ? 24 : 48)).foregroundStyle(.secondary)
+        GeometryReader { geometry in
+            Group {
+                if let loadedImage {
+                    Image(uiImage: loadedImage).resizable().scaledToFill()
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                } else {
+                    ZStack {
+                        LinearGradient(colors: [SGTheme.ColorToken.placeholderStart, SGTheme.ColorToken.placeholderEnd],
+                                       startPoint: .topLeading, endPoint: .bottomTrailing)
+                        Image(systemName: "fork.knife.circle.fill")
+                            .font(.system(size: thumbnail ? SGTheme.Size.thumbnailIcon : SGTheme.Size.placeholderIcon)).foregroundStyle(.secondary)
+                    }
                 }
-            }
+            }.frame(width: geometry.size.width, height: geometry.size.height).clipped()
         }
         .clipped()
         .accessibilityElement(children: .ignore)
@@ -49,8 +52,11 @@ struct ScoreBadge: View {
     let score: Double
     var body: some View {
         Text(score, format: .number.precision(.fractionLength(1)))
-            .font(.title3.weight(.bold).monospacedDigit())
-            .foregroundStyle(.tint)
+            .font(SGTheme.TypeRole.score)
+            .foregroundStyle(SGTheme.ColorToken.accent)
+            .padding(.horizontal, SGTheme.Space.small).padding(.vertical, SGTheme.Space.xSmall)
+            .background(SGTheme.ColorToken.selected, in: RoundedRectangle(cornerRadius: SGTheme.Radius.chip))
+            .fixedSize()
             .accessibilityLabel("Score \(score.formatted(.number.precision(.fractionLength(1))))")
     }
 }
@@ -59,13 +65,11 @@ struct TagChip: View {
     let title: String
     var emphasis = false
     var body: some View {
-        Text(title)
-            .font(.caption.weight(.medium))
-            .lineLimit(1)
-            .padding(.horizontal, 10).padding(.vertical, 6)
-            .foregroundStyle(emphasis ? Color.accentColor : Color.primary)
-            .background(emphasis ? Color.accentColor.opacity(0.14) : SGTheme.ColorToken.elevatedSurface,
-                        in: Capsule())
+        Text(title).font(SGTheme.TypeRole.secondary.weight(.medium))
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.horizontal, SGTheme.Space.small).padding(.vertical, SGTheme.Space.xSmall)
+            .foregroundStyle(emphasis ? SGTheme.ColorToken.accent : SGTheme.ColorToken.primaryText)
+            .background(emphasis ? SGTheme.ColorToken.selected : SGTheme.ColorToken.elevatedSurface, in: Capsule())
     }
 }
 
@@ -86,36 +90,34 @@ struct SourceSummary: View {
 struct RankedDishRow: View {
     let attempt: CookingAttempt
     let rank: Int
+    @Environment(\.dynamicTypeSize) private var textSize
 
-    private var lightweightTags: [String] {
-        var labels = [attempt.category.label]
-        labels += attempt.dietaryTags.map(\.label).sorted()
-        labels += attempt.customTags
-        return Array(labels.prefix(3))
+    private var identity: some View {
+        VStack(alignment: .leading, spacing: SGTheme.Space.hairline) {
+            Text(attempt.dish?.name ?? attempt.displayName)
+                .font(SGTheme.TypeRole.headline).lineLimit(textSize.isAccessibilitySize ? nil : 2)
+            Text(attempt.versionLabel).font(SGTheme.TypeRole.body)
+                .foregroundStyle(.secondary).lineLimit(textSize.isAccessibilitySize ? nil : 2)
+            Text(attempt.category.label).font(SGTheme.TypeRole.secondary).foregroundStyle(.secondary)
+        }.frame(maxWidth: .infinity, alignment: .leading)
     }
-
+    private var photo: some View {
+        DishPhoto(media: attempt.primaryImage, thumbnail: true, name: attempt.dish?.name ?? attempt.displayName)
+            .frame(width: SGTheme.Size.rowThumbnail, height: SGTheme.Size.rowThumbnail)
+            .clipShape(RoundedRectangle(cornerRadius: SGTheme.Radius.field))
+    }
     var body: some View {
-        HStack(spacing: SGTheme.Space.medium) {
-            Text("\(rank)")
-                .font(.subheadline.weight(.semibold).monospacedDigit())
-                .foregroundStyle(.secondary).frame(width: 24)
-            DishPhoto(media: attempt.primaryImage, thumbnail: true,
-                      name: attempt.dish?.name ?? attempt.displayName)
-                .frame(width: SGTheme.Size.rowThumbnail, height: SGTheme.Size.rowThumbnail)
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-            VStack(alignment: .leading, spacing: 5) {
-                Text(attempt.dish?.name ?? attempt.displayName).font(.headline).lineLimit(1)
-                if attempt.dish?.attempts.count ?? 0 > 1 || attempt.versionTitle != nil {
-                    Text(attempt.versionLabel).font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
-                }
-                HStack(spacing: 5) {
-                    ForEach(lightweightTags, id: \.self) { TagChip(title: $0) }
-                }
+        VStack(alignment: .leading, spacing: SGTheme.Space.small) {
+            HStack(alignment: .center, spacing: SGTheme.Space.small) {
+                Text("\(rank)").font(SGTheme.TypeRole.secondary.monospacedDigit()).foregroundStyle(.secondary)
+                    .frame(minWidth: SGTheme.Size.rankWidth)
+                photo
+                if !textSize.isAccessibilitySize { identity }
+                if let item = attempt.rankedItem { ScoreBadge(score: item.score) }
             }
-            Spacer(minLength: SGTheme.Space.xSmall)
-            if let item = attempt.rankedItem { ScoreBadge(score: item.score) }
+            if textSize.isAccessibilitySize { identity }
         }
-        .padding(.vertical, SGTheme.Space.xSmall)
+        .padding(.vertical, SGTheme.Space.small)
         .contentShape(Rectangle())
     }
 }
@@ -123,6 +125,45 @@ struct RankedDishRow: View {
 struct SGSectionHeader: View {
     let title: String
     var body: some View {
-        Text(title).font(.title3.bold()).frame(maxWidth: .infinity, alignment: .leading)
+        Text(title).font(SGTheme.TypeRole.headline).frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// Lightweight semantic fade connects hero media to its surrounding page.
+struct SGHeroMedia: View {
+    let media: CookingMedia?
+    let name: String
+    var body: some View {
+        DishPhoto(media: media, name: name)
+            .frame(maxWidth: .infinity)
+            .frame(height: media == nil ? SGTheme.Size.placeholderHeight : SGTheme.Size.heroHeight)
+            .clipShape(RoundedRectangle(cornerRadius: SGTheme.Radius.hero, style: .continuous))
+            .overlay {
+                if media != nil {
+                    LinearGradient(stops: [
+                        .init(color: SGTheme.ColorToken.background.opacity(0), location: 0),
+                        .init(color: SGTheme.ColorToken.background.opacity(0), location: 0.55),
+                        .init(color: SGTheme.ColorToken.background.opacity(0.35), location: 0.78),
+                        .init(color: SGTheme.ColorToken.background, location: 1)
+                    ], startPoint: .top, endPoint: .bottom)
+                    .allowsHitTesting(false).accessibilityHidden(true)
+                }
+            }.accessibilityIdentifier(media == nil ? "hero-placeholder" : "hero-photo")
+    }
+}
+
+struct SGSearchField: View {
+    let placeholder: String
+    @Binding var text: String
+    let identifier: String
+    var body: some View {
+        HStack(spacing: SGTheme.Space.small) {
+            Image(systemName: "magnifyingglass").foregroundStyle(.secondary).accessibilityHidden(true)
+            TextField(placeholder, text: $text).submitLabel(.search).accessibilityIdentifier(identifier)
+            if !text.isEmpty {
+                SGIconButton(title: "Clear search", symbol: "xmark.circle.fill") { text = "" }
+                    .accessibilityIdentifier("\(identifier)-clear")
+            }
+        }.sgField()
     }
 }

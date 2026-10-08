@@ -6,17 +6,7 @@ nonisolated enum DishSourceType: String, CaseIterable, Identifiable {
     case original, cookbook, restaurant, onlineRecipe, socialMedia, friendFamily, other
 
     var id: String { rawValue }
-    var label: String {
-        switch self {
-        case .original: "Original / My Recipe"
-        case .cookbook: "Cookbook"
-        case .restaurant: "Restaurant"
-        case .onlineRecipe: "Online Recipe"
-        case .socialMedia: "Social Media"
-        case .friendFamily: "Friend / Family"
-        case .other: "Other"
-        }
-    }
+    var label: String { SourceChoice(type: self).label }
 }
 
 @Model
@@ -63,8 +53,8 @@ final class DishSource {
         case .original: type.label
         case .cookbook: cookbookTitle.map { "Cookbook · \($0)" } ?? type.label
         case .restaurant: restaurantName.map { "Restaurant · \($0)" } ?? type.label
-        case .onlineRecipe: onlineWebsite.map { "Online Recipe · \($0)" } ?? type.label
-        case .socialMedia: socialCreator.map { "Social Media · \($0)" } ?? type.label
+        case .onlineRecipe: onlineWebsite.map { "Online · \($0)" } ?? type.label
+        case .socialMedia: socialCreator.map { "Online · \($0)" } ?? type.label
         case .friendFamily: friendName.map { "Friend / Family · \($0)" } ?? type.label
         case .other: otherName.map { "Other · \($0)" } ?? type.label
         }

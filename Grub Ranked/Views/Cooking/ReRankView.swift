@@ -28,13 +28,13 @@ struct ReRankView: View {
                                    canUndo: !session.answers.isEmpty,
                                    onAnswer: { session.answer($0) }, onUndo: { session.undo() })
                 } else {
-                    VStack(spacing: 20) {
+                    VStack(spacing: SGTheme.Space.large) {
                         Text(session.ids.count < 2 ? "Add another cook to compare." : "No more comparisons needed right now.")
                         if !session.answers.isEmpty { Button("Undo last answer") { session.undo() } }
                     }.padding()
                 }
             }
-            .navigationTitle("Re-rank")
+            .navigationTitle("Re-rank").navigationBarTitleDisplayMode(.inline)
             .safeAreaInset(edge: .bottom) {
                 Text("\(session.evidence.count) new answers. Saved history is kept.")
                     .font(.footnote).foregroundStyle(.secondary).padding()

@@ -28,6 +28,7 @@ final class CookingAttempt {
     var displayName: String { "\(dish?.name ?? rankedItem?.name ?? "Dish") — \(versionLabel)" }
     var dietaryTags: Set<DietaryTag> { Set(tags.filter { $0.kindCode == CookingTagKind.dietary.rawValue }.compactMap { DietaryTag(rawValue: $0.value) }) }
     var allergyTags: Set<AllergyTag> { Set(tags.filter { $0.kindCode == CookingTagKind.allergy.rawValue }.compactMap { AllergyTag(rawValue: $0.value) }) }
+    var containedAllergens: Set<Allergen> { Set(tags.filter { $0.kindCode == CookingTagKind.contains.rawValue }.compactMap { Allergen(rawValue: $0.value) }) }
     var customTags: [String] { tags.filter { $0.kindCode == CookingTagKind.custom.rawValue }.map(\.label).sorted() }
     var primaryImage: CookingMedia? {
         media.filter { $0.kind == .image }.sorted {

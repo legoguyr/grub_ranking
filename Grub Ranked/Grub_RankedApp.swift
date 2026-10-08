@@ -78,8 +78,9 @@ private struct ComparisonReviewFixture: View {
                 mode = modes[(index + 1) % modes.count]
             } label: {
                 Image(systemName: "arrow.right.circle.fill")
+                    .frame(width: SGTheme.Size.minimumTap, height: SGTheme.Size.minimumTap)
+                    .contentShape(Rectangle())
             }
-            .frame(width: 44, height: 44)
             .buttonStyle(.plain)
             .padding(.top, 30)
             .padding(.trailing, 8)
@@ -111,9 +112,22 @@ private struct DebugPresentationOverrides: ViewModifier {
             (arguments.contains("--test-dark") ? .dark : nil)
         if arguments.contains("--test-large-type") {
             content.environment(\.dynamicTypeSize, .accessibility2).preferredColorScheme(scheme)
+                .modifier(DebugMotionOverride())
         } else {
-            content.preferredColorScheme(scheme)
+            content.preferredColorScheme(scheme).modifier(DebugMotionOverride())
         }
+        #else
+        content
+        #endif
+    }
+}
+
+private struct DebugMotionOverride: ViewModifier {
+    @ViewBuilder func body(content: Content) -> some View {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--test-reduce-motion") {
+            content.environment(\.sgReduceMotion, true)
+        } else { content }
         #else
         content
         #endif

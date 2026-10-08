@@ -2,7 +2,6 @@ import SwiftUI
 import SwiftData
 
 struct CookingRankingView: View {
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let list: RankingList
     @Query private var attempts: [CookingAttempt]
     @Query(sort: \Dish.name) private var dishes: [Dish]
@@ -12,157 +11,109 @@ struct CookingRankingView: View {
     @State private var pendingDish: Dish?
     @State private var searchText = ""
     @State private var filters = CookingFilters()
-    @State private var showingFilters = false
+    @State private var filterGroup: CookingFilterGroup?
+    @State private var searching = false
+    @State private var creationExpanded = false
+    @Environment(\.sgReduceMotion) private var reduceMotion
     private var eligibleDishes: [Dish] { dishes.filter { dish in dish.attempts.contains { $0.rankedItem?.list?.id == list.id } } }
     private var hasSearch: Bool { !TagNormalization.display(searchText).isEmpty }
 
     var body: some View {
         let entries = CookingDiscovery.entries(in: list, attempts: attempts, query: searchText, filters: filters)
-        List {
-            Section {
-                creationActions
-                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-                filterControls
-                .buttonStyle(.borderless)
-            }
-            if filters.isActive {
-                Section {
-                    activeFilters
-                }
-            }
-            Section {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
                 if list.items.isEmpty {
                     ContentUnavailableView {
                         Label("Your cooking, ranked", systemImage: "fork.knife")
                     } description: { Text("Add your first dish to begin.") } actions: {
                         Button("Add Your First Dish") { newDish = true }
-                            .frame(minHeight: SGTheme.Size.minimumTap)
+                            .buttonStyle(SGButtonStyle(prominent: true))
                     }
-                } else if entries.isEmpty {
-                    noResults
-                }
+                } else if entries.isEmpty { noResults }
                 ForEach(entries) { entry in
-                    NavigationLink { AttemptDetailView(attempt: entry.attempt) } label: {
+                    NavigationLink(value: entry.attempt.id) {
                         RankedDishRow(attempt: entry.attempt, rank: entry.globalRank)
                     }
+                    .buttonStyle(.plain)
                     .accessibilityIdentifier("cook-row-\(entry.attempt.rankedItemID)")
                     .accessibilityLabel("Rank \(entry.globalRank), \(entry.attempt.displayName), score \(entry.attempt.rankedItem?.score.formatted(.number.precision(.fractionLength(1))) ?? "unknown")")
-                    .accessibilityHint("Global rank. Opens dish details.")
-                }
-            } header: {
-                if !list.items.isEmpty && (hasSearch || filters.isActive) {
-                    Text("\(entries.count) of \(list.items.count) ranked cooks · Global ranks")
-                        .accessibilityIdentifier("discovery-result-count")
+                    .accessibilityHint("Course \(entry.attempt.category.label). Global rank. Opens dish details.")
+                    Divider().overlay(SGTheme.ColorToken.border).accessibilityHidden(true)
                 }
             }
+            .frame(maxWidth: SGTheme.Size.contentMaximum)
+            .padding(.horizontal, SGTheme.Space.medium).padding(.bottom, SGTheme.Space.large)
+            .frame(maxWidth: .infinity)
         }
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
         .background(SGTheme.ColorToken.background)
-        .navigationTitle("Rankings")
-        .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always),
-                    prompt: "Search dishes, versions, tags")
+        .navigationTitle("Rankings").navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .navigationBar)
+        .safeAreaInset(edge: .top, spacing: 0) {
+            VStack(spacing: SGTheme.Space.xSmall) {
+                StayGrubbyHeader(page: "Rankings", onCreate: {
+                    withAnimation(reduceMotion ? nil : SGTheme.Motion.quick) { creationExpanded.toggle() }
+                }, onSearch: { creationExpanded = false }, searchText: $searchText, searching: $searching)
+                if creationExpanded {
+                    SGCreationChoices(canCreateVersion: !eligibleDishes.isEmpty, newDish: {
+                        creationExpanded = false; newDish = true
+                    }, newVersion: {
+                        creationExpanded = false; choosingDish = true
+                    })
+                    .transition(.opacity)
+                }
+                filterControls
+                if !list.items.isEmpty && (hasSearch || filters.isActive) {
+                    Text("\(entries.count) of \(list.items.count) ranked cooks · Global ranks")
+                        .font(SGTheme.TypeRole.secondary).foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, SGTheme.Space.medium)
+                        .accessibilityIdentifier("discovery-result-count")
+                }
+            }.padding(.bottom, SGTheme.Space.xSmall).background(SGTheme.ColorToken.background)
+        }
         .scrollDismissesKeyboard(.interactively)
-        .sheet(isPresented: $showingFilters) { CookingFilterView(filters: $filters) }
+        .sheet(item: $filterGroup) { CookingFilterView(filters: $filters, group: $0) }
         .sheet(isPresented: $newDish) { AddCookingView(list: list) }
         .sheet(item: $selectedDish) { AddCookingView(list: list, dish: $0) }
         .sheet(isPresented: $choosingDish, onDismiss: {
             selectedDish = pendingDish; pendingDish = nil
         }) {
-            NavigationStack {
-                List(eligibleDishes) { dish in
-                    Button {
-                        pendingDish = dish
-                        choosingDish = false
-                    } label: {
-                        VStack(alignment: .leading) {
-                            Text(dish.name)
-                            Text("\(dish.attempts.count) versions").font(.caption).foregroundStyle(.secondary)
-                        }
-                    }.accessibilityIdentifier("choose-dish-\(dish.name)")
+            DishSelectionView(dishes: eligibleDishes, onSelect: { dish in
+                pendingDish = dish; choosingDish = false
+            }, onCancel: { choosingDish = false })
+        }
+    }
+
+    private var filterControls: some View {
+        HStack(spacing: SGTheme.Space.xSmall) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: SGTheme.Space.xSmall) {
+                    filterButton(.course, detail: filters.category?.label, count: filters.category == nil ? 0 : 1)
+                    filterButton(.dietary, count: filters.dietary.count)
+                    filterButton(.avoid, count: filters.avoidedAllergens.count)
                 }
-                .navigationTitle("Choose a Dish")
-                .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { choosingDish = false } } }
+            }.accessibilityIdentifier("filter-strip")
+            if filters.isActive {
+                SGIconButton(title: "Clear Filters", symbol: "xmark") { filters = CookingFilters() }
+                    .accessibilityIdentifier("clear-filters")
             }
-        }
+        }.padding(.horizontal, SGTheme.Space.medium)
     }
 
-    @ViewBuilder private var creationActions: some View {
-        if dynamicTypeSize.isAccessibilitySize {
-            VStack(spacing: SGTheme.Space.small) { newDishButton; newVersionButton }
-        } else {
-            HStack(spacing: SGTheme.Space.small) { newDishButton; newVersionButton }
-        }
-    }
-
-    private var newDishButton: some View {
-        Button { newDish = true } label: {
-            Label("New Dish", systemImage: "plus")
-                .frame(maxWidth: .infinity, minHeight: SGTheme.Size.minimumTap)
-        }
-        .buttonStyle(.borderedProminent).accessibilityIdentifier("new-dish")
-    }
-
-    private var newVersionButton: some View {
-        Button { choosingDish = true } label: {
-            Label("New Version", systemImage: "arrow.triangle.branch")
-                .frame(maxWidth: .infinity, minHeight: SGTheme.Size.minimumTap)
-        }
-        .buttonStyle(.bordered).disabled(eligibleDishes.isEmpty).accessibilityIdentifier("new-version")
-    }
-
-    @ViewBuilder private var filterControls: some View {
-        if dynamicTypeSize.isAccessibilitySize {
-            VStack(alignment: .leading, spacing: SGTheme.Space.small) { filterButton; clearFiltersButton }
-        } else {
-            HStack { filterButton; Spacer(); clearFiltersButton }
-        }
-    }
-
-    private var filterButton: some View {
-        Button { showingFilters = true } label: {
-            Label(filters.isActive ? "Filters (\(filters.count))" : "Filters", systemImage: "line.3.horizontal.decrease")
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(minHeight: SGTheme.Size.minimumTap)
-        }
-        .accessibilityIdentifier("ranking-filters")
-        .accessibilityLabel(filters.isActive ? "Filters, \(filters.count) active selections" : "Filters, none active")
-    }
-
-    @ViewBuilder private var clearFiltersButton: some View {
-        if filters.isActive {
-            Button("Clear Filters") { filters = CookingFilters() }
-                .frame(minHeight: SGTheme.Size.minimumTap)
-                .accessibilityIdentifier("clear-filters")
-        }
-    }
-
-    private var activeFilters: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: SGTheme.Space.small) {
-                if let category = filters.category {
-                    filterChip("Category: \(category.label)") { filters.category = nil }
-                }
-                ForEach(DietaryTag.allCases.filter { filters.dietary.contains($0) }) { tag in
-                    filterChip("Dietary: \(tag.label)") { filters.dietary.remove(tag) }
-                }
-                ForEach(AllergyTag.allCases.filter { filters.allergies.contains($0) }) { tag in
-                    filterChip("Allergy: \(tag.label)") { filters.allergies.remove(tag) }
-                }
+    private func filterButton(_ group: CookingFilterGroup, detail: String? = nil, count: Int) -> some View {
+        Button { filterGroup = group } label: {
+            HStack(spacing: SGTheme.Space.xSmall) {
+                Text(detail ?? (count > 0 ? "\(group.title) \(count)" : group.title))
+                Image(systemName: "chevron.down").font(SGTheme.TypeRole.secondary)
             }
+            .font(SGTheme.TypeRole.body.weight(.medium))
+            .padding(.horizontal, SGTheme.Space.small).frame(minHeight: SGTheme.Size.minimumTap)
+            .foregroundStyle(count > 0 ? SGTheme.ColorToken.accent : SGTheme.ColorToken.primaryText)
+            .background(count > 0 ? SGTheme.ColorToken.selected : SGTheme.ColorToken.surface, in: Capsule())
         }
-    }
-
-    private func filterChip(_ title: String, remove: @escaping () -> Void) -> some View {
-        Button(action: remove) {
-            Label(title, systemImage: "xmark.circle.fill")
-                .font(.subheadline)
-                .padding(.horizontal, SGTheme.Space.small)
-                .frame(minHeight: SGTheme.Size.minimumTap)
-                .background(SGTheme.ColorToken.elevatedSurface, in: Capsule())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Remove \(title) filter")
+        .buttonStyle(.plain).accessibilityIdentifier("ranking-filter-\(group.rawValue)")
+        .accessibilityLabel("\(group.title), \(count) active selections")
+        .accessibilityHint("Choose or remove \(group.title.lowercased()) filters")
     }
 
     private var noResults: some View {
@@ -185,6 +136,6 @@ struct CookingRankingView: View {
                     .accessibilityIdentifier("empty-clear-filters")
             }
         }
-        .buttonStyle(.bordered)
+        .buttonStyle(SGButtonStyle())
     }
 }

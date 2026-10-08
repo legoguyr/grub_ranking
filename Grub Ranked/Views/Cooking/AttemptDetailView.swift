@@ -8,15 +8,17 @@ struct AttemptDetailView: View {
     @State private var editing = false
     @State private var reranking = false
     @State private var addingVersion = false
+    @State private var versionFinalized = false
+    @Environment(\.returnToRankings) private var returnToRankings
     @State private var deleting = false
     @State private var error: String?
+    @Environment(\.dynamicTypeSize) private var textSize
+    @ScaledMetric(relativeTo: .caption) private var tagColumnWidth = SGTheme.Size.tagColumnWidth
 
     var body: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: SGTheme.Space.large) {
-                DishPhoto(media: attempt.primaryImage, name: attempt.dish?.name ?? attempt.displayName)
-                    .frame(maxWidth: .infinity).frame(height: SGTheme.Size.heroHeight)
-                    .clipShape(RoundedRectangle(cornerRadius: SGTheme.Radius.hero, style: .continuous))
+            LazyVStack(alignment: .leading, spacing: SGTheme.Space.medium) {
+                SGHeroMedia(media: attempt.primaryImage, name: attempt.dish?.name ?? attempt.displayName)
                 header
                 actionButtons
                 metadata
@@ -34,22 +36,36 @@ struct AttemptDetailView: View {
                 }
                 versions
             }
+            .frame(maxWidth: SGTheme.Size.contentMaximum)
             .padding(.horizontal, SGTheme.Space.medium).padding(.bottom, SGTheme.Space.xLarge)
+            .frame(maxWidth: .infinity)
         }
         .background(SGTheme.ColorToken.background)
         .navigationTitle("Dish Details").navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $editing) { EditCookingView(attempt: attempt) }
-        .sheet(isPresented: $reranking) { ReRankView(attempt: attempt) }
-        .sheet(isPresented: $addingVersion) {
-            if let list = attempt.rankedItem?.list, let dish = attempt.dish {
-                AddCookingView(list: list, dish: dish)
+        .toolbar(.visible, for: .navigationBar)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button("Delete Cook", systemImage: "trash", role: .destructive) { deleting = true }
+                } label: { Image(systemName: "ellipsis") }
+                .accessibilityLabel("More cook actions").accessibilityIdentifier("cook-more-actions")
             }
         }
-        .confirmationDialog("Delete this cook and all its comparisons?", isPresented: $deleting, titleVisibility: .visible) {
+        .sheet(isPresented: $editing) { EditCookingView(attempt: attempt) }
+        .sheet(isPresented: $reranking) { ReRankView(attempt: attempt) }
+        .sheet(isPresented: $addingVersion, onDismiss: {
+            if versionFinalized { versionFinalized = false; returnToRankings() }
+        }) {
+            if let list = attempt.rankedItem?.list, let dish = attempt.dish {
+                AddCookingView(list: list, dish: dish, onResultClose: { versionFinalized = true })
+            }
+        }
+        .alert("Delete this cook?", isPresented: $deleting) {
             Button("Delete Cook", role: .destructive) {
                 do { try CookingStore.delete(attempt, context: context); dismiss() }
                 catch { self.error = error.localizedDescription }
             }
+            Button("Cancel", role: .cancel) { }
         } message: { Text("Other cooks stay saved. If this is the dish's last version, the dish is also removed.") }
         .alert("Couldn't delete", isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })) {
             Button("OK") { error = nil }
@@ -63,13 +79,16 @@ struct AttemptDetailView: View {
     }
 
     private var header: some View {
-        HStack(alignment: .firstTextBaseline) {
-            VStack(alignment: .leading, spacing: SGTheme.Space.xSmall) {
-                Text(attempt.dish?.name ?? "Dish").font(.largeTitle.bold())
-                Text(attempt.versionLabel).font(.headline).foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: SGTheme.Space.xSmall) {
+            Text(attempt.dish?.name ?? "Dish").font(SGTheme.TypeRole.title)
+                .fixedSize(horizontal: false, vertical: true)
+            Text(attempt.versionLabel).font(SGTheme.TypeRole.body).foregroundStyle(.secondary)
+            HStack(spacing: SGTheme.Space.small) {
+                if let item = attempt.rankedItem { ScoreBadge(score: item.score) }
+                if let globalRank {
+                    Text("#\(globalRank) overall").font(SGTheme.TypeRole.body).foregroundStyle(.secondary)
+                }
             }
-            Spacer()
-            if let item = attempt.rankedItem { ScoreBadge(score: item.score) }
         }
     }
 
@@ -78,46 +97,63 @@ struct AttemptDetailView: View {
             HStack {
                 Label(attempt.category.label, systemImage: "fork.knife")
                 Spacer()
-                if let globalRank { Label("#\(globalRank)", systemImage: "trophy") }
+
             }.font(.subheadline.weight(.semibold))
             Label(attempt.cookedAt?.formatted(date: .abbreviated, time: .omitted) ?? "Date unknown",
                   systemImage: "calendar")
                 .font(.subheadline).foregroundStyle(.secondary)
             if !allTags.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: SGTheme.Space.xSmall) {
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: SGTheme.Space.xSmall) { ForEach(allTags, id: \.self) { TagChip(title: $0) } }
+                        .fixedSize(horizontal: true, vertical: false)
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: tagColumnWidth), alignment: .leading)], alignment: .leading, spacing: SGTheme.Space.xSmall) {
                         ForEach(allTags, id: \.self) { TagChip(title: $0) }
                     }
                 }
             }
+            if !attempt.containedAllergens.isEmpty {
+                Text("Contains: " + attempt.containedAllergens.map(\.label).sorted().joined(separator: ", "))
+                    .accessibilityIdentifier("detail-contains")
+                Text(CookingProductOptions.allergenSafetyText)
+                    .font(SGTheme.TypeRole.secondary).foregroundStyle(.secondary)
+            }
             if !attempt.allergyTags.isEmpty {
-                Text("Allergy labels are user-entered and are not a verified safety guarantee.")
+                Text("Legacy free-of labels: " + attempt.allergyTags.map(\.label).sorted().joined(separator: ", "))
                     .font(.caption).foregroundStyle(.secondary)
             }
         }.sgCard()
     }
 
     private var allTags: [String] {
-        attempt.dietaryTags.map(\.label).sorted() + attempt.allergyTags.map(\.label).sorted() + attempt.customTags
+        attempt.dietaryTags.map(\.label).sorted() + attempt.customTags
     }
 
     private var versions: some View {
         VStack(alignment: .leading, spacing: SGTheme.Space.small) {
-            HStack {
-                SGSectionHeader(title: "Versions")
-                Button("New Version", systemImage: "plus") { addingVersion = true }
-                    .disabled(attempt.dish == nil || attempt.rankedItem?.list == nil)
+            if textSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: SGTheme.Space.small) {
+                    SGSectionHeader(title: "Versions")
+                    newVersionButton
+                }
+            } else {
+                HStack { SGSectionHeader(title: "Versions"); newVersionButton }
             }
             ForEach(versionEntries, id: \.attempt.id) { entry in
                 if entry.attempt.id == attempt.id {
                     versionRow(entry.attempt, rank: entry.rank, current: true)
                 } else {
-                    NavigationLink { AttemptDetailView(attempt: entry.attempt) } label: {
+                    NavigationLink(value: entry.attempt.id) {
                         versionRow(entry.attempt, rank: entry.rank, current: false)
                     }.buttonStyle(.plain)
                 }
             }
         }.sgCard()
+    }
+
+    private var newVersionButton: some View {
+        Button("New Version", systemImage: "plus") { addingVersion = true }
+            .buttonStyle(SGButtonStyle()).accessibilityIdentifier("detail-new-version")
+            .disabled(attempt.dish == nil || attempt.rankedItem?.list == nil)
     }
 
     private var versionEntries: [(rank: Int, attempt: CookingAttempt)] {
@@ -128,33 +164,47 @@ struct AttemptDetailView: View {
     }
 
     private func versionRow(_ cook: CookingAttempt, rank: Int, current: Bool) -> some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(cook.versionLabel).font(.headline)
-                Text(cook.cookedAt?.formatted(date: .abbreviated, time: .omitted) ?? "Date unknown")
-                    .font(.caption).foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: SGTheme.Space.xSmall) {
+            HStack(spacing: SGTheme.Space.small) {
+                if cook.primaryImage != nil {
+                    DishPhoto(media: cook.primaryImage, thumbnail: true, name: cook.versionLabel)
+                        .frame(width: SGTheme.Size.versionThumbnail, height: SGTheme.Size.versionThumbnail)
+                        .clipShape(RoundedRectangle(cornerRadius: SGTheme.Radius.chip))
+                }
+                if !textSize.isAccessibilitySize { versionIdentity(cook) }
+                Spacer(minLength: 0)
+                Text("#\(rank)").font(SGTheme.TypeRole.secondary).foregroundStyle(.secondary)
+                if let item = cook.rankedItem { ScoreBadge(score: item.score) }
+                Image(systemName: current ? "checkmark.circle.fill" : "chevron.right")
+                    .foregroundStyle(current ? SGTheme.ColorToken.accent : .secondary)
             }
-            Spacer()
-            Text("#\(rank)").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-            if let item = cook.rankedItem { ScoreBadge(score: item.score) }
-            if current { Image(systemName: "checkmark.circle.fill").foregroundStyle(.tint) }
+            if textSize.isAccessibilitySize { versionIdentity(cook) }
         }
-        .padding(.vertical, SGTheme.Space.xSmall)
+        .padding(.vertical, SGTheme.Space.small).contentShape(Rectangle())
         .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("version-row-\(cook.id)")
+        .accessibilityHint(current ? "Current version" : "Opens this version")
+    }
+    private func versionIdentity(_ cook: CookingAttempt) -> some View {
+        VStack(alignment: .leading, spacing: SGTheme.Space.hairline) {
+            Text(cook.versionLabel).font(SGTheme.TypeRole.headline).fixedSize(horizontal: false, vertical: true)
+            Text(cook.cookedAt?.formatted(date: .abbreviated, time: .omitted) ?? "Date unknown")
+                .font(SGTheme.TypeRole.secondary).foregroundStyle(.secondary)
+        }.frame(maxWidth: .infinity, alignment: .leading)
+    }
+    private var actionButtons: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: SGTheme.Space.small) { editButton; rerankButton }.fixedSize(horizontal: true, vertical: false)
+            VStack(alignment: .leading, spacing: SGTheme.Space.small) { editButton; rerankButton }
+        }
+    }
+    private var editButton: some View {
+        Button("Edit Cook", systemImage: "pencil") { editing = true }.buttonStyle(SGButtonStyle())
+    }
+    private var rerankButton: some View {
+        Button("Re-rank", systemImage: "arrow.triangle.2.circlepath") { reranking = true }.buttonStyle(SGButtonStyle())
     }
 
-    private var actionButtons: some View {
-        VStack(spacing: SGTheme.Space.small) {
-            HStack {
-                Button("Edit Cook", systemImage: "pencil") { editing = true }
-                Spacer()
-                Button("Re-rank", systemImage: "arrow.triangle.2.circlepath") { reranking = true }
-            }
-            .buttonStyle(.bordered).frame(minHeight: SGTheme.Size.minimumTap)
-            Button("Delete Cook", systemImage: "trash", role: .destructive) { deleting = true }
-                .frame(maxWidth: .infinity, minHeight: SGTheme.Size.minimumTap)
-        }
-    }
 }
 
 struct EditCookingView: View {
@@ -166,16 +216,20 @@ struct EditCookingView: View {
     init(attempt: CookingAttempt) { self.attempt = attempt; _draft = State(initialValue: CookingDraft(attempt: attempt)) }
     var body: some View {
         NavigationStack {
-            Form { CookingMetadataForm(draft: $draft, editing: true) }
-                .navigationTitle("Edit Cook")
+            CookingFormScroll(draft: $draft, editing: true)
+                .navigationTitle("Edit Cook").navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Save") {
-                            do { try CookingStore.edit(attempt, draft: draft, context: context); dismiss() }
-                            catch { self.error = error.localizedDescription }
-                        }.disabled(draft.cleanDishName.isEmpty).accessibilityIdentifier("save-cook-metadata")
-                    }
+
+                }
+                .safeAreaInset(edge: .bottom) {
+                    Button {
+                        do { try CookingStore.edit(attempt, draft: draft, context: context); dismiss() }
+                        catch { self.error = error.localizedDescription }
+                    } label: { Text("Save").frame(maxWidth: .infinity) }
+                    .buttonStyle(SGButtonStyle(prominent: true)).disabled(draft.cleanDishName.isEmpty)
+                    .accessibilityIdentifier("save-cook-metadata")
+                    .padding(SGTheme.Space.medium).background(SGTheme.ColorToken.background)
                 }
                 .alert("Couldn't save", isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })) {
                     Button("OK") { error = nil }

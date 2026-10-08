@@ -35,10 +35,10 @@ struct CookingDiscoveryTests {
         let context = ModelContext(container)
         let list = try CookingStore.prepare(context: context)
         var draft = CookingDraft(); draft.dishName = "Apple Cake"; draft.category = .dessert
-        draft.dietary = [.vegetarian]; draft.allergy = [.peanutFree]
+        draft.dietary = [.vegetarian]; draft.allergy = [.peanutFree]; draft.contains = [.wheat, .egg]
         let cake = try create(draft, context: context)
         draft = CookingDraft(); draft.dishName = "Lemon Pasta"; draft.category = .pastaNoodles
-        draft.dietary = [.vegan]; draft.allergy = [.milkFree, .sesameFree]; draft.customTags = ["Weeknight"]
+        draft.dietary = [.vegan]; draft.allergy = [.milkFree, .sesameFree]; draft.contains = [.wheat]; draft.customTags = ["Weeknight"]
         let pasta = try create(draft, context: context)
         draft = CookingDraft(); draft.dishName = "Harissa Chicken"; draft.versionTitle = "Golden sear"
         draft.category = .main; draft.dietary = [.kosher, .dairyFree]; draft.allergy = [.sesameFree]
@@ -47,7 +47,7 @@ struct CookingDiscoveryTests {
         draft.source = source
         let chicken = try create(draft, context: context)
         draft = CookingDraft(dish: try #require(chicken.dish)); draft.versionTitle = "Smoky Sunday"
-        draft.dietary = [.halal]; draft.allergy = [.peanutFree]
+        draft.dietary = [.halal]; draft.allergy = [.peanutFree]; draft.contains = [.peanuts, .sesame]
         let sunday = try create(draft, context: context, dish: chicken.dish)
         return Fixture(container: container, context: context, list: list, chicken: chicken,
                        sunday: sunday, pasta: pasta, cake: cake)
@@ -65,6 +65,7 @@ struct CookingDiscoveryTests {
         #expect(f.results("date  NIGHT").map(\.id) == [f.chicken.id])
         #expect(f.results("kosher").map(\.id) == [f.chicken.id])
         #expect(f.results("sesame-free").map(\.id) == [f.chicken.id, f.pasta.id])
+        #expect(f.results("contains peanuts").map(\.id) == [f.sunday.id])
         #expect(f.results("Pasta/Noodles").map(\.id) == [f.pasta.id])
         #expect(f.results("Zahav").isEmpty)
         f.chicken.notes = "secret notes"
@@ -81,19 +82,19 @@ struct CookingDiscoveryTests {
         #expect(f.results("pasta").map(\.globalRank) == [3])
     }
 
-    @Test func categoryDietaryAndAllergyUseCanonicalValues() throws {
+    @Test func categoryDietaryAndAvoidUseCanonicalValues() throws {
         let f = try fixture()
         #expect(f.results("", CookingFilters(category: .main)).map(\.id) == [f.sunday.id, f.chicken.id])
         #expect(f.results("", CookingFilters(dietary: [.vegan])).map(\.id) == [f.pasta.id])
-        #expect(f.results("", CookingFilters(allergies: [.peanutFree])).map(\.id) == [f.sunday.id, f.cake.id])
+        #expect(f.results("", CookingFilters(avoidedAllergens: [.peanuts])).map(\.id) == [f.chicken.id, f.pasta.id, f.cake.id])
         #expect(f.results("", CookingFilters(category: .soup)).isEmpty)
     }
 
     @Test func groupsAndSearchCombineWithANDAndValuesWithinGroupsUseOR() throws {
         let f = try fixture()
         #expect(f.results("", CookingFilters(dietary: [.vegan, .vegetarian])).map(\.id) == [f.pasta.id, f.cake.id])
-        #expect(f.results("", CookingFilters(allergies: [.peanutFree, .sesameFree])).count == 4)
-        let combined = CookingFilters(category: .main, dietary: [.kosher, .vegan], allergies: [.sesameFree, .milkFree])
+        #expect(f.results("", CookingFilters(avoidedAllergens: [.peanuts, .wheat])).map(\.id) == [f.chicken.id])
+        let combined = CookingFilters(category: .main, dietary: [.kosher, .vegan], avoidedAllergens: [.sesame, .milk])
         #expect(f.results("chicken", combined).map(\.id) == [f.chicken.id])
         #expect(f.results("pasta", combined).isEmpty)
         #expect(f.results("", CookingFilters(category: .dessert, dietary: [.vegan])).isEmpty)
@@ -101,10 +102,10 @@ struct CookingDiscoveryTests {
 
     @Test func individualRemovalAndResetKeepTheOtherSelections() throws {
         let f = try fixture()
-        var filters = CookingFilters(category: .main, dietary: [.kosher], allergies: [.peanutFree])
+        var filters = CookingFilters(category: .main, dietary: [.kosher], avoidedAllergens: [.peanuts])
         #expect(filters.count == 3 && filters.isActive)
-        #expect(f.results("", filters).isEmpty)
-        filters.allergies.remove(.peanutFree)
+        #expect(f.results("", filters).map(\.id) == [f.chicken.id])
+        filters.avoidedAllergens.remove(.peanuts)
         #expect(filters.category == .main && filters.dietary == [.kosher])
         #expect(f.results("", filters).map(\.id) == [f.chicken.id])
         filters = CookingFilters()
@@ -131,7 +132,7 @@ struct CookingDiscoveryTests {
         let evidence = f.list.comparisons.map(EvidenceSnapshot.init)
         let updated = f.attempts.map(\.updatedAt)
         for query in ["", "chicken", "date night", "kosher", "sesame-free", "nothing"] {
-            for filters in [CookingFilters(), CookingFilters(category: .main), CookingFilters(dietary: [.vegan, .kosher])] {
+            for filters in [CookingFilters(), CookingFilters(category: .main), CookingFilters(dietary: [.vegan, .kosher]), CookingFilters(avoidedAllergens: [.peanuts, .wheat])] {
                 let results = f.results(query, filters)
                 #expect(results.map(\.globalRank) == results.map(\.globalRank).sorted())
                 for entry in results {
@@ -172,7 +173,7 @@ struct CookingDiscoveryTests {
         #expect(f.results("lamb").map(\.id) == [f.sunday.id, f.chicken.id])
         for query in ["crispy", "picnic", "vegetarian", "egg-free"] { #expect(f.results(query).contains { $0.id == f.chicken.id }) }
         #expect(f.results("date night").isEmpty && f.results("kosher").isEmpty)
-        #expect(f.results("", CookingFilters(category: .side, dietary: [.vegetarian], allergies: [.eggFree])).map(\.id) == [f.chicken.id])
+        #expect(f.results("", CookingFilters(category: .side, dietary: [.vegetarian], avoidedAllergens: [.milk])).map(\.id) == [f.chicken.id])
         #expect(items == f.list.orderedItems.map(RankingSnapshot.init))
         #expect(evidence == f.list.comparisons.map(EvidenceSnapshot.init))
         #expect(f.chicken.dish?.source?.cookbookTitle == "Zahav")

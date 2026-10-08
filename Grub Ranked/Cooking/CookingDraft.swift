@@ -7,7 +7,9 @@ import Foundation
     var versionTitle = ""
     var notes = ""
     var dietary: Set<DietaryTag> = []
+    // Compatibility only: restore and preserve legacy Free claims when editing.
     var allergy: Set<AllergyTag> = []
+    var contains: Set<Allergen> = []
     var customTags: [String] = []
     var source: DishSourceDraft?
     var existingPhoto: CookingMedia?
@@ -23,7 +25,7 @@ import Foundation
         dishName = attempt.dish?.name ?? attempt.rankedItem?.name ?? ""
         category = attempt.category; cookedAt = attempt.cookedAt
         versionTitle = attempt.versionTitle ?? ""; notes = attempt.notes ?? ""
-        dietary = attempt.dietaryTags; allergy = attempt.allergyTags; customTags = attempt.customTags
+        dietary = attempt.dietaryTags; allergy = attempt.allergyTags; contains = attempt.containedAllergens; customTags = attempt.customTags
         source = attempt.dish?.source.map(DishSourceDraft.init(source:))
         existingPhoto = attempt.primaryImage
     }

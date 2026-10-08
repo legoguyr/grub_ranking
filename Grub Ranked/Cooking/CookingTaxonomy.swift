@@ -56,7 +56,26 @@ nonisolated enum AllergyTag: String, CaseIterable, Identifiable {
     }
 }
 
-nonisolated enum CookingTagKind: String { case dietary, allergy, custom }
+/// Explicit presence; legacy AllergyTag codes retain their original free-of meaning.
+nonisolated enum Allergen: String, CaseIterable, Identifiable {
+    case peanuts, treeNuts, sesame, milk, egg, wheat, soy, fish, shellfish
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .peanuts: "Peanuts"
+        case .treeNuts: "Tree Nuts"
+        case .sesame: "Sesame"
+        case .milk: "Milk"
+        case .egg: "Egg"
+        case .wheat: "Wheat"
+        case .soy: "Soy"
+        case .fish: "Fish"
+        case .shellfish: "Shellfish"
+        }
+    }
+}
+
+nonisolated enum CookingTagKind: String { case dietary, allergy, contains, custom }
 
 nonisolated enum TagNormalization {
     static func display(_ text: String) -> String { text.split(whereSeparator: \.isWhitespace).joined(separator: " ") }

@@ -13,7 +13,7 @@ struct CookingPhotoEditor: View {
         VStack(alignment: .leading, spacing: SGTheme.Space.small) {
             DishPhoto(media: draft.removeExistingPhoto ? nil : draft.existingPhoto,
                       prepared: draft.pendingPhoto, name: draft.cleanDishName.isEmpty ? "dish" : draft.cleanDishName)
-                .frame(maxWidth: .infinity).frame(height: 210)
+                .frame(maxWidth: .infinity).frame(height: hasPhoto ? SGTheme.Size.editorPhotoHeight : SGTheme.Size.placeholderHeight)
                 .clipShape(RoundedRectangle(cornerRadius: SGTheme.Radius.card, style: .continuous))
                 .overlay {
                     RoundedRectangle(cornerRadius: SGTheme.Radius.card, style: .continuous)
@@ -25,13 +25,13 @@ struct CookingPhotoEditor: View {
                           systemImage: hasPhoto ? "photo.badge.arrow.down" : "photo.badge.plus")
                         .frame(minHeight: SGTheme.Size.minimumTap)
                 }
-                .disabled(loading)
+                .buttonStyle(SGButtonStyle()).disabled(loading)
                 if hasPhoto {
                     Button("Remove", role: .destructive) {
                         draft.pendingPhoto = nil
                         draft.removeExistingPhoto = true
                         selection = nil
-                    }.frame(minHeight: SGTheme.Size.minimumTap)
+                    }.buttonStyle(SGButtonStyle()).frame(minHeight: SGTheme.Size.minimumTap)
                 }
                 if loading { ProgressView().accessibilityLabel("Preparing photo") }
             }

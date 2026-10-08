@@ -199,3 +199,79 @@ struct DishSourceTests {
         #expect(try context.fetchCount(FetchDescriptor<CookingAttempt>()) == 0)
     }
 }
+
+/// The simplified editor is an adapter, not a migration of saved attribution.
+@MainActor
+struct SourceCompatibilityTests {
+    @Test(arguments: DishSourceType.allCases)
+    func legacyTypesRemainReadableAndRoundTripAllSavedMetadata(_ type: DishSourceType) throws {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("legacy-source-\(UUID()).store")
+        var savedID: UUID?
+        let created = Date(timeIntervalSince1970: 1_700_000_000)
+        do {
+            let container = try AppPersistence.open(url: url); let context = ModelContext(container)
+            let dish = Dish(name: "Legacy dish"); context.insert(dish)
+            let source = DishSource(type: type); context.insert(source); dish.source = source
+            source.createdAt = created
+            switch type {
+            case .original: break
+            case .cookbook:
+                source.cookbookTitle = "Zahav"; source.cookbookAuthors = "Original author"
+                source.cookbookRecipeName = "Original recipe"; source.cookbookPage = "207"
+            case .restaurant:
+                source.restaurantName = "Carbone"; source.restaurantDishName = "Original dish"; source.restaurantLocation = "Original location"
+            case .onlineRecipe:
+                source.onlineURL = "https://example.com/original?x=1#recipe"
+                source.onlineWebsite = "Original website"; source.onlineRecipeName = "Original title"
+            case .socialMedia:
+                source.socialURL = "https://example.com/post?x=1#video"
+                source.socialCreator = "Original creator"; source.socialPlatform = "Original platform"; source.socialDishName = "Original title"
+            case .friendFamily: source.friendName = "Grandma"; source.friendNote = "Original note"
+            case .other: source.otherName = "Market"; source.otherDetails = "Original detail"
+            }
+            try context.save()
+            let before = source.detailRows.map { "\($0.label):\($0.value)" }
+            let draft = DishSourceDraft(source: source)
+            // Saving another cook field replays the exact draft, including fields
+            // that the new, lightweight Source editor deliberately does not ask for.
+            draft.apply(to: source); try context.save()
+            #expect(source.detailRows.map { "\($0.label):\($0.value)" } == before)
+            #expect(source.typeCode == type.rawValue && source.createdAt == created)
+            #expect(SourceChoice(type: source.type).label == source.type.label)
+            savedID = source.id
+        }
+        let container = try AppPersistence.open(url: url); let context = ModelContext(container)
+        let source = try #require(context.fetch(FetchDescriptor<DishSource>()).first)
+        #expect(source.id == savedID && source.type == type && source.createdAt == created)
+        #expect(source.dish?.source?.id == source.id)
+        if type == .socialMedia {
+            #expect(SourceChoice(type: source.type) == .online)
+            #expect(source.socialURL == "https://example.com/post?x=1#video")
+            #expect(source.socialCreator == "Original creator")
+        }
+    }
+
+    @Test func simplifiedSourceOptionsAndOriginalURLsPersistWithoutRankingChanges() throws {
+        #expect(CookingProductOptions.sources.map(\.label) == ["My Own", "Online", "Cookbook", "Restaurant", "Friend / Family", "Other"])
+        #expect(CookingProductOptions.courses == DishCategory.allCases)
+        #expect(CookingProductOptions.dietary == DietaryTag.allCases)
+        #expect(CookingProductOptions.allergens == Allergen.allCases)
+        let container = try ModelContainer(for: AppPersistence.schema, configurations: [ModelConfiguration(isStoredInMemoryOnly: true)])
+        let context = ModelContext(container); let list = try CookingStore.prepare(context: context)
+        var draft = CookingDraft(); draft.dishName = "Pasta"
+        draft.source = DishSourceDraft(type: .original)
+        let first = try CookingStore.create(draft: draft, session: RankingEngine(itemID: UUID(), orderedIDs: [], reaction: .liked), context: context)
+        #expect(first.dish?.source?.detailRows.isEmpty == true)
+        let item = try #require(first.rankedItem); let sourceID = first.dish?.source?.id
+        let score = item.score; let strength = item.strength; let uncertainty = item.uncertainty
+        var edit = CookingDraft(attempt: first)
+        var online = DishSourceDraft(type: SourceChoice.online.storedType)
+        online.onlineURL = "https://example.com/food?utm_source=friend&x=1#steps"
+        edit.source = online; try CookingStore.edit(first, draft: edit, context: context)
+        #expect(first.dish?.source?.onlineURL == online.onlineURL)
+        #expect(first.dish?.source?.id == sourceID)
+        #expect(item.score == score && item.strength == strength && item.uncertainty == uncertainty)
+        #expect(list.items.count == 1 && list.comparisons.isEmpty)
+        #expect(try context.fetchCount(FetchDescriptor<RankingList>()) == 1)
+    }
+}

@@ -15,16 +15,14 @@ final class CookingUITests: XCTestCase {
         if (environment["TEST_RUNNER_STAYGRUBBY_LARGE_TYPE"] ?? environment["STAYGRUBBY_LARGE_TYPE"]) == "1" {
             app.launchArguments.append("--test-large-type")
         }
-        app.launch()
-        XCTAssertTrue(app.navigationBars["Rankings"].waitForExistence(timeout: 15))
+        app.launchWithReviewOptions()
+        XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 15))
 
         func tap(_ button: XCUIElement) {
             XCTAssertTrue(button.waitForExistence(timeout: 15))
             for _ in 0..<6 {
                 if button.isHittable {
                     button.tap()
-                    Thread.sleep(forTimeInterval: 0.5)
-                    if button.exists && button.isHittable { button.tap() }
                     return
                 }
                 app.swipeUp()
@@ -68,11 +66,14 @@ final class CookingUITests: XCTestCase {
         func finishRank(_ name: String, comparisons: Bool) {
             let liked = app.buttons["Liked it"]
             transition(app.buttons["Continue"], to: liked)
-            let next = comparisons ? app.buttons["Prefer \(name)"] : app.buttons["Save Cook"]
+            let next = comparisons ? app.buttons["Prefer \(name)"] : app.buttons["ranking-result-close"]
             transition(liked, to: next)
-            if comparisons { transition(next, to: app.buttons["Save Cook"]) }
-            tap(app.buttons["Save Cook"])
-            XCTAssertTrue(app.buttons["new-dish"].waitForExistence(timeout: 15))
+            if comparisons { transition(next, to: app.buttons["ranking-result-close"]) }
+            XCTAssertFalse(app.buttons["Save Cook"].exists)
+            XCTAssertTrue(app.staticTexts["result-score"].exists)
+            XCTAssertTrue(app.staticTexts["result-rank"].exists)
+            tap(app.buttons["ranking-result-close"])
+            XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 15))
         }
         func row(_ name: String) -> XCUIElement {
             app.buttons.matching(NSPredicate(format: "label CONTAINS %@", ", \(name), score ")).firstMatch
@@ -85,6 +86,7 @@ final class CookingUITests: XCTestCase {
             }
             XCTFail("Could not open \(name)")
         }
+        app.revealCreation()
         tap(app.buttons["new-dish"])
         capture("Add Dish")
         fill(app.textFields["dish-name"], "Salmon")
@@ -93,19 +95,25 @@ final class CookingUITests: XCTestCase {
         capture("Rankings")
         XCTAssertTrue(row("Salmon — First cook").waitForExistence(timeout: 15))
 
+        app.revealCreation()
         tap(app.buttons["new-version"])
+        let parentSearch = app.textFields["parent-dish-search"]
+        XCTAssertTrue(parentSearch.waitForExistence(timeout: 10))
+        fill(parentSearch, "salmon")
         tap(app.buttons["choose-dish-Salmon"])
-        let inherited = app.textFields["dish-name"]
+        let inherited = app.staticTexts["inherited-dish-name"]
         XCTAssertTrue(inherited.waitForExistence(timeout: 15))
-        XCTAssertEqual(inherited.value as? String, "Salmon")
+        XCTAssertEqual(inherited.label, "Salmon")
         fill(app.textFields["version-title"], "Second cook")
         transition(app.buttons["Continue"], to: app.buttons["Liked it"])
         transition(app.buttons["Liked it"], to: app.buttons["Prefer Salmon — Second cook"])
         capture("Comparison")
         let preferSecond = app.buttons["Prefer Salmon — Second cook"]
-        let saveCook = app.buttons["Save Cook"]
-        transition(preferSecond, to: saveCook)
-        tap(saveCook)
+        let resultClose = app.buttons["ranking-result-close"]
+        transition(preferSecond, to: resultClose)
+        XCTAssertFalse(app.buttons["Save Cook"].exists)
+        XCTAssertEqual(app.staticTexts["result-rank"].label, "#1 overall")
+        tap(resultClose)
         XCTAssertTrue(row("Salmon — First cook").exists)
         openRow("Salmon — Second cook")
         capture("Dish Detail")
@@ -123,11 +131,19 @@ final class CookingUITests: XCTestCase {
         tap(app.buttons["Save Answers"])
         XCTAssertTrue(app.buttons["Edit Cook"].waitForExistence(timeout: 15))
 
-        app.terminate(); app.launch()
-        XCTAssertTrue(app.navigationBars["Rankings"].waitForExistence(timeout: 15))
+        app.terminate(); app.launchWithReviewOptions()
+        XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 15))
         openRow("Salmon — Grilled")
-        tap(app.buttons["Delete Cook"])
-        let confirmDelete = app.sheets.buttons["Delete Cook"]
+        app.buttons["cook-more-actions"].tap()
+        XCTAssertTrue(app.buttons["Delete Cook"].waitForExistence(timeout: 10))
+        app.buttons["Delete Cook"].tap()
+        XCTAssertTrue(app.alerts["Delete this cook?"].buttons["Cancel"].waitForExistence(timeout: 10))
+        app.alerts["Delete this cook?"].buttons["Cancel"].tap()
+        XCTAssertTrue(app.buttons["Edit Cook"].exists)
+        app.buttons["cook-more-actions"].tap()
+        XCTAssertTrue(app.buttons["Delete Cook"].waitForExistence(timeout: 10))
+        app.buttons["Delete Cook"].tap()
+        let confirmDelete = app.alerts["Delete this cook?"].buttons["Delete Cook"]
         XCTAssertTrue(confirmDelete.waitForExistence(timeout: 15))
         Thread.sleep(forTimeInterval: 0.6)
         confirmDelete.tap()
@@ -137,8 +153,8 @@ final class CookingUITests: XCTestCase {
         XCTAssertTrue(confirmDelete.waitForNonExistence(timeout: 15))
         XCTAssertTrue(row("Salmon — First cook").waitForExistence(timeout: 15))
         XCTAssertFalse(row("Salmon — Grilled").exists)
-        app.terminate(); app.launch()
-        XCTAssertTrue(app.navigationBars["Rankings"].waitForExistence(timeout: 15))
+        app.terminate(); app.launchWithReviewOptions()
+        XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 15))
         XCTAssertTrue(row("Salmon — First cook").waitForExistence(timeout: 15))
         XCTAssertFalse(row("Salmon — Grilled").exists)
     }
