@@ -307,3 +307,7 @@ xcodebuild -project 'Grub Ranked.xcodeproj' -scheme 'Grub Ranked' \
 
 The result bundle for the final run is
 `~/Library/Developer/XcodeBuildMCP/workspaces/Grub-Ranked-c2d28c43fd9c/result-bundles/test_sim_2026-10-02T22-32-32-069Z_pid17143_d0bde3c4.xcresult`.
+
+## Phase 3B synchronization boundary
+
+RankingEngine, BradleyTerryModel, RankingAnalysis, score scaling and all acquisition/uncertainty policies remain unchanged. Persistence adapters can now journal committed account mutations alongside their existing saves; disabled/unbound guest stores do not journal. Transfer/hydration preserves RankedItem and Comparison UUIDs, repeated/tie observations, timestamps, diagnostic bytes and full-precision cached state. Hydration neither re-runs insertion nor averages caches. Any future accepted change in underlying evidence must be fitted by this same local engine; there is no cloud fitter or social input. See SYNC_ARCHITECTURE.md.

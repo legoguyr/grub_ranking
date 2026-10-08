@@ -37,8 +37,8 @@ final class CookingAttempt {
         }.first
     }
 
-    init(item: RankedItem, sequence: Int, category: DishCategory, cookedAt: Date?, legacy: Bool = false) {
-        id = UUID(); rankedItemID = item.id; rankedItem = item
+    init(item: RankedItem, sequence: Int, category: DishCategory, cookedAt: Date?, legacy: Bool = false, id: UUID = UUID()) {
+        self.id = id; rankedItemID = item.id; rankedItem = item
         sequenceNumber = sequence; categoryCode = category.rawValue; self.cookedAt = cookedAt
         createdAt = item.createdAt; updatedAt = .now; isLegacyImport = legacy
     }

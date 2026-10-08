@@ -13,7 +13,7 @@ final class Dish {
         get { DishCategory(rawValue: defaultCategoryCode) ?? .other }
         set { defaultCategoryCode = newValue.rawValue }
     }
-    init(name: String, category: DishCategory = .other, createdAt: Date = .now) {
-        id = UUID(); self.name = name; defaultCategoryCode = category.rawValue; self.createdAt = createdAt
+    init(name: String, category: DishCategory = .other, createdAt: Date = .now, id: UUID = UUID()) {
+        self.id = id; self.name = name; defaultCategoryCode = category.rawValue; self.createdAt = createdAt
     }
 }

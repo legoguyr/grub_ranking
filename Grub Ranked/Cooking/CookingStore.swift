@@ -20,6 +20,8 @@ enum CookingStore {
     /// comparison observations, or their timestamps; never combines legacy lists.
     @discardableResult
     static func prepare(context: ModelContext) throws -> RankingList {
+        try SyncJournal.requireReady(context)
+        let baseline = try SyncJournal.begin(context)
         do {
             let lists = try context.fetch(FetchDescriptor<RankingList>())
             let libraries = try context.fetch(FetchDescriptor<CookingLibrary>())
@@ -45,7 +47,10 @@ enum CookingStore {
                 context.insert(dish); context.insert(attempt)
                 dish.attempts.append(attempt)
             }
-            if context.hasChanges { try context.save() }
+            if context.hasChanges {
+                try SyncJournal.stage(baseline, kind: "initialize", context: context)
+                try context.save()
+            }
             return global
         } catch { context.rollback(); throw error }
     }
@@ -70,6 +75,7 @@ enum CookingStore {
               Set(session.orderedIDs) == Set(global.items.map(\.id)),
               existingDish == nil || existingDish!.attempts.contains(where: { $0.rankedItem?.list?.id == global.id })
         else { throw RankingStore.EvidenceError.invalidComparison }
+        let baseline = try SyncJournal.begin(context)
         var writtenMedia: CookingMedia?
         do {
             let dish: Dish
@@ -93,6 +99,7 @@ enum CookingStore {
                 context.insert(media)
                 attempt.media.append(media)
             }
+            try SyncJournal.stage(baseline, kind: "createCook", context: context)
             try context.save()
             return attempt
         } catch {
@@ -107,6 +114,7 @@ enum CookingStore {
         guard let dish = attempt.dish, attempt.rankedItem != nil else { throw StoreError.missingItem }
         let replacingPhoto = draft.pendingPhoto != nil || draft.removeExistingPhoto
         let retiredFiles = replacingPhoto ? attempt.media.map { ($0.displayFilename, $0.thumbnailFilename) } : []
+        let baseline = try SyncJournal.begin(context)
         var writtenMedia: CookingMedia?
         do {
             let renamed = dish.name != draft.cleanDishName
@@ -129,6 +137,7 @@ enum CookingStore {
                 sibling.rankedItem?.name = sibling.displayName
                 sibling.updatedAt = .now
             }
+            try SyncJournal.stage(baseline, kind: "editCook", context: context)
             try context.save()
             for files in retiredFiles {
                 LocalPhotoStore.deleteFiles(displayFilename: files.0, thumbnailFilename: files.1,
@@ -144,6 +153,7 @@ enum CookingStore {
         guard let item = attempt.rankedItem else { throw StoreError.missingItem }
         let list = item.list
         let retiredFiles = attempt.media.map { ($0.displayFilename, $0.thumbnailFilename) }
+        let baseline = try SyncJournal.begin(context)
         do {
             // IDs in evidence are scalar values; explicitly remove every incident edge,
             // including repeated/tie/refinement observations before deleting the item.
@@ -160,6 +170,7 @@ enum CookingStore {
             context.delete(item)
             if let dish, dish.attempts.isEmpty { context.delete(dish) }
             list?.recompute()
+            try SyncJournal.stage(baseline, kind: "deleteCook", context: context)
             try context.save()
             for files in retiredFiles {
                 LocalPhotoStore.deleteFiles(displayFilename: files.0, thumbnailFilename: files.1,

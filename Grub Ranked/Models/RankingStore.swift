@@ -5,8 +5,10 @@ import SwiftData
 @MainActor
 enum RankingStore {
     static func save(name: String, session: RankingEngine, to list: RankingList, context: ModelContext) throws {
+        let baseline = try SyncJournal.begin(context)
         do {
             _ = try stage(name: name, session: session, to: list, context: context)
+            try SyncJournal.stage(baseline, kind: "createRankedItem", context: context)
             try context.save()
         } catch { context.rollback(); throw error }
     }
@@ -39,13 +41,17 @@ enum RankingStore {
     static func record(_ evidence: [PreferenceEvidence], in list: RankingList, context: ModelContext) throws {
         let ids = Set(list.items.map(\.id))
         guard evidence.allSatisfy({ ids.contains($0.first) && ids.contains($0.second) && $0.first != $0.second && [0.0, 0.5, 1.0].contains($0.outcome) }) else { throw EvidenceError.invalidComparison }
+        let baseline = try SyncJournal.begin(context)
         for observation in evidence {
             let comparison = Comparison(evidence: observation)
             context.insert(comparison)
             list.comparisons.append(comparison)
         }
         list.recompute()
-        do { try context.save() } catch { context.rollback(); throw error }
+        do {
+            try SyncJournal.stage(baseline, kind: "appendEvidence", context: context)
+            try context.save()
+        } catch { context.rollback(); throw error }
     }
 
     static func removeSession(_ session: RankingEngine, from list: RankingList, context: ModelContext) throws {
@@ -58,12 +64,16 @@ enum RankingStore {
             remaining.remove(at: index)
         }
         guard remaining.isEmpty else { throw EvidenceError.sessionHasNewEvidence }
+        let baseline = try SyncJournal.begin(context)
         let items = list.items.filter { $0.id == session.itemID }
         list.comparisons.removeAll { $0.firstItemID == session.itemID || $0.secondItemID == session.itemID }
         list.items.removeAll { $0.id == session.itemID }
         for comparison in comparisons { context.delete(comparison) }
         for item in items { context.delete(item) }
         list.recompute()
-        do { try context.save() } catch { context.rollback(); throw error }
+        do {
+            try SyncJournal.stage(baseline, kind: "removeSession", context: context)
+            try context.save()
+        } catch { context.rollback(); throw error }
     }
 }

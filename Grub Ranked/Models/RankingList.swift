@@ -8,7 +8,7 @@ final class RankingList {
     var createdAt: Date
     @Relationship(deleteRule: .cascade, inverse: \RankedItem.list) var items: [RankedItem] = []
     @Relationship(deleteRule: .cascade, inverse: \Comparison.list) var comparisons: [Comparison] = []
-    init(name: String) { id = UUID(); self.name = name; createdAt = .now }
+    init(name: String, id: UUID = UUID(), createdAt: Date = .now) { self.id = id; self.name = name; self.createdAt = createdAt }
 
     var orderedItems: [RankedItem] {
         items.sorted {

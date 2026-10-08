@@ -78,7 +78,7 @@ final class DishSource {
         return fields.compactMap { label, value in value.map { (label: label, value: $0) } }
     }
 
-    init(type: DishSourceType) {
-        id = UUID(); typeCode = type.rawValue; createdAt = .now; updatedAt = .now
+    init(type: DishSourceType, id: UUID = UUID()) {
+        self.id = id; typeCode = type.rawValue; createdAt = .now; updatedAt = .now
     }
 }

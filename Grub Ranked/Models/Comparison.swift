@@ -10,8 +10,8 @@ final class Comparison {
     var isTie: Bool
     var timestamp: Date
     var list: RankingList?
-    init(evidence: PreferenceEvidence) {
-        id = UUID(); firstItemID = evidence.first; secondItemID = evidence.second
+    init(evidence: PreferenceEvidence, id: UUID = UUID()) {
+        self.id = id; firstItemID = evidence.first; secondItemID = evidence.second
         isTie = evidence.outcome == 0.5
         preferredItemID = evidence.outcome == 0.5 ? nil : (evidence.outcome == 1 ? evidence.first : evidence.second)
         timestamp = evidence.timestamp

@@ -8,7 +8,7 @@ enum AppPersistence {
     static var schema: Schema {
         Schema([Item.self, RankingList.self, RankedItem.self, Comparison.self,
                 Dish.self, DishSource.self, CookingAttempt.self, CookingMedia.self,
-                CookingTag.self, CookingLibrary.self])
+                CookingTag.self, CookingLibrary.self, SyncStoreBinding.self, SyncOperation.self, SyncTombstone.self])
     }
     static func open(url: URL? = nil) throws -> ModelContainer {
         let schema = schema
