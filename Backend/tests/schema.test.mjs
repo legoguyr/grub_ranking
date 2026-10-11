@@ -1,5 +1,5 @@
 import { PGlite } from '@electric-sql/pglite';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 
 // A disposable PostgreSQL engine. These stubs emulate only the JWT-to-auth.uid SQL
@@ -14,7 +14,12 @@ const item1='40000000-0000-0000-0000-000000000001', item2='40000000-0000-0000-00
 await db.exec(`create role authenticated; create role anon; create schema auth;
  create table auth.users(id uuid primary key);
  create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;`);
-await db.exec(await readFile(new URL('../schema.sql', import.meta.url),'utf8'));
+const migrationDirectory = new URL('../../supabase/migrations/', import.meta.url);
+const migrations = (await readdir(migrationDirectory)).filter(name => name.endsWith('.sql')).sort();
+check(migrations.length === 2, 'Setup has initial and hardening migrations');
+const initial = (await Promise.all(migrations.map(name => readFile(new URL(name, migrationDirectory), 'utf8')))).join('');
+check(initial === await readFile(new URL('../schema.sql', import.meta.url), 'utf8'), 'Reference and complete migration chain agree');
+for (const name of migrations) await db.exec(await readFile(new URL(name, migrationDirectory), 'utf8'));
 await db.exec(`insert into auth.users values('${ua}'),('${ub}');
  insert into staygrubby.accounts(id) values('${a}'),('${b}');
  insert into staygrubby.auth_account_links(auth_user_id,account_id) values('${ua}','${a}'),('${ub}','${b}');
@@ -37,6 +42,9 @@ check((await db.query('select name from staygrubby.rankings')).rows[0].name==='A
 await rejects(`insert into staygrubby.rankings(account_id,id,name,created_at_ref,role) values('${b}',gen_random_uuid(),'Forged',0,'historical')`,'Client cannot write another owner','42501');
 await rejects(`update staygrubby.ranked_items set strength=9`,'Client cannot forge ranking caches or server versions','42501');
 await rejects(`select * from staygrubby.auth_account_links`,'Private auth mapping is not a profile','42501');
+await rejects(`update staygrubby.rankings set account_id='${b}'`,'Client cannot reassign ownership','42501');
+await rejects(`insert into staygrubby.auth_account_links(auth_user_id,account_id) values(gen_random_uuid(),'${a}')`,'Client cannot forge identity links','42501');
+await rejects(`truncate staygrubby.rankings cascade`,'TRUNCATE cannot bypass RLS','42501');
 await rejects(`delete from staygrubby.rankings`,'Client cannot bypass atomic deletion','42501');
 await actor(ub);
 check((await db.query('select name from staygrubby.rankings')).rows[0].name==='B cooking','B sees only B');
@@ -75,5 +83,20 @@ await db.exec('reset role');
 const exposed=(await db.query(`select count(*)::int n from pg_tables where schemaname='staygrubby' and not rowsecurity`)).rows[0].n;
 check(exposed===0,'Every application table has RLS');
 check((await db.query(`select count(*)::int n from pg_tables where schemaname='staygrubby'`)).rows[0].n===15,'Only private foundation tables exist');
+const permissions = (await db.query(`select c.relname,
+ has_table_privilege('anon',c.oid,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER') as anon_access,
+ has_table_privilege('authenticated',c.oid,'INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER') as client_write,
+ has_table_privilege('authenticated',c.oid,'SELECT') as client_read
+ from pg_class c join pg_namespace n on n.oid=c.relnamespace
+ where n.nspname='staygrubby' and c.relkind='r'`)).rows;
+check(permissions.every(p => !p.anon_access && !p.client_write), 'No client write/bypass privileges on any table');
+check(permissions.every(p => p.client_read === (p.relname !== 'auth_account_links')), 'Only intended owner-readable tables have SELECT grants');
+check(!(await db.query(`select has_function_privilege('anon','staygrubby.current_account_id()','EXECUTE') as access`)).rows[0].access, 'No anonymous helper execution');
+check(!(await db.query(`select has_function_privilege('authenticated','staygrubby.stamp_record()','EXECUTE') as access`)).rows[0].access, 'Trigger helper is not a client RPC');
+await db.exec(`delete from auth.users where id='${ua}'`);
+check((await db.query(`select * from staygrubby.accounts where id='${a}'`)).rows.length===1, 'Deleting provider identity does not delete permanent account');
+check((await db.query(`select * from staygrubby.auth_account_links where auth_user_id='${ua}'`)).rows.length===0, 'Deleted Auth identity link cascades');
+await db.exec(`delete from staygrubby.accounts where id='${a}'`);
+check((await db.query(`select * from staygrubby.rankings where account_id='${a}'`)).rows.length===0, 'Explicit account erasure cascades cooking data');
 console.log(`PASS ${checks} PostgreSQL schema/RLS assertions; simulated JWT mapping, no hosted project.`);
 await db.close();

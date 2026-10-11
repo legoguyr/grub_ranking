@@ -1,4 +1,5 @@
--- Phase 3B declarative foundation. Apply only to an approved Supabase development project.
+-- Private foundation reference, mirrored by the initial Supabase migration.
+-- Apply new changes through supabase/migrations; never reapply this first-install file.
 -- No credentials, Auth provider configuration, Storage buckets, or social tables.
 begin;
 create schema staygrubby;
@@ -397,6 +398,17 @@ revoke all on function staygrubby.immutable_comparison() from public;
 create trigger immutable_observation before update on staygrubby.comparisons
  for each row execute function staygrubby.immutable_comparison();
 
+-- Explicitly neutralize inherited client privileges before selective read grants.
+-- This also denies TRUNCATE/REFERENCES/TRIGGER/MAINTAIN, which RLS does not replace.
+revoke all on all tables in schema staygrubby from public, anon, authenticated;
+grant select on staygrubby.accounts, staygrubby.profiles, staygrubby.rankings,
+ staygrubby.account_libraries, staygrubby.dishes, staygrubby.dish_sources,
+ staygrubby.ranked_items, staygrubby.cooking_attempts, staygrubby.comparisons,
+ staygrubby.tags, staygrubby.attempt_tags, staygrubby.media,
+ staygrubby.sync_operations, staygrubby.sync_imports to authenticated;
+revoke all on all functions in schema staygrubby from public, anon, authenticated;
+grant execute on function staygrubby.current_account_id() to authenticated;
+
 -- FK indexes for scoped joins, endpoint cleanup and final account erasure.
 create index source_dish on staygrubby.dish_sources(account_id,dish_id);
 create index item_ranking on staygrubby.ranked_items(account_id,ranking_id);
@@ -405,4 +417,18 @@ create index comparison_first on staygrubby.comparisons(account_id,ranking_id,fi
 create index comparison_second on staygrubby.comparisons(account_id,ranking_id,second_item_id);
 create index membership_tag on staygrubby.attempt_tags(account_id,tag_key);
 create index media_attempt on staygrubby.media(account_id,attempt_id);
+create index operation_predecessor on staygrubby.sync_operations(account_id,predecessor_id);
+commit;
+-- Hosted advisors found two uncovered composite FKs and an automatic-RLS
+-- event-trigger helper with default PUBLIC execution. Keep auto-RLS active.
+begin;
+create index library_global_ranking on staygrubby.account_libraries(account_id,global_ranking_id);
+create index dish_source_reference on staygrubby.dishes(account_id,id,source_id);
+-- This hosted helper is optional in local Supabase stacks. Never create it here.
+do $$
+begin
+ if to_regprocedure('public.rls_auto_enable()') is not null then
+  execute 'revoke all on function public.rls_auto_enable() from public, anon, authenticated';
+ end if;
+end $$;
 commit;

@@ -1,3 +1,12 @@
 
 # Local migration checkpoints contain personal app data.
 .local-backups/
+
+# Supabase generated linkage/state and local secrets.
+supabase/.temp/
+supabase/.branches/
+.env
+.env.*
+!.env.example
+*.local.xcconfig
+supabase/signing_keys*.json

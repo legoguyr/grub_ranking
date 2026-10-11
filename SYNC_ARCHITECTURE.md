@@ -1,6 +1,6 @@
 # Phase 3B private synchronization foundation
 
-The app continues to launch as a local guest. There is no real authentication, Supabase client dependency, configured project, automatic sync worker, account UI, cloud photo transfer, or social functionality. The existing cooking UI and all ranking-engine implementation remain unchanged.
+The app continues to launch as a local guest. There is no real authentication, Supabase client dependency, automatic sync worker, account UI, cloud photo transfer, or social functionality. The existing cooking UI and all ranking-engine implementation remain unchanged.
 
 ## Local store boundary and startup
 
@@ -50,7 +50,7 @@ LocalStoreSession exposes the selected media root. Existing LocalPhotoStore APIs
 
 ## Backend artifacts and security
 
-Backend/schema.sql is an unapplied declarative Supabase foundation, not a fabricated migration history or connected project. It includes accounts, private Auth links, minimal owner-only profiles, account libraries, rankings, dishes, full Sources, items, attempts, comparisons, tags/memberships, media metadata, operation receipts and import state. It has account-scoped keys/FKs, one active global ranking, separate observation UUIDs, immutable ownership/identity/evidence and server stamping/version fields. Username uniqueness is case-insensitive, but no rename, alias, reservation or recycling policy is implemented.
+Backend/schema.sql is a first-install reference for the tracked Supabase migration chain. The hosted project was initialized on October 11, 2026; see supabase/README.md for applied versions, security verification and the intentionally private API boundary. It includes accounts, private Auth links, minimal owner-only profiles, account libraries, rankings, dishes, full Sources, items, attempts, comparisons, tags/memberships, media metadata, operation receipts and import state. It has account-scoped keys/FKs, one active global ranking, separate observation UUIDs, immutable ownership/identity/evidence and server stamping/version fields. Username uniqueness is case-insensitive, but no rename, alias, reservation or recycling policy is implemented.
 
 All tables have RLS. A narrowly scoped private security-definer helper resolves auth.uid through protected Auth links and active account status; no editable user_metadata authorizes ownership. Authenticated clients have owner-only reads and no direct domain/receipt/version writes. Anonymous reads and Auth-link reads are denied. The staygrubby schema is not automatically exposed to the Data API. There are no service/admin credentials, storage policies/buckets or social tables.
 
@@ -71,3 +71,7 @@ The pinned PostgreSQL WASM harness passed **28 schema/RLS assertions**. It is an
 The final app build/normal guest launch succeeded. Exact semantic-field/relationship comparison against the consistent pre-change checkpoint confirms **1 RankingList, 12 Dishes, 15 CookingAttempts/RankedItems, 356 Comparisons, 10 Sources, 21 tags / 48 memberships, zero media**. IDs, names, dates, strength/uncertainty caches, diagnostic bytes, comparison observations and all associations remain unchanged. SQLite integrity passes. The three additive sync tables have zero rows in the real guest store; no test data or account binding leaked into it. Existing database/media locations were retained.
 
 All 26 previously tracked engine, screen/design-system and Xcode-project files match their pre-phase hashes. Model constructor additions and service transaction hooks are the only domain/persistence adapter changes. `git diff --check` passes. Local checkpoint, semantic hashes, test summaries and the full 25-file inventory are retained under ignored `.local-backups/phase3b/`. Nothing is staged, committed or pushed; Phase 3B awaits manual review.
+
+## Phase 3C setup checkpoint — October 11, 2026
+
+The empty hosted project `lgjxbpycphhsswxoncmz` now has the 15 private foundation tables and reviewed grants/policies, with two tracked migrations matching hosted history. No account or guest-data adoption occurred. SupabaseClient.plist centralizes only client-safe configuration; no SDK, Auth provider or network worker is installed. `supabase/README.md` records the 40 local-equivalent assertions, hosted catalog/REST checks, build result and remaining authenticated integration work. Phase 3B validation above is historical; the setup work remains uncommitted/unpushed.
