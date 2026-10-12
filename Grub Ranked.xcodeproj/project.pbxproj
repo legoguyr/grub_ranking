@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		F3C100000000000000000001 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = F3C100000000000000000003 /* Supabase */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		88358CAE306F19D700AC3A2B /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +56,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F3C100000000000000000001 /* Supabase in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +117,7 @@
 			);
 			name = "Grub Ranked";
 			packageProductDependencies = (
+				F3C100000000000000000003 /* Supabase */,
 			);
 			productName = "Grub Ranked";
 			productReference = 88358C9E306F19D300AC3A2B /* Grub Ranked.app */;
@@ -196,6 +202,7 @@
 			mainGroup = 88358C95306F19D300AC3A2B;
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
+			packageReferences = (F3C100000000000000000002 /* Supabase */);
 			productRefGroup = 88358C9F306F19D300AC3A2B /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -267,6 +274,21 @@
 			targetProxy = 88358CB8306F19D700AC3A2B /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		F3C100000000000000000002 /* Supabase */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift.git";
+			requirement = {kind = exactVersion; version = 2.55.3; };
+		};
+/* End XCRemoteSwiftPackageReference section */
+/* Begin XCSwiftPackageProductDependency section */
+		F3C100000000000000000003 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F3C100000000000000000002 /* Supabase */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
 
 /* Begin XCBuildConfiguration section */
 		88358CBF306F19D700AC3A2B /* Debug */ = {

@@ -6,6 +6,7 @@ import UIKit
 
 @main
 struct Grub_RankedApp: App {
+    @State private var accountSession = AccountSessionCoordinator()
     private let storage: Result<ModelContainer, Error> = Result {
         var testURL: URL?
         #if DEBUG
@@ -37,10 +38,10 @@ struct Grub_RankedApp: App {
                     ComparisonReviewFixture(mode: ProcessInfo.processInfo.arguments[index + 1])
                         .modifier(DebugPresentationOverrides())
                 } else {
-                    ContentView().modelContainer(container).modifier(DebugPresentationOverrides())
+                    ContentView().environment(accountSession).modelContainer(container).modifier(DebugPresentationOverrides())
                 }
                 #else
-                ContentView().modelContainer(container)
+                ContentView().environment(accountSession).modelContainer(container)
                 #endif
             case .failure(let error):
                 ContentUnavailableView("Couldn't open local data", systemImage: "externaldrive.badge.exclamationmark",

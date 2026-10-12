@@ -2,6 +2,12 @@
   "name": "staygrubby-schema-tests",
   "private": true,
   "type": "module",
-  "scripts": { "test": "node schema.test.mjs" },
-  "devDependencies": { "@electric-sql/pglite": "0.5.8" }
+  "scripts": {
+    "test": "node schema.test.mjs",
+    "test:concurrency": "node provisioning.concurrent.mjs"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.8",
+    "pg": "8.23.1"
+  }
 }

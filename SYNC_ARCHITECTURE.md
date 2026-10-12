@@ -1,6 +1,6 @@
 # Phase 3B private synchronization foundation
 
-The app continues to launch as a local guest. There is no real authentication, Supabase client dependency, automatic sync worker, account UI, cloud photo transfer, or social functionality. The existing cooking UI and all ranking-engine implementation remain unchanged.
+The app continues to launch as a local guest. The Supabase SDK and explicit account/session foundation are now present; there is no native Apple login, automatic sync worker, account UI, cloud photo transfer, or social functionality. The existing cooking UI and all ranking-engine implementation remain unchanged.
 
 ## Local store boundary and startup
 
@@ -75,3 +75,17 @@ All 26 previously tracked engine, screen/design-system and Xcode-project files m
 ## Phase 3C setup checkpoint — October 11, 2026
 
 The empty hosted project `lgjxbpycphhsswxoncmz` now has the 15 private foundation tables and reviewed grants/policies, with two tracked migrations matching hosted history. No account or guest-data adoption occurred. SupabaseClient.plist centralizes only client-safe configuration; no SDK, Auth provider or network worker is installed. `supabase/README.md` records the 40 local-equivalent assertions, hosted catalog/REST checks, build result and remaining authenticated integration work. Phase 3B validation above is historical; the setup work remains uncommitted/unpushed.
+
+## Phase 3C Part 1 account boundary
+
+See ACCOUNT_ARCHITECTURE.md. The new coordinator is injected at the app root but initially stays guest and lazily constructs its SDK backend only when session restoration is explicitly requested. Only a valid provisioning receipt can authorize preparation of the permanent-account store. Preparing it does not call prepare/initializeVerifiedEmptyAccount, hydrate, enable journaling or mount account data. No existing cooking/ranking/UI source was changed; guest adoption and actual store switching remain deferred. Ordinary local sign-out invalidates pending work and prepared routing, cancels observation and calls the SDK's local-scope sign-out without erasing account files or cloud data.
+
+### Part 1 final validation
+
+The complete scheme passed on iPhone 17 / iOS 26.5: **108 test functions / 136 configured executions, zero failures, expected failures or skips**. This comprises 94 unit functions / 121 executions and 14 UI functions / 15 executions. The 14 new account-session functions / 16 executions all pass, including identity-switch/stale-reply protection. Existing tests were not weakened or changed. Result bundle: /private/tmp/grub-phase3c-part1-full.xcresult.
+
+PostgreSQL validation passed **59 PGlite schema/security assertions and 13 native PostgreSQL concurrency/transaction assertions**. Hosted migration hashes match all four repository files; private/helper/API grants and exposure are verified, anonymous provisioning is rejected, and hosted Auth users/accounts remain zero. Advisors have no warnings/errors, only the deliberately inaccessible Auth-link policy notice and unused indexes in the empty database. No real authenticated hosted success/provider-token exchange is claimed.
+
+Final build/normal guest launch succeeded with zero reported build warnings/errors; the saved Rankings UI was visually checked. Every original development-store semantic field/relationship matches the consistent pre-task snapshot: **1 global RankingList, 12 Dishes, 15 CookingAttempts/RankedItems, 356 Comparisons, 10 Sources, 21 tags / 48 memberships, zero media**. SQLite integrity passes; all three sync tables remain empty in the guest store. The 40 protected cooking/ranking/engine/UI files are byte-for-byte unchanged. SupabaseClient.plist is unchanged and correctly bundled. Credential checks found no real privileged value; a forbidden-key string appears only as a negative configuration test. Backups, test dependencies and local Supabase state remain ignored.
+
+`git diff --check` passes. Part 1 has 18 intended modified/new files, none staged/committed/pushed. Apple-dependent setup/login remains deferred pending enrollment activation. Manual review should confirm ordinary/offline guest Rankings, search/filter/version detail and canceled New Dish/New Version drafts; there is intentionally no new authentication UI yet. Use AccountSessionTests for foundation state/routing/sign-out review.

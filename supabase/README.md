@@ -8,14 +8,14 @@ Official CLI **2.120.0** generated `config.toml`, `.gitignore`, and both migrati
 
 The authenticated Supabase connector targeted the exact project, applied both migrations, and verified them. The CLI itself was NOT authenticated or linked; no fake `.temp/project-ref` was written. After application, CLI-generated filenames were reconciled to the server-recorded migration versions; SQL bodies were preserved. No manual migration-history repair was used.
 
-## Applied migrations
+## Initial setup migrations (historical checkpoint)
 
 - `20261011211144_private_cloud_foundation.sql`: Phase 3B schema, explicit client privilege revocation and predecessor FK index.
 - `20261011211235_schema_access_hardening.sql`: two additional composite-FK indexes and revocation of client execution on the existing optional `public.rls_auto_enable()` event-trigger helper. The `ensure_rls` event trigger remains enabled. No managed Auth schema or helper body was changed.
 
 `Backend/schema.sql` concatenates these files for first-install reference/tests. Future schema changes belong in new CLI-generated migrations, never in edits to applied migrations. New installations must replay the whole chain.
 
-## Hosted objects and permissions
+## Initial setup objects and permissions (historical checkpoint)
 
 Exactly 15 empty application tables in private `staygrubby`:
 
@@ -29,19 +29,19 @@ Composite account-scoped keys prevent cross-account relationships. Account libra
 
 Provider identity -> Supabase Auth UUID -> protected auth_account_links -> permanent account UUID remains the ownership boundary. Future provisioning must derive the verified Auth UUID server-side, allocate an independent account UUID, serialize concurrent bootstrap calls, return the existing mapping on retries and insert account/link/profile atomically. Never accept an owner from email, username, user_metadata, a provider ID or a client-supplied account UUID. No bootstrap RPC or real account was created in this setup.
 
-## Exposure plan
+## Initial exposure plan (superseded for provisioning by Part 1 below)
 
 Hosted REST explicitly reports exposed schemas `public, graphql_public`. `staygrubby` table and resolver requests with the publishable key return **406/PGRST106**; requests without a key return **401**. Thus application tables/functions remain private even though Data API is enabled. Automatic exposure is OFF; explicit table grants alone do not add a custom schema to the exposed list.
 
 Later create a dedicated `api` schema in a reviewed migration, with only carefully authenticated provisioning/mutation/import/snapshot entry points. Grant schema USAGE and EXECUTE on specific approved signatures to authenticated only. Keep `staygrubby` and Auth mappings/helpers out of the exposed list. Then intentionally add `api` in Dashboard -> Integrations -> Data API -> Settings -> Exposed schemas, reload/verify the API and test with real sessions. Do not copy broad GRANT ALL examples. This setup creates no `api` schema, exposed views or RPC endpoints.
 
-## Client configuration and SDK
+## Initial client configuration and SDK (historical checkpoint)
 
 `Grub Ranked/Configuration/SupabaseClient.plist` centralizes exactly ProjectURL, ProjectReference and the supplied PublishableKey. These are client-safe values, deliberately bundled, not secrets. The existing filesystem-synchronized Xcode group includes the resource without project edits. Build succeeded and the bundled plist matches the source.
 
 No Swift SDK was added. Next integration step: select and pin the then-current reviewed `supabase-swift` release from `https://github.com/supabase/supabase-swift` through Xcode Swift Package Dependencies, add only the required Supabase product to the app target, retain Package.resolved, and instantiate a client from `Bundle.main.url(forResource: "SupabaseClient", withExtension: "plist")`. Add a validated configuration loader then; do not scatter URLs/keys, add privileged keys, or activate sync at startup. SDK integration belongs with the authenticated transport work.
 
-## Validation and boundaries
+## Initial setup validation and boundaries (historical checkpoint)
 
 - 40 isolated PostgreSQL assertions passed against the entire tracked migration chain, including two-account security/constraints and deletion behavior. Auth claims are simulated only in that disposable engine.
 - Hosted catalog confirms RLS, exact owner-read policies, no anonymous table grants, no authenticated write/bypass grants, inaccessible Auth links and restricted helper execution. An authenticated database-role test with no Auth claims resolves no account and reads no ranking rows.
@@ -66,3 +66,13 @@ supabase db push --linked --dry-run --skip-vault
 `login` opens Supabase's browser login/token flow; its credential remains local to the CLI/OS credential store. `link` may prompt in Terminal for the project's database password (Dashboard -> Project Settings -> Database). Enter it only in that local secure prompt. Do not put it in command arguments, source files or tracked config. Do NOT paste access tokens, database passwords, service-role/secret keys or signing keys into Codex/chat. Check that both server versions match local history before any future push; these two migrations are already applied. Stop if authentication is requested by an agent; no secret workaround is allowed.
 
 Before Apple sign-in: implement/test atomic idempotent account provisioning, real authenticated sessions and dedicated RPC exposure; decide anonymous-provider access; prepare the Apple Developer capability/provider and redirect/nonce flow separately. Guest adoption, multi-device conflict/tombstone handling, mutation/import/snapshot RPCs and production transport remain later implementation. This checkpoint does not authorize those features.
+
+## Phase 3C Part 1 — account provisioning foundation
+
+Two additional migrations are now applied: `20261012021032_account_provisioning.sql` and `20261012021504_provisioning_session_guard.sql`. The SQL reference and four-file migration history match. Only `api.provision_account()` is added to the exposed Data API surface. It accepts zero arguments and delegates to the private trusted function; the existing 15 tables/14 owner-read policies and direct-write denial remain intact. The session guard validates the current non-anonymous Auth user and matching non-expired server session after acquiring the identity-scoped lock. Accounts/profile/link creation is atomic and idempotent; libraries/rankings remain uninitialized. No hosted user/account or guest data was created during validation.
+
+The migration sets authenticator pgrst.db_schemas to retain public/graphql_public and add api, then reloads configuration/schema. This is a supported explicit role override and is deliberately maintained in migrations; the Dashboard exposed-schema list is no longer authoritative while this override exists. Private staygrubby/auth are not exposed. Hosted POST checks returned 401 without a key, 401/42501 with the publishable key as an anonymous caller, and 406/PGRST106 for private staygrubby. Real authenticated success awaits a separately authorized real login; local-equivalent success/concurrency was verified instead.
+
+Official Supabase Swift 2.55.3 is now an exact SPM dependency. Package.resolved pins the SDK and transitive revisions. Client-safe plist values remain centralized; SDK defaults use Keychain and no logger. The app's guest launch does not construct a client or contact Supabase. AccountSessionCoordinator prepares only an isolated, unresolved/unmounted account store after validated provisioning. See ../ACCOUNT_ARCHITECTURE.md. No Apple capability, Development Team, native login flow, adoption, cloud photos, social feature or production sync was added.
+
+Apple Developer enrollment is processing. Activation is needed for App ID/Sign in with Apple capability, paid-team provisioning and eventual real native login validation, but not this implementation. Do not generate or paste privileged credentials.
