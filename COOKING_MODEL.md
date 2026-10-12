@@ -1,5 +1,7 @@
 # StayGrubby cooking data foundation
 
+The dated validation/file inventories below describe historical checkpoints. The current project/app identity is StayGrubby; domain entities, schema and store paths are unchanged by the rename (see `PROJECT_RENAME.md`).
+
 Phase 1 adds local cooking metadata around the existing generic ranking system. The Bradley–Terry fit, score mapping, insertion policy, confidence calculation, and original ranking tests are unchanged. See `RANKING_MODEL.md` for inference details.
 
 ## Ownership and relationships

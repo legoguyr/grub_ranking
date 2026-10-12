@@ -1,5 +1,9 @@
 # Manual development cooking seed
 
+**Historical utilities:** the Swift seed/allergen tools below retain their original module and bundle guards and must not be retargeted to the renamed app. Current project/app identity is StayGrubby, `com.guyrettig.StayGrubby`. See `PROJECT_RENAME.md` for the separate, explicit Simulator-only library transfer. Its Python tool is outside all Xcode targets and never runs at app startup. Run its isolated safety tests with `python3 -m unittest discover -s DevelopmentTools -p 'test_simulator_transfer.py' -v`.
+
+SeededLibraryReview now uses the common UI-test teardown base. Isolated review photos resolve to the matching temporary test-store media root; copy any real clone photos there explicitly if needed. Large-type review should use `launchWithReviewOptions`, which synchronizes the UIKit/SwiftUI test choice without changing system text size. Normal guest launches keep no review flags. See `UI_ENVIRONMENT_DIAGNOSIS.md`.
+
 These utilities are **outside all Xcode targets**. There is no reset/seed call in the app, launch flag, schema change, migration or ranking implementation change. Normal launches and the standard test suite cannot invoke them.
 
 The requested October 5, 2026 reset targeted only the Debug app `com.guyrettig.Grub-Ranked` on iPhone 17 / iOS 26.5 Simulator `D839186C-3810-4C98-99FA-3C88230212DC`, with CloudKit disabled by the existing persistence configuration. A consistent SQLite backup and complete before snapshot were saved under the ignored `.local-backups/seed-20261005/` directory before mutation.

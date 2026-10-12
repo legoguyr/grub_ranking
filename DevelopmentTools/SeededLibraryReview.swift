@@ -2,7 +2,7 @@ import XCTest
 
 /// Manual review utility, outside all targets. Substitute a backed-up isolated
 /// store clone token when temporarily copying this file into the UI-test target.
-final class SeededLibraryReview: XCTestCase {
+final class SeededLibraryReview: StayGrubbyUITestCase {
     private let cloneToken = "__CLONE_TOKEN__"
     override func setUpWithError() throws { continueAfterFailure = false }
 

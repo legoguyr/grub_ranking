@@ -1,7 +1,7 @@
-# Grub Ranked ranking system — technical specification
+# StayGrubby ranking system — technical specification
 
 Status: local native MVP, hardened October 2, 2026. Ranking logic lives in
-`Grub Ranked/RankingEngine`, uses Foundation and Apple's Accelerate, and has no
+`StayGrubby/RankingEngine`, uses Foundation and Apple's Accelerate, and has no
 SwiftUI, SwiftData, network, or domain/category dependency. SwiftData adapters live
 in `Models`. Existing insertion choices, stopping thresholds, and score scaling
 are retained. There is no Improve Ranking UI yet.
@@ -297,10 +297,10 @@ the test now scopes to the native alert field. Unique debug-only test store path
 prevent UI tests from adding data to the user's rankings and remain consistent
 across each test's relaunch. Working ranking behavior was not altered for the test.
 
-Reproduce using Xcode's Grub Ranked scheme / Test action, or:
+Reproduce using Xcode's StayGrubby scheme / Test action, or:
 
 ```sh
-xcodebuild -project 'Grub Ranked.xcodeproj' -scheme 'Grub Ranked' \
+xcodebuild -project 'StayGrubby.xcodeproj' -scheme 'StayGrubby' \
   -destination 'platform=iOS Simulator,name=iPhone 17' \
   -parallel-testing-enabled NO test
 ```

@@ -1,5 +1,7 @@
 # Phase 3C Part 1 — account provisioning foundation
 
+Current application identity: **StayGrubby**, `com.guyrettig.StayGrubby`. The manually configured Apple primary App ID and Supabase Apple Client ID use this canonical ID. Team/entitlement setup is now present; actual Apple login remains deferred. Earlier Part 1 validation/setup limitations below are historical. See `PROJECT_RENAME.md` for the rename and simulator data-preservation boundary.
+
 ## Identity and database contract
 
 Provider identity -> Supabase Auth UUID -> protected auth_account_links -> independent permanent StayGrubby account UUID -> owned cooking data. Neither Auth UUID, Apple ID, email, username nor editable metadata is a cooking-data owner.
@@ -57,6 +59,8 @@ Final build/normal guest launch succeeded with zero reported build warnings/erro
 `git diff --check` passes. Part 1 has 18 intended modified/new files, none staged/committed/pushed. Apple-dependent setup/login remains deferred pending enrollment activation. Manual review should confirm ordinary/offline guest Rankings, search/filter/version detail and canceled New Dish/New Version drafts; there is intentionally no new authentication UI yet. Use AccountSessionTests for foundation state/routing/sign-out review.
 
 ## Part 1 file inventory
+
+Historical inventory at the Part 1 checkpoint, before the StayGrubby project/source/module rename:
 
 - ACCOUNT_ARCHITECTURE.md
 - Backend/README.md

@@ -80,4 +80,4 @@ Tests assert finite strengths/uncertainties/scores, 1–10 score bounds, converg
 
 Small comparison counts with ties do not prove fine-grained ordering accuracy. The maximum-slot probabilities are acquisition heuristics conditional on the existing order. Their high values under 15% noise and cycles must not be interpreted as empirical accuracy or calibrated confidence. Joint posterior uncertainty is reported separately. The current test matrix validates computational/model invariants and efficiency; human preference calibration remains an open product requirement.
 
-All workloads are reproducible in `Grub RankedTests/RankingSimulationTests.swift`. `SIMULATION|` and `HISTORY|` lines in Xcode test logs contain raw measurements.
+All workloads are reproducible in `StayGrubbyTests/RankingSimulationTests.swift`. `SIMULATION|` and `HISTORY|` lines in Xcode test logs contain raw measurements.

@@ -10,3 +10,6 @@ supabase/.branches/
 !.env.example
 *.local.xcconfig
 supabase/signing_keys*.json
+
+# Manual Simulator transfer test bytecode.
+DevelopmentTools/__pycache__/

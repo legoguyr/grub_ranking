@@ -1,5 +1,9 @@
 # StayGrubby UI architecture
 
+The active project, app target and shared scheme are `StayGrubby`; the canonical iPhone bundle ID is `com.guyrettig.StayGrubby`. The project rename does not change the Phase 2C UI. See `PROJECT_RENAME.md` for identity and simulator data preservation.
+
+Normal launches inherit the user's Dynamic Type setting without a size clamp. DEBUG review typography/appearance is scoped to an explicit isolated test-store UUID; UI tests terminate review processes and keep photos in the same temporary scope. See `UI_ENVIRONMENT_DIAGNOSIS.md` for the reproduced oversized-review-session issue, correction and regression coverage.
+
 Phase 2C extends the native local cooking shell with a compact StayGrubby visual language. Ranking math, evidence selection, persistence ownership, and score calculation remain unchanged. The Phase 2C section below describes the current presentation; the preceding Phase 2A/2B sections record its foundation.
 
 ## App shell and navigation

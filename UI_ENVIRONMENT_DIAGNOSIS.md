@@ -1,0 +1,52 @@
+# StayGrubby review environment and media isolation — October 12, 2026
+
+## Diagnosis and evidence
+
+The initial iPhone 17 / iOS 26.5 Simulator reported `content_size large` (the normal default), dark appearance, and disabled increased contrast. Its StayGrubby process had no review arguments, and the original-resolution screenshot showed the intended compact Rankings layout. No Simulator setting was reset before collecting this evidence.
+
+The reproduced oversized state is an accessibility review process being mistaken for an ordinary app session. Before this fix, `--test-large-type` injected `.accessibility2` into the entire SwiftUI tree even without an isolated test store. The UI-test helper also appended `-UIPreferredContentSizeCategoryName UICTContentSizeCategoryAccessibilityLarge`. Tests did not explicitly terminate their app during teardown, and the helper never removed a stale UIKit category when an XCUIApplication proxy stopped requesting large type.
+
+Reproduction: start the pre-fix app with those review arguments, then perform ordinary activation without arguments. The same PID (`25101`) and original review arguments remained active; the device still reported normal `large`. Header, filter labels and ranking rows all displayed accessibility typography. Explicit termination followed by a fresh argument-free launch returned to the intended layout. XcodeBuildMCP's launch tool itself uses a fresh process in this environment; ordinary activation/returning to an already-running app does not. Process logs, baseline/reproduction screenshots, source/index snapshots and database backups are under ignored `.local-backups/scaling-20261012/`.
+
+This demonstrates app debug hooks plus test/process-lifetime leakage, not a rename or ranking issue. No persisted global accessibility contamination was found in the inspected state. Legitimately selecting an accessibility size in Simulator Settings should still enlarge the UI. There is no evidence proving which mechanism was active in every historical screenshot; the reproduced process/argument mechanism is concrete rather than an assumption about those past launches.
+
+The design system uses semantic system fonts, with limited relative ScaledMetric layout measurements for comparisons/detail tags. It has no custom typography multiplier, global scaleEffect, UIFontMetrics/custom-font stack, displayScale/controlSize override or production Dynamic Type clamp. Its normal pressed-button scale is 0.98, unrelated to global enlargement. Sheets use native presentation and inherited typography; their consistency is included in the new regression tests.
+
+## Fix
+
+`DebugReviewConfiguration` validates a UUID-scoped test store before enabling review appearance, motion, comparison or discovery fixtures. Bare review flags cannot affect guest presentation. The guest/default/account database layouts and real-media paths are unchanged. The parser retains the existing explicit `GRUB_TEST_STORE` test-store compatibility key.
+
+Valid isolated review sessions explicitly choose normal `.large` or `.accessibility2`. Both SwiftUI and UIKit use that same review choice. An initial attempt to use only UIKit's process argument was rejected by the new tests: on this runtime SwiftUI remained at its default size. The matching SwiftUI override therefore remains **inside the isolated review scope**, never as a normal guest limit. Normal app launches do not set dynamicTypeSize and honor all legitimate system sizes. No design tokens or fonts were changed.
+
+`launchWithReviewOptions` validates the isolated store, removes all old UIKit category argument pairs, then installs the current per-process category on every launch. All isolated UI-test launches use it. The shared XCTest base terminates StayGrubby in async teardown, including failed tests. It does not write system preferences, reset the Simulator or change a user's text-size selection. The native launch smoke test retains the normal guest launch path and supported appearance matrix.
+
+## Fixture media leak
+
+The discovery fixture passed an isolated ModelContainer to CookingStore.create but omitted its optional mediaDirectory. LocalPhotoStore therefore wrote generated JPEGs to the default Application Support/StayGrubbyMedia directory. Database isolation alone did not isolate those files. The rename review preserved 190 existing unreferenced files and backed up/removed 22 new verification artifacts; those original files are not deleted by this task.
+
+The fixture now requires an explicit media root and passes it to the existing write service. In DEBUG, all default photo reads/writes/deletions for a valid test-store UUID resolve to `tmp/ui-test-<UUID>-media/StayGrubbyMedia`. This also covers editing and new-photo workflows through existing views, without spreading new storage arguments across product UI. Explicit media roots still take precedence (including account scopes). Release behavior and ordinary guest paths are unchanged. Store cloning with real photo records must explicitly copy its media into this matching test root; the current seeded guest library has no CookingMedia rows.
+
+## Regression coverage and review
+
+Focused tests check invalid/bare review flags, distinct store/media UUID scopes, explicit environment compatibility, fixture photo persistence/reload/idempotence without guest file changes, default-to-accessibility-to-default typography on the same test proxy, sheet typography, and a fresh normal guest launch after accessibility review. Existing test assertions remain in place.
+
+For manual review: terminate StayGrubby and launch the shared scheme with no review arguments; confirm compact Rankings, search and Course/Dietary/Avoid sheets; inspect details, New Dish/New Version and canceled re-ranking. Then select a legitimate larger text size in Simulator accessibility settings, verify intentional scaling/scrolling across those screens, and restore the prior setting. A returning review process should be terminated before switching to a normal session. Future tests terminate it automatically.
+
+## Completed validation
+
+- Complete scheme: **114 test functions / 145 executions passed**, zero failures, unexpected/expected failures or skips. Breakdown: 98 unit functions / 128 executions and 16 UI functions / 17 executions. Runtime approximately 15 minutes 47 seconds. Result bundle: `/private/tmp/staygrubby-scaling-full.xcresult`.
+- New focused coverage: 3 unit functions / 6 executions and 2 UI functions / 2 executions passed. The initial UIKit-only attempt failed two new scaling assertions; the scoped SwiftUI/UIKit correction passed them without weakening their bounds or existing tests.
+- AccountSessionTests: **14 functions / 16 executions passed**. SyncFoundationTests: **17 / 22 passed**. Ranking, cooking services, existing product UI/design system, account/sync implementation and package pins are unchanged.
+- Native saved-library review: one temporary test ran twice, once at the original system `large` size and once at genuine `accessibility-medium`, with no review-size arguments. Both executions passed, zero failures/skips. They exercised Rankings, search, all three filters, Avoid, details/version selection, re-ranking choice controls/cancellation and canceled New Dish/New Version forms. Accessibility captures were inspected. The temporary source was removed. Bundles: `/private/tmp/staygrubby-scaling-native-default.xcresult` and `/private/tmp/staygrubby-scaling-native-accessibility.xcresult`.
+- Immediately after the complete suite, the system still reported `large`, dark appearance and disabled increased contrast, and there was **no running StayGrubby process**. After the explicit native accessibility review, the original `large` size was restored. No Simulator erase/restart or persisted accessibility workaround was used.
+- Debug and Release builds succeeded. Final normal Debug install/argument-free guest launch succeeded. Canonical bundle ID, selected team, simulated Apple entitlement and sole upright iPhone portrait configuration remain intact. Physical-device provisioning/Apple login is outside this task.
+- Final Application Support manifest is identical to the pre-investigation snapshot, including **all 190 original media-file hashes** and original reports. **Zero new fixture photos** entered guest storage; no media cleanup/deletion was needed. The database retains **1 RankingList, 12 Dishes, 15 CookingAttempts/RankedItems, 356 Comparisons, 10 Sources, 21 tags / 48 memberships, 1 CookingLibrary, 0 CookingMedia rows and empty sync tables**. Original UUIDs, timestamps, relationships, scores/uncertainty/diagnostics, evidence, Contains/Avoid fields, store UUID and schema hashes/checksum are unchanged. SQLite integrity is `ok`.
+- The original staged rename/entitlement diff remains byte-for-byte unchanged. No Git cleanup, staging, commit, push or remote change occurred. Xcode normalized quotes in project.pbxproj during this work; its parsed project/settings dictionary is identical to the task-start version. Both working and staged `git diff --check` pass. Full status, integrity report, screenshots and test summaries remain in ignored `.local-backups/scaling-20261012/`.
+
+## Files changed in this investigation
+
+New files: `StayGrubby/DebugReviewConfiguration.swift`, `StayGrubbyTests/DebugReviewIsolationTests.swift`, `StayGrubbyUITests/ReviewEnvironmentUITests.swift`, and this document.
+
+Existing code changes: `StayGrubby/StayGrubbyApp.swift`, `Cooking/DiscoveryReviewFixture.swift`, `Cooking/LocalPhotoStore.swift`; UI helpers and the seven existing UI-test class files now use common teardown (isolated launches use normalized review options); `DevelopmentTools/SeededLibraryReview.swift` uses the same teardown base. Documentation changes: `UI_ARCHITECTURE.md`, `PROJECT_RENAME.md`, and `DevelopmentTools/README.md`. The incidental project-file quote normalization does not change configuration.
+
+Before approval, terminate and launch StayGrubby normally on the same simulator; inspect compact typography, search, filters/Avoid, versions, canceled creation and comparisons. Run the accessibility review test followed by a normal launch and confirm no unexpected large review size remains. Select a larger real system text size and check intentional scaling/scrolling, then restore the prior size. Keep draft/re-ranking reviews canceled if the exact stored baseline should remain unchanged.

@@ -1,5 +1,7 @@
 # Phase 3B private synchronization foundation
 
+Current project/application identity: **StayGrubby**, `com.guyrettig.StayGrubby`. Guest/account store layouts and sync behavior are unchanged by the rename; see `PROJECT_RENAME.md`. Earlier scheme names and setup limitations in dated validation sections are historical.
+
 The app continues to launch as a local guest. The Supabase SDK and explicit account/session foundation are now present; there is no native Apple login, automatic sync worker, account UI, cloud photo transfer, or social functionality. The existing cooking UI and all ranking-engine implementation remain unchanged.
 
 ## Local store boundary and startup
