@@ -15,6 +15,9 @@ import Testing
     var accounts: [UUID: UUID] = [:]
     var events: AsyncStream<AuthenticatedIdentity?>.Continuation?
     init(identity: AuthenticatedIdentity? = nil) { self.identity = identity }
+    func signInWithApple(_ credentials: AppleSignInCredentials) async throws -> AuthenticatedIdentity {
+        throw URLError(.unsupportedURL) // Part 1 tests exercise restoration, not provider authentication.
+    }
     func restoredIdentity() async throws -> AuthenticatedIdentity? {
         reads += 1
         if restoredFailure { throw URLError(.notConnectedToInternet) }

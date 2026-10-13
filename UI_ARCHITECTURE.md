@@ -1,3 +1,15 @@
+# Current access boundary — Phase 3C Part 2C
+
+The current authenticated navigation contains only Rankings and Profile, with Rankings selected initially. Feed is intentionally hidden until Profiles, Following, and Friends Feed are implemented. Its existing destination and tab identity remain in `ContentView` for re-enabling later; social framework code is preserved. This navigation cleanup does not change authentication, account initialization, or Debug development-library access.
+
+Production logged-out access is onboarding/authentication/setup only. Rankings, dish history/creation, comparisons, personal search/filter and Profile exist solely inside the authenticated ready account tree. Native Apple authentication belongs at the root. Sign Out closes that tree and returns to onboarding. New real accounts begin at the existing empty Rankings UI with Add Your First Dish, after clean account-scoped initialization; existing accounts restore their own graph. No sample content or guest adoption is used.
+
+Normal Debug also starts at onboarding. Explicit labeled development review and valid isolated UI-test fixtures are compile-time Debug-only and use demo/test stores without Auth/cloud. Release excludes those entry points. Account media inherits a dedicated root through all forms and components. The upright portrait and Dynamic Type design requirements remain unchanged.
+
+A physical iPhone Debug Demo Library may be empty; the preserved Simulator dataset is local development/demo data only and is never a real-account template. No automatic device seeding is needed. Read-only logged-out public browsing remains only a possible future feature. Real-device manual review confirmed native Apple authentication, empty new-account Rankings, Sign Out to onboarding, and stable account identity on repeated login.
+
+The design history below remains useful for existing cooking components; references to local guest access, optional Account/Profile sign-in or adoption are historical and superseded. See ACCOUNT_ARCHITECTURE.md and AUTHENTICATION_GATE_REVIEW.md for current behavior and validation.
+
 # StayGrubby UI architecture
 
 The active project, app target and shared scheme are `StayGrubby`; the canonical iPhone bundle ID is `com.guyrettig.StayGrubby`. The project rename does not change the Phase 2C UI. See `PROJECT_RENAME.md` for identity and simulator data preservation.
@@ -8,7 +20,7 @@ Phase 2C extends the native local cooking shell with a compact StayGrubby visual
 
 ## App shell and navigation
 
-`ContentView` owns a three-tab shell: Feed, Rankings, and Profile. Rankings is the selected local V1 destination. Selecting it opens the one personal global cooking ranking directly; StayGrubby has no user-facing ranking-list picker, list creation control, category ranking, or separate version ranking. The ranking engine may continue using its saved `RankingList` as the internal container. Feed and Profile are honest empty states; they contain no fake users, posts, accounts, or social data. Each tab owns a `NavigationStack`, so future Feed and Profile navigation can grow independently. Add/Edit/New Version remain modal workflows launched from the ranking or detail screen.
+`ContentView` owns the current two-tab shell: Rankings and Profile. Rankings is the selected destination. Selecting it opens the one personal global cooking ranking directly; StayGrubby has no user-facing ranking-list picker, list creation control, category ranking, or separate version ranking. The ranking engine may continue using its saved `RankingList` as the internal container. Feed retains its placeholder destination in code but is absent from visible navigation. Profile contains account status and Sign Out (or the explicit development-library exit during Debug review). Native Apple entry and account setup live at the authentication root. Each visible tab owns a `NavigationStack`; future Feed navigation can be re-enabled independently. Add/Edit/New Version remain modal workflows launched from the ranking or detail screen.
 
 ## Design tokens
 
@@ -74,7 +86,7 @@ Discovery does one dictionary build and one pass over globally ordered items (pl
 - Alternate sorting and an All / Dishes / Versions control (neither is part of local V1).
 - User-selectable theme palettes.
 - Camera capture and multiple-media editing.
-- Feed, profile, accounts, public content, and every cloud/social feature.
+- Feed, social profiles, public content, guest adoption and cloud cooking sync. Phase 3C adds only optional native authentication/account resolution; cooking still uses the guest container.
 - Recipe UI and cookbook-provider integration.
 
 ## Phase 2B validation
@@ -110,7 +122,7 @@ Phase 2C gives the local product a compact, food-first presentation. The root ra
 
 ### Header, search and creation
 
-The Rankings root hides its native navigation bar and installs a safe-area header: circular creation control on the left, centered StayGrubby/page identity, search on the right. Detail destinations restore native navigation and back behavior. Feed/Profile use the same identity component but expose no pretend search or social creation actions. The native accessible three-tab shell remains.
+The Rankings root hides its native navigation bar and installs a safe-area header: circular creation control on the left, centered StayGrubby/page identity, search on the right. Detail destinations restore native navigation and back behavior. Profile and the retained Feed destination use the same identity component but expose no pretend search or social creation actions. The native accessible shell currently shows Rankings and Profile.
 
 Search takes over the header with a native `TextField`, submit/keyboard dismissal, independent clear action and Done. Done collapses the header without clearing the query; reopening restores it. Query and filters remain Rankings-owned state and survive details and creation/edit sheets. Search presentation only forwards the existing query into `CookingDiscovery`; normalization, searchable fields, order and scores are unchanged. Custom tags remain searchable, not structured filters.
 
@@ -188,3 +200,7 @@ This final pass changed only the app-target iPhone orientation setting in Debug/
 ## Phase 3B persistence boundary
 
 The current guest UI, upright portrait configuration and navigation are unchanged. App startup now explicitly chooses the guest boundary. Future account sessions are separate containers and cannot run Home's normal initialization before restoration (or a verified-empty authorization) succeeds. Incoming full snapshots must be deferred while creation/re-ranking drafts are active; no account UI or active cloud worker is mounted in Phase 3B. The selected session also exposes an account-specific media root for future mounting without changing current guest photos. See SYNC_ARCHITECTURE.md.
+
+## Phase 3C Part 2 account entry
+
+The Profile tab hosts a lightweight Account screen with Apple’s native Sign in with Apple button, loading/setup/retry/connected states, local sign-out and a return-to-guest-Rankings action. Existing cooking navigation and the portrait-upright requirement are unchanged. The screen supports Dynamic Type in portrait. Successful account setup does not mount/initialize an account library or move/upload guest dishes or photos. Root restoration runs alongside guest presentation; isolated review stores skip real Keychain restoration. See ACCOUNT_ARCHITECTURE.md and NATIVE_APPLE_SIGN_IN_REVIEW.md.

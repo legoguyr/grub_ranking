@@ -1,3 +1,4 @@
+#if DEBUG
 import Foundation
 import SwiftData
 import Testing
@@ -55,3 +56,5 @@ import UIKit
         #expect(try FileManager.default.contentsOfDirectory(atPath: mediaRoot.appendingPathComponent("StayGrubbyMedia").path).count == 2)
     }
 }
+
+#endif

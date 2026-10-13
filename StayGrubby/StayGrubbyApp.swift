@@ -7,46 +7,16 @@ import UIKit
 @main
 struct StayGrubbyApp: App {
     @State private var accountSession = AccountSessionCoordinator()
-    private let storage: Result<ModelContainer, Error> = Result {
-        var testURL: URL?
-        #if DEBUG
-        let review = DebugReviewConfiguration.current
-        testURL = review.storeURL(in: FileManager.default.temporaryDirectory)
-        #endif
-        let container = try LocalStoreStartup.openGuest(overrideURL: testURL)
-        #if DEBUG
-        if review.discoveryFixture, let mediaRoot = review.mediaRoot(in: FileManager.default.temporaryDirectory) {
-            try DiscoveryReviewFixture.seed(container: container, mediaDirectory: mediaRoot)
-        }
-        #endif
-        return container
-    }
-
     var body: some Scene {
         WindowGroup {
-            switch storage {
-            case .success(let container):
-                #if DEBUG
-                if let mode = DebugReviewConfiguration.current.comparisonMode {
-                    ComparisonReviewFixture(mode: mode)
-                        .modifier(DebugPresentationOverrides())
-                } else {
-                    ContentView().environment(accountSession).modelContainer(container).modifier(DebugPresentationOverrides())
-                }
-                #else
-                ContentView().environment(accountSession).modelContainer(container)
-                #endif
-            case .failure(let error):
-                ContentUnavailableView("Couldn't open local data", systemImage: "externaldrive.badge.exclamationmark",
-                    description: Text("Your store has not been reset.\n\(error.localizedDescription)"))
-            }
+            AccountApplicationRoot().environment(accountSession).modifier(DebugPresentationOverrides())
         }
     }
 }
 
 #if DEBUG
 /// Deterministic UI-test fixture for the four photo/placeholder combinations.
-private struct ComparisonReviewFixture: View {
+struct ComparisonReviewFixture: View {
     @State private var mode: String
     private let modes = ["11", "10", "01", "00"]
 

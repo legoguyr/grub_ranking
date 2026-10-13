@@ -2,6 +2,7 @@ import SwiftUI
 import UIKit
 
 struct DishPhoto: View {
+    @Environment(\.cookingMediaRoot) private var mediaRoot
     var media: CookingMedia?
     var prepared: PreparedCookingPhoto?
     var thumbnail = false
@@ -42,7 +43,7 @@ struct DishPhoto: View {
         .task(id: request) {
             // Retain the decoded thumbnail through query/filter re-renders. Only a
             // changed photo source or size triggers disk access and decoding.
-            let data = request.preparedData ?? media.flatMap { LocalPhotoStore.data(for: $0, thumbnail: thumbnail) }
+            let data = request.preparedData ?? media.flatMap { LocalPhotoStore.data(for: $0, thumbnail: thumbnail, rootURL: mediaRoot) }
             loadedImage = data.flatMap(UIImage.init(data:))
         }
     }

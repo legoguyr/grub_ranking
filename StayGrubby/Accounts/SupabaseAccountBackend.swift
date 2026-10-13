@@ -43,15 +43,16 @@ nonisolated struct ProvisionedAccount: Codable, Equatable, Sendable {
 }
 nonisolated enum AccountFoundationError: Error { case invalidResolution, accountNotResolved, identityChanged }
 
-/// The coordinator exchanges only identities/receipts. Tokens remain inside SDK Auth storage.
+/// Provider credentials are ephemeral; persistent session tokens stay inside SDK Auth storage.
 @MainActor protocol AccountBackend: AnyObject {
+    func signInWithApple(_ credentials: AppleSignInCredentials) async throws -> AuthenticatedIdentity
     func restoredIdentity() async throws -> AuthenticatedIdentity?
     func provision(for identity: AuthenticatedIdentity) async throws -> ProvisionedAccount
     func identityChanges() -> AsyncStream<AuthenticatedIdentity?>
     func signOutLocally() async throws
 }
 
-@MainActor final class SupabaseAccountBackend: AccountBackend {
+@MainActor final class SupabaseAccountBackend: AccountLibraryBackend {
     let client: SupabaseClient
     init(configuration: SupabaseClientConfiguration) {
         // SDK defaults persist sessions in Keychain; no custom preferences or model storage.
@@ -60,6 +61,10 @@ nonisolated enum AccountFoundationError: Error { case invalidResolution, account
     func restoredIdentity() async throws -> AuthenticatedIdentity? {
         do { return AuthenticatedIdentity(userID: try await client.auth.session.user.id) }
         catch AuthError.sessionMissing { return nil }
+    }
+    func signInWithApple(_ credentials: AppleSignInCredentials) async throws -> AuthenticatedIdentity {
+        let session = try await client.auth.signInWithIdToken(credentials: credentials.supabaseCredentials())
+        return AuthenticatedIdentity(userID: session.user.id)
     }
     func provision(for identity: AuthenticatedIdentity) async throws -> ProvisionedAccount {
         guard client.auth.currentSession?.user.id == identity.userID else { throw AccountFoundationError.identityChanged }
@@ -73,16 +78,33 @@ nonisolated enum AccountFoundationError: Error { case invalidResolution, account
         let auth = client.auth
         return AsyncStream { continuation in
             let task = Task {
-                for await (_, session) in auth.authStateChanges {
+                for await _ in auth.authStateChanges {
                     guard !Task.isCancelled else { break }
-                    continuation.yield(session.map { AuthenticatedIdentity(userID: $0.user.id) })
+                    // Initial/refresh callbacks can finish late. Read the SDK's
+                    // current identity rather than routing from a queued payload.
+                    continuation.yield(auth.currentSession.map { AuthenticatedIdentity(userID: $0.user.id) })
                 }
                 continuation.finish()
             }
             continuation.onTermination = { _ in task.cancel() }
         }
     }
+    func openLibrary(for account: ProvisionedAccount) async throws -> AccountLibrarySnapshot {
+        guard client.auth.currentSession?.user.id == account.authUserID else { throw AccountFoundationError.identityChanged }
+        let response = try await client.schema("api").rpc("open_account_library").execute()
+        // Graph dates use Swift reference-date numbers; do not use SDK ISO date decoding.
+        let snapshot = try JSONDecoder().decode(AccountLibrarySnapshot.self, from: response.data)
+        try snapshot.validate(for: account)
+        guard client.auth.currentSession?.user.id == account.authUserID else { throw AccountFoundationError.identityChanged }
+        return snapshot
+    }
+    func rememberReadyAccount(_ account: ProvisionedAccount) throws { try VerifiedAccountCache.save(account) }
+    func offlineAccount(for identity: AuthenticatedIdentity) throws -> ProvisionedAccount? {
+        guard let session = client.auth.currentSession, !session.isExpired, session.user.id == identity.userID else { return nil }
+        return try VerifiedAccountCache.load(identity)
+    }
     func signOutLocally() async throws {
+        if let user = client.auth.currentSession?.user.id { VerifiedAccountCache.remove(AuthenticatedIdentity(userID: user)) }
         // In this pinned SDK, local session removal precedes the logout network request.
         try await client.auth.signOut(scope: .local)
     }

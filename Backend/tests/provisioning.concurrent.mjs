@@ -84,6 +84,23 @@ try {
  check(!revoked.ok && revoked.code==='42501','Session revoked during lock wait is rejected');
  check((await db.query('select count(*) n from staygrubby.auth_account_links where auth_user_id=$1',[waitingUser])).rows[0].n==='0','Revoked waiter creates no protected link');
  check((await db.query('select count(*) n from staygrubby.accounts')).rows[0].n==='2','Revoked waiter leaves no orphan account');
+ // Actual concurrent first-library setup uses the same identity lock, never a caller owner.
+ await holder.query('begin');await actor(holder,uid,sid);
+ const library=(await holder.query('select api.open_account_library() result')).rows[0].result;
+ const opens=clients.slice(0,20).map(c=>c.query('select api.open_account_library() result'));
+ let libraryWait=0;
+ for(let i=0;i<250;i++) {
+  libraryWait=Number((await db.query("select count(*) n from pg_stat_activity where datname=$1 and wait_event='advisory'",[database])).rows[0].n);
+  if(libraryWait===20)break;
+  await new Promise(r=>setTimeout(r,20));
+ }
+ check(libraryWait===20,'20 concurrent library requests overlap behind initial transaction');
+ await holder.query('commit');
+ const libraries=await Promise.all(opens);
+ check(libraries.every(r=>r.rows[0].result.graph.rankings[0].id===library.graph.rankings[0].id),'All callers restore the same global ranking');
+ check(libraries.every(r=>r.rows[0].result.account.sync_revision===1),'Bootstrap revision increments exactly once');
+ check((await db.query('select count(*) n from staygrubby.account_libraries')).rows[0].n==='1','Only one library initialized');
+ check(library.graph.dishes.length===0 && library.graph.comparisons.length===0 && library.graph.media.length===0,'Concurrent bootstrap never imports demo cooking or photos');
  console.log(`PASS ${checks} native PostgreSQL concurrency/transaction assertions; 20 blocked concurrent callers plus holder, no hosted users.`);
 } finally {
  if(holder){try{await holder.query('rollback')}catch{}await holder.end()}

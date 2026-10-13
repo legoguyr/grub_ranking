@@ -45,17 +45,17 @@ final class ReviewEnvironmentUITests: StayGrubbyUITestCase {
         XCTAssertEqual(avoidLabelHeight(app), defaultMilk, accuracy: 1)
     }
 
-    @MainActor func testBareReviewFlagsDoNotScaleNormalGuestAndFreshLaunchDoesNotInheritTestSize() {
+    @MainActor func testBareReviewFlagsDoNotScaleOnboardingAndFreshLaunchDoesNotInheritTestSize() {
         let app = XCUIApplication()
         app.launchArguments = []
         app.launch()
-        XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 15))
-        let normal = app.rankingHeader.frame.height
+        XCTAssertTrue(app.staticTexts["onboarding-brand"].waitForExistence(timeout: 15))
+        let normal = app.staticTexts["onboarding-brand"].frame.height
         app.terminate()
         app.launchArguments = ["--test-large-type", "--test-light", "--test-reduce-motion"]
         app.launch()
-        XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 15))
-        XCTAssertEqual(app.rankingHeader.frame.height, normal, accuracy: 1)
+        XCTAssertTrue(app.staticTexts["onboarding-brand"].waitForExistence(timeout: 15))
+        XCTAssertEqual(app.staticTexts["onboarding-brand"].frame.height, normal, accuracy: 1)
         app.terminate()
         app.launchArguments = ["--ui-test-store", UUID().uuidString, "--discovery-fixture", "--test-large-type"]
         app.launchWithReviewOptions()
@@ -64,7 +64,7 @@ final class ReviewEnvironmentUITests: StayGrubbyUITestCase {
         app.terminate()
         app.launchArguments = []
         app.launch()
-        XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 15))
-        XCTAssertEqual(app.rankingHeader.frame.height, normal, accuracy: 1)
+        XCTAssertTrue(app.staticTexts["onboarding-brand"].waitForExistence(timeout: 15))
+        XCTAssertEqual(app.staticTexts["onboarding-brand"].frame.height, normal, accuracy: 1)
     }
 }

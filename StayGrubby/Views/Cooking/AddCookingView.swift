@@ -4,6 +4,7 @@ import SwiftData
 struct AddCookingView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
+    @Environment(\.cookingMediaRoot) private var mediaRoot
     @Query private var attempts: [CookingAttempt]
     let list: RankingList
     let dish: Dish?
@@ -86,7 +87,7 @@ struct AddCookingView: View {
         guard let session, session.isComplete, savedAttempt == nil, !saving else { return }
         saving = true; error = nil; saveFailed = false
         defer { saving = false }
-        do { savedAttempt = try CookingStore.create(draft: draft, existingDish: dish, session: session, context: context) }
+        do { savedAttempt = try CookingStore.create(draft: draft, existingDish: dish, session: session, context: context, mediaDirectory: mediaRoot) }
         catch { saveFailed = true; self.error = error.localizedDescription }
     }
 }

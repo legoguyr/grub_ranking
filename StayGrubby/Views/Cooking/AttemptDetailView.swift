@@ -4,6 +4,7 @@ import SwiftData
 struct AttemptDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
+    @Environment(\.cookingMediaRoot) private var mediaRoot
     let attempt: CookingAttempt
     @State private var editing = false
     @State private var reranking = false
@@ -62,7 +63,7 @@ struct AttemptDetailView: View {
         }
         .alert("Delete this cook?", isPresented: $deleting) {
             Button("Delete Cook", role: .destructive) {
-                do { try CookingStore.delete(attempt, context: context); dismiss() }
+                do { try CookingStore.delete(attempt, context: context, mediaDirectory: mediaRoot); dismiss() }
                 catch { self.error = error.localizedDescription }
             }
             Button("Cancel", role: .cancel) { }
@@ -210,6 +211,7 @@ struct AttemptDetailView: View {
 struct EditCookingView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
+    @Environment(\.cookingMediaRoot) private var mediaRoot
     let attempt: CookingAttempt
     @State private var draft: CookingDraft
     @State private var error: String?
@@ -224,7 +226,7 @@ struct EditCookingView: View {
                 }
                 .safeAreaInset(edge: .bottom) {
                     Button {
-                        do { try CookingStore.edit(attempt, draft: draft, context: context); dismiss() }
+                        do { try CookingStore.edit(attempt, draft: draft, context: context, mediaDirectory: mediaRoot); dismiss() }
                         catch { self.error = error.localizedDescription }
                     } label: { Text("Save").frame(maxWidth: .infinity) }
                     .buttonStyle(SGButtonStyle(prominent: true)).disabled(draft.cleanDishName.isEmpty)
