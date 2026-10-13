@@ -138,6 +138,11 @@ nonisolated enum SyncFoundationError: Error, LocalizedError {
         try context.fetch(FetchDescriptor<SyncOperation>(predicate: #Predicate { $0.acknowledgedRevision == nil }))
             .sorted { $0.sequence < $1.sequence }
     }
+    /// Called after a successful domain save. This never performs a network write.
+    static func didCommit(_ context: ModelContext) {
+        guard let binding = try? binding(context), binding.enabled, binding.accountID != nil else { return }
+        NotificationCenter.default.post(name: .cookingSyncWorkCommitted, object: context.container)
+    }
     static func envelope(_ operation: SyncOperation) -> SyncEnvelope {
         SyncEnvelope(operationID: operation.id, storeID: operation.storeID, accountID: operation.accountID,
                      kind: operation.kind, payload: operation.payload, payloadHash: operation.payloadHash,
@@ -155,7 +160,11 @@ nonisolated enum SyncFoundationError: Error, LocalizedError {
         do {
             operation.acknowledgedRevision = revision; operation.acknowledgedAt = .now
             operation.nextRetryAt = nil; operation.lastError = nil
-            binding.acceptedRevision = revision; binding.acceptedSnapshotData = nil
+            if let data = binding.acceptedSnapshotData {
+                let changes = try JSONDecoder().decode(SyncChanges.self, from: envelope.payload)
+                binding.acceptedSnapshotData = try changes.applying(to: CookingGraph.decode(data)).encoded()
+            }
+            binding.acceptedRevision = revision
             for tombstone in try context.fetch(FetchDescriptor<SyncTombstone>()) where tombstone.operationID == operation.id {
                 tombstone.acknowledgedRevision = revision
             }
@@ -176,21 +185,28 @@ nonisolated protocol SyncTransport: Sendable {
         guard !sending else { return }; sending = true; defer { sending = false }
         // Network suspension must never roll back another caller's unsaved edits.
         let context = ModelContext(callerContext.container)
-        guard try SyncJournal.binding(context)?.enabled == true else { return }
+        guard let binding = try SyncJournal.binding(context), binding.enabled else { return }
         for operation in try SyncJournal.pending(context) {
+            try Task.checkCancellation()
             if let retry = operation.nextRetryAt, retry > now { return }
+            guard operation.accountID == binding.accountID, operation.storeID == binding.storeID,
+                  SyncJournal.digest(operation.payload) == operation.payloadHash
+            else { throw SyncFoundationError.wrongAccount }
             let envelope = SyncJournal.envelope(operation)
             do {
                 operation.attemptCount += 1; try context.save()
                 let receipt = try await transport.send(envelope)
+                try Task.checkCancellation()
                 guard receipt.operationID == operation.id else { throw SyncFoundationError.invalidReceipt }
                 try SyncJournal.acknowledge(envelope, revision: receipt.revision, context: context)
             } catch {
                 context.rollback()
                 // Refetch after rollback; keep the original immutable operation payload/UUID.
                 if let saved = try SyncJournal.pending(context).first(where: { $0.id == envelope.operationID }) {
-                    saved.lastError = String(describing: error)
-                    saved.nextRetryAt = now.addingTimeInterval(min(300, pow(2, Double(min(saved.attemptCount, 8)))))
+                    // Never persist arbitrary SDK/network text which could contain credentials.
+                    saved.lastError = error is CancellationError ? "cancelled" :
+                        (error as? CookingSyncError)?.diagnosticCode ?? "transport-or-receipt-failure"
+                    saved.nextRetryAt = Date.now.addingTimeInterval(min(300, pow(2, Double(min(saved.attemptCount, 8)))))
                     try context.save()
                 }
                 throw error

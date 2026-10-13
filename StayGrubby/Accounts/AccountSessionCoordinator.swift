@@ -172,6 +172,18 @@ nonisolated enum AccountSessionState: Equatable {
         guard current == generation, case .resolved(let latest) = state, latest == account else { throw AccountFoundationError.identityChanged }
         return snapshot
     }
+    func applyResolvedOperation(_ envelope: SyncEnvelope) async throws -> SyncReceipt {
+        try Task.checkCancellation()
+        guard case .resolved(let account) = state, account.accountID == envelope.accountID,
+              let service = backend as? any AccountSyncBackend else { throw CookingSyncError.authenticationRequired }
+        let current = generation
+        let receipt = try await service.applyCookingOperation(envelope)
+        try Task.checkCancellation()
+        guard current == generation, case .resolved(let latest) = state,
+              latest.accountID == envelope.accountID, latest.authUserID == account.authUserID
+        else { throw AccountFoundationError.identityChanged }
+        return receipt
+    }
     func rememberReadyAccount(_ account: ProvisionedAccount) throws {
         guard case .resolved(let resolved) = state, resolved.accountID == account.accountID,
               resolved.authUserID == account.authUserID, let service = backend as? any AccountLibraryBackend else { throw AccountFoundationError.identityChanged }

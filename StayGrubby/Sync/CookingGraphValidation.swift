@@ -14,6 +14,9 @@ extension CookingGraph {
         let attemptIDs = Set(attempts.map(\.id))
         if let library = libraries.first {
             try require(library.key == "local" && lists.contains(library.globalRankingID))
+            if accountID != nil {
+                try require(items.filter { $0.rankingID == library.globalRankingID }.allSatisfy { item in attempts.contains { $0.rankedItemID == item.id } })
+            }
         } else { try require(rankings.isEmpty && dishes.isEmpty && attempts.isEmpty && items.isEmpty && comparisons.isEmpty && sources.isEmpty && media.isEmpty) }
         for item in items {
             try require(item.rankingID.map(lists.contains) == true && item.strength.isFinite && item.uncertainty.isFinite && item.uncertainty >= 0)
@@ -49,6 +52,7 @@ extension CookingGraph {
     }
     nonisolated func canonicalized() -> Self {
         var result = self
+        result.deletions = result.deletions.map { SyncReference(entity: $0.entity, key: UUID(uuidString: $0.key)?.uuidString ?? $0.key) }
         result.deletions.sort { $0.identity < $1.identity }
         result.libraries.sort { $0.key < $1.key }; result.rankings.sort { $0.id.uuidString < $1.id.uuidString }
         result.dishes.sort { $0.id.uuidString < $1.id.uuidString }; result.attempts.sort { $0.id.uuidString < $1.id.uuidString }

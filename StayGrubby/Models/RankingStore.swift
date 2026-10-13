@@ -10,6 +10,7 @@ enum RankingStore {
             _ = try stage(name: name, session: session, to: list, context: context)
             try SyncJournal.stage(baseline, kind: "createRankedItem", context: context)
             try context.save()
+            SyncJournal.didCommit(context)
         } catch { context.rollback(); throw error }
     }
 
@@ -51,6 +52,7 @@ enum RankingStore {
         do {
             try SyncJournal.stage(baseline, kind: "appendEvidence", context: context)
             try context.save()
+            SyncJournal.didCommit(context)
         } catch { context.rollback(); throw error }
     }
 
@@ -74,6 +76,7 @@ enum RankingStore {
         do {
             try SyncJournal.stage(baseline, kind: "removeSession", context: context)
             try context.save()
+            SyncJournal.didCommit(context)
         } catch { context.rollback(); throw error }
     }
 }

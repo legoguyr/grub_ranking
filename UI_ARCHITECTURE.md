@@ -1,4 +1,6 @@
-# Current access boundary — Phase 3C Part 2C
+# Current access boundary — Phase 3D Part 1
+
+Authenticated Profile now has a small cooking-sync status and Retry. Its Debug-only fresh-restore check uses a separate disposable store and requires matching local/cloud data; it never replaces the primary store or uploads. Incoming hydration waits for retained cooking/detail view lifetimes to end. Rankings rows, Source/tag/search semantics and portrait layouts are unchanged. See SYNC_ARCHITECTURE.md and PHASE_3D_SYNC_REVIEW.md for the structured-only scope and manual review.
 
 The current authenticated navigation contains only Rankings and Profile, with Rankings selected initially. Feed is intentionally hidden until Profiles, Following, and Friends Feed are implemented. Its existing destination and tab identity remain in `ContentView` for re-enabling later; social framework code is preserved. This navigation cleanup does not change authentication, account initialization, or Debug development-library access.
 

@@ -3,8 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node schema.test.mjs",
-    "test:concurrency": "node provisioning.concurrent.mjs"
+    "test": "node schema.test.mjs && node structured-sync.test.mjs",
+    "test:concurrency": "node provisioning.concurrent.mjs",
+    "test:structured:native": "node structured-sync.test.mjs --native"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.8",

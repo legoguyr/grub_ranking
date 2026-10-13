@@ -5,6 +5,8 @@ struct AccountApplicationRoot: View {
     @Environment(AccountSessionCoordinator.self) private var session
     @State private var access = AccountLibraryAccess()
     @State private var retryID = 0
+    @State private var sync = CookingSyncCoordinator()
+    @Environment(\.scenePhase) private var scenePhase
     #if DEBUG
     @State private var development: DevelopmentLibraryAccess?
     @State private var developmentFailed = false
@@ -34,13 +36,28 @@ struct AccountApplicationRoot: View {
             #endif
             await session.restoreSessionOnLaunch()
         }
-        .task(id:session.state) { await prepareAccess() }
+        .task(id:session.state) {
+            if case .resolved = session.state {} else { sync.disconnect() }
+            await prepareAccess()
+        }
+        .onChange(of: scenePhase) { _, phase in sync.setActive(phase == .active) }
         .task(id:retryID) { if retryID > 0 { await prepareAccess() } }
     }
     @ViewBuilder private var gatedContent: some View {
         if case .resolved(let account) = session.state, access.isReady(for:account), let store = access.store {
             ContentView().modelContainer(store.container).environment(\.cookingMediaRoot,store.mediaRoot)
                 .id(account.accountID)
+                .environment(\.cookingSyncCoordinator, sync)
+                .task(id: account.accountID) {
+                    do {
+                        let token = try sync.connect(store: store, account: account,
+                            send: { envelope in try await session.applyResolvedOperation(envelope) },
+                            load: { try await session.openResolvedLibrary() }, active: scenePhase == .active,
+                            remember: { try session.rememberReadyAccount($0) })
+                        defer { sync.disconnect(token) }
+                        try await Task.sleep(for: .seconds(31_536_000)) // Cancelled when the account tree unmounts.
+                    } catch { }
+                }
         } else {
             VStack(spacing:0) {
                 AuthenticationGateView(setupFailed:access.failed,retrySetup:{ retryID += 1 })

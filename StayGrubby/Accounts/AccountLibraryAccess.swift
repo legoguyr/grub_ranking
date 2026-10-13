@@ -46,7 +46,9 @@ nonisolated struct AccountLibrarySnapshot: Codable, Sendable {
             guard let binding = try SyncJournal.binding(context), binding.accountID == resolved.accountID else { throw SyncFoundationError.wrongAccount }
             if let snapshot {
                 let graph = snapshot.graph.canonicalized(), encoded = try graph.encoded()
-                if !binding.restorationRequired && binding.acceptedRevision == snapshot.account.syncRevision && binding.acceptedSnapshotData == encoded {
+                let hasPending = !(try SyncJournal.pending(context)).isEmpty
+                if !binding.restorationRequired && binding.acceptedSnapshotData != nil &&
+                    ((binding.acceptedRevision == snapshot.account.syncRevision && binding.acceptedSnapshotData == encoded) || hasPending) {
                     // Local drafts/committed outbox changes must survive a same-base relaunch.
                     try CookingGraphExport.snapshot(context: context).validate()
                 } else {

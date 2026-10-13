@@ -71,6 +71,7 @@ struct AttemptDetailView: View {
         .alert("Couldn't delete", isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })) {
             Button("OK") { error = nil }
         } message: { Text(error ?? "") }
+        .deferRemoteCookingUpdates()
     }
 
     private var globalRank: Int? {
@@ -237,5 +238,6 @@ struct EditCookingView: View {
                     Button("OK") { error = nil }
                 } message: { Text(error ?? "") }
         }
+        .deferRemoteCookingUpdates()
     }
 }

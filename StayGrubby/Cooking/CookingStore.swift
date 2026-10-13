@@ -50,6 +50,7 @@ enum CookingStore {
             if context.hasChanges {
                 try SyncJournal.stage(baseline, kind: "initialize", context: context)
                 try context.save()
+                SyncJournal.didCommit(context)
             }
             return global
         } catch { context.rollback(); throw error }
@@ -101,6 +102,7 @@ enum CookingStore {
             }
             try SyncJournal.stage(baseline, kind: "createCook", context: context)
             try context.save()
+            SyncJournal.didCommit(context)
             return attempt
         } catch {
             if let writtenMedia { LocalPhotoStore.deleteFiles(for: writtenMedia, rootURL: mediaDirectory) }
@@ -139,6 +141,7 @@ enum CookingStore {
             }
             try SyncJournal.stage(baseline, kind: "editCook", context: context)
             try context.save()
+            SyncJournal.didCommit(context)
             for files in retiredFiles {
                 LocalPhotoStore.deleteFiles(displayFilename: files.0, thumbnailFilename: files.1,
                                             rootURL: mediaDirectory)
@@ -172,6 +175,7 @@ enum CookingStore {
             list?.recompute()
             try SyncJournal.stage(baseline, kind: "deleteCook", context: context)
             try context.save()
+            SyncJournal.didCommit(context)
             for files in retiredFiles {
                 LocalPhotoStore.deleteFiles(displayFilename: files.0, thumbnailFilename: files.1,
                                             rootURL: mediaDirectory)

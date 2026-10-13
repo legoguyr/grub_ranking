@@ -1,4 +1,58 @@
-# Phase 3B private synchronization foundation
+# Phase 3D Part 1 — private structured cooking sync
+
+Production retains required native Apple authentication, permanent-account resolution and ready account-store gating. There is no production guest/demo mode. Current navigation is Rankings and Profile; Feed remains hidden. The historical foundation sections below are superseded by this current implementation.
+
+## Responsibilities and operation lifecycle
+
+SwiftData remains the working store. CookingStore/RankingStore capture a baseline, stage the existing narrow SyncChanges payload and tombstones, and save domain changes plus the durable SyncOperation atomically. A post-save notification schedules work without waiting for network. No observer uploads arbitrary model edits, and hydration never creates an operation.
+
+The immutable envelope contains operation UUID, installation/store UUID, permanent account UUID, kind, exact JSON bytes, SHA-256 hash, expected accepted revision and predecessor operation UUID. SyncDispatcher uses a separate ModelContext, validates scope/hash before transport, sends serially, and acknowledges only a validated durable server receipt. Failed or ambiguous sends retain the original payload/UUID and persisted bounded retry state. SDK/server error text is never stored; diagnostics are fixed codes. Receipts and deletion markers remain for causal history; safe compaction is deferred.
+
+Acknowledgement advances the accepted snapshot by replaying only the acknowledged delta against its accepted base. Later pending edits are excluded. This retains a correct offline-ready base through restarts rather than clearing it. A previously ready account with pending work mounts its validated local store even when cloud revision advanced; the worker reconciles receipts or reports a conflict without overwriting local work. Fresh/unready accounts still require verified server initialization/restoration.
+
+## Authenticated server path
+
+Migration `20261013022348_structured_cooking_sync` adds the authenticated invoker `api.apply_cooking_operation(envelope jsonb)` over a private fixed-search-path definer. Ownership comes from the existing protected Auth link/live-session resolver, not the supplied account UUID. Per-identity provisioning and the account row lock serialize requests; live session validation is repeated after the account lock wait. Private tables retain RLS and denied anonymous/direct client writes.
+
+The server recomputes the hash from original decoded bytes, verifies exact duplicate-envelope identity, validates expected revision or the accepted predecessor from the same installation, and applies fixed entity mappings. Deletions mark only the specified rows first, then narrow upserts and attempt-level membership replacements occur. Active parent relationships, Source inverse relationships and global-item/attempt integrity are checked before revision advancement and receipt insertion. Constraints enforce immutable comparison observations, ownership/IDs, one global ranking and active Source/version uniqueness. Global library/ranking deletion and library-pointer reassignment are forbidden. Every accepted operation advances the account revision once; duplicate retries return the stored receipt without changing domain rows or revision.
+
+`api.open_account_library()` remains the full owner-derived restore/bootstrap RPC. Its private implementation now shares the account lock with applies, returning a consistent receipt and complete active graph plus deletion references. There is no whole-library replacement apply, caller-selected owner, server ranking engine, signup import or guest adoption.
+
+Migration `20261013023939_snapshot_numeric_fidelity` pins `extra_float_digits=3` on the snapshot function. Hosted integration found the management session default was 0, which rounded JSON Double timestamps. This function-local setting preserves exact domain timestamps/cache values without changing stored values or ranking mathematics; local/native tests exercise the same low-precision caller setting.
+
+The apply limit is 8 MiB decoded payload and 20,000 changed/deleted references per operation. Rejection retains local data and needs review; future oversized-operation batching is not implemented.
+
+## Restore, edits, deletion and conflicts
+
+The existing typed export/hydration covers library/global ranking, dishes, all Source fields, attempts, ranked items, comparison observations, tags, memberships, media metadata and legacy date archives. Reference dates remain numeric Doubles, UUIDs and diagnostic bytes remain stable, and UUID tombstone keys normalize consistently across SQL/Swift casing. Complete hydration validates ownership, revision, graph and retained deletion identities before saving. It rejects pending operations/dirty contexts, preserves existing objects where possible, reconnects relationships and generates no outgoing echo.
+
+Canonical ranking inputs are UUID-based comparisons, individual repeated observations, tie/winner outcomes and timestamps. Strength, uncertainty and diagnostic values are compatible on-device caches carried exactly for continuity. Rank numbers/display scores remain derived by existing local behavior. No evidence is regenerated, pair collapsed, strength averaged, score assigned or ranking algorithm changed by sync.
+
+Source/notes/Course/Contains/Avoid/Dietary/custom tags and version edits retain ranking identities and evidence. Deletion uses existing domain cleanup and local refitting, then syncs the affected tombstones/cache updates. The server retains deleted identities, rejects resurrection, and returns tombstones on restore. Raw SQL row counts therefore include retired records; active counts use `deleted_at is null`. Unused shared tags remain according to existing domain rules. Attempt memberships can be selected again on a live attempt, but deleted domain identities cannot be revived.
+
+Account-level optimistic revision checks deliberately reject overlapping offline device edits. The entire operation rolls back on conflict; local graph/outbox remains intact, and Profile shows a small reconciliation status. Permanent conflict/rejection/authentication diagnostics do not enter an automatic retry loop. Explicit Retry retries the same immutable request; it cannot silently rebase a stale operation. Automatic merging, a backed-up manual resolution workflow and complex conflict UI are deferred. No last-write-wins overwrite is implemented.
+
+## Lifecycle and isolation
+
+One worker connects only to a verified, ready account/store. Triggers are account readiness, successful local domain commits, foreground activation, connectivity recovery, bounded retry deadlines and Profile Retry. Notifications coalesce for 250 ms; there is no polling loop or background-execution expansion. Inactive/sign-out/unmounted account trees cancel work and timers. Coordinator and SDK identity checks before/after transport prevent another account's operation or stale reply from mounting/acknowledging data. A server-accepted request cancelled before local acknowledgement remains safely retryable later.
+
+Incoming hydration waits while a cooking form/detail flow holds its lifecycle lease or the working context is dirty. A detail retained behind another tab keeps its lease until the destination lifetime ends; hiding it cannot invalidate its stored models. Outgoing committed changes may continue. This prevents a fresh graph from invalidating a ranking/re-ranking/editing draft. Profile supplies unobtrusive status and Retry; Rankings rows are unchanged. The Debug development library remains unbound/disabled and never connects a transport. Its store/media/fixtures remain independent of real account stores and cloud data.
+
+Offline already-ready accounts keep local edits/outbox and the prior verified owner mapping, under the existing unexpired-session policy. First authentication/initialization still requires connectivity. Offline operation cannot establish remote revocation. Real account edits synchronize automatically on recovery; no production guest fallback is introduced.
+
+## Media boundary and safe manual restore verification
+
+Only CookingMedia identity, relationships, filenames, dimensions/order/kind/date metadata syncs. No JPEG bytes, Storage bucket/object, CDN, remote thumbnail generation or image download is implemented. Another device uses the existing placeholder when bytes are absent. Incoming metadata deletion does not perform remote object cleanup; media transport/orphan management is deferred.
+
+Authenticated Debug Profile offers **Verify fresh restore (development)** after pending work clears and local/cloud graphs match. It restores the full server graph twice into a newly named temporary account directory, compares every canonical field/identity/evidence/cache/relationship, checks no outbox work exists, and removes only that scratch directory. It never selects/replaces the primary store or uploads. This is compile-time excluded from Release and is not a guest/authentication bypass. A second physical device is still the preferred manual cross-device validation.
+
+## Validation and manual review
+
+See PHASE_3D_SYNC_REVIEW.md for final test/build/security/hosted results, preserved development-store evidence and the reference physical-iPhone procedure. The real account is not an automated fixture. Hosted SQL tests use isolated temporary Auth/session/account records inside an explicit rolled-back transaction; they emulate authenticated claim context and test actual hosted functions/RLS, not Apple token issuance or a real user's HTTP session. The user subsequently passed the real physical-iPhone create/edit/delete test with automatic sync and repeated scratch restore, without Retry. Final hosted state has zero active cooking records, one soft-deleted dish/attempt/item each, three durable receipts and revision 4; Storage remains empty. A second physical device remains additional manual coverage.
+
+---
+
+# Historical Phase 3B private synchronization foundation
 
 Current project/application identity: **StayGrubby**, `com.guyrettig.StayGrubby`. Guest/account store layouts and sync behavior are unchanged by the rename; see `PROJECT_RENAME.md`. Earlier scheme names and setup limitations in dated validation sections are historical.
 

@@ -82,6 +82,7 @@ struct AddCookingView: View {
                 Button("Cancel", role: .cancel) { dismiss() }
             } message: { Text(error ?? "") }
         }
+        .deferRemoteCookingUpdates()
     }
     private func save() {
         guard let session, session.isComplete, savedAttempt == nil, !saving else { return }

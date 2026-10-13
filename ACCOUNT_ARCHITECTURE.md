@@ -1,3 +1,7 @@
+# Current Phase 3D Part 1 sync integration
+
+The authenticated ready account tree now connects the existing durable outbox to the authenticated structured apply/snapshot RPCs. Local mutations remain immediate and offline-capable; metadata/evidence/identities synchronize separately. No guest adoption, photo-byte transport or social navigation is introduced. Pending local work survives startup and revision conflicts; account switching/sign-out cancels the prior worker. See SYNC_ARCHITECTURE.md and PHASE_3D_SYNC_REVIEW.md for lifecycle, fidelity, limitations and manual verification. The account/authentication architecture below remains applicable except earlier statements deferring structured outgoing transport.
+
 # Phase 3C Part 2 — final required authentication and account libraries
 
 Production flow is Launch → onboarding → native Sign in with Apple → Supabase authentication → permanent StayGrubby account resolution → restore existing account or initialize a verified-empty new account → ready authenticated app. New real accounts start empty. Feed is hidden; current personal navigation is Rankings and Profile. No production guest mode exists. Hosted Auth enables only Apple; the unused Email/password provider was disabled with user approval during the final security review.
