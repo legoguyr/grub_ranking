@@ -24,6 +24,7 @@ final class Phase2CReviewUITests: StayGrubbyUITestCase {
         let app = XCUIApplication(); let token = UUID().uuidString
         app.launchArguments = ["--ui-test-store", token, "--discovery-fixture", "--test-dark"]
         app.launchWithReviewOptions(); XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 15))
+        app.showAllVersions()
         tap(row("Smoky Sunday", app: app), app: app)
         XCTAssertTrue(app.navigationBars["Dish Details"].waitForExistence(timeout: 10))
         capture("Detail with photo Dark", app: app)
@@ -49,6 +50,7 @@ final class Phase2CReviewUITests: StayGrubbyUITestCase {
         app.terminate()
         app.launchArguments += ["--test-light", "--test-large-type", "--test-reduce-motion"]
         app.launchWithReviewOptions(); XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 15))
+        app.showAllVersions()
         capture("Long names Light Accessibility", app: app)
         tap(row(version, app: app), app: app)
         XCTAssertTrue(app.navigationBars["Dish Details"].waitForExistence(timeout: 10))
@@ -66,8 +68,12 @@ final class Phase2CReviewUITests: StayGrubbyUITestCase {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-test-store", UUID().uuidString, "--discovery-fixture", "--test-dark", "--test-reduce-motion"]
         app.launchWithReviewOptions(); XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 15))
+        app.showAllVersions()
         tap(row("Smoky Sunday", app: app), app: app)
         tap(app.buttons["Re-rank"], app: app)
+        XCTAssertTrue(app.buttons["Liked it"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.buttons["It was fine"].exists && app.buttons["Didn't like it"].exists)
+        tap(app.buttons["It was fine"], app: app)
         let choice = app.buttons["comparison-choice-existing"]
         XCTAssertTrue(choice.waitForExistence(timeout: 15))
         let opponent = choice.label
@@ -75,16 +81,17 @@ final class Phase2CReviewUITests: StayGrubbyUITestCase {
         XCTAssertFalse(app.scrollViews["comparison-content"].staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Score '")).firstMatch.exists)
         tap(app.buttons["Skip"], app: app)
         XCTAssertTrue(app.buttons["Undo"].isEnabled)
-        XCTAssertTrue(app.staticTexts["0 new answers. Saved history is kept."].exists)
         tap(app.buttons["Undo"], app: app)
         XCTAssertEqual(choice.label, opponent)
         tap(app.buttons["Too Tough"], app: app)
-        XCTAssertTrue(app.staticTexts["1 new answers. Saved history is kept."].waitForExistence(timeout: 10))
-        if app.buttons["Undo"].exists { tap(app.buttons["Undo"], app: app) }
-        else { tap(app.buttons["Undo last answer"], app: app) }
-        XCTAssertTrue(app.staticTexts["0 new answers. Saved history is kept."].exists)
-        XCTAssertEqual(choice.label, opponent)
-        tap(app.buttons["Cancel"], app: app)
+        // This normal session stops on sufficient adjacent-tie evidence and
+        // persists automatically. Undo was verified before that terminal step.
+        XCTAssertTrue(app.buttons["ranking-result-close"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.staticTexts["Your dish is ranked!"].exists)
+        XCTAssertTrue(app.staticTexts["result-rank"].exists)
+        XCTAssertFalse(app.staticTexts["result-score"].exists)
+        XCTAssertFalse(app.buttons["Save Answers"].exists || app.buttons["Save Score"].exists)
+        tap(app.buttons["ranking-result-close"], app: app)
 
         app.terminate()
         app.launchArguments = ["--ui-test-store", UUID().uuidString, "--comparison-fixture", "10", "--test-light", "--test-large-type", "--test-reduce-motion"]

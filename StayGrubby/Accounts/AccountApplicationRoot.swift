@@ -19,6 +19,7 @@ struct AccountApplicationRoot: View {
                 else {
                     ContentView().modelContainer(development.container)
                         .environment(\.cookingMediaRoot,development.mediaRoot)
+                        .environment(\.scoreMilestoneScope, "development.\(DebugReviewConfiguration.current.storeID?.uuidString ?? "demo")")
                         .environment(\.endDevelopmentReview,{ self.development = nil })
                         .id("development")
                         .safeAreaInset(edge:.top) {
@@ -46,6 +47,7 @@ struct AccountApplicationRoot: View {
     @ViewBuilder private var gatedContent: some View {
         if case .resolved(let account) = session.state, access.isReady(for:account), let store = access.store {
             ContentView().modelContainer(store.container).environment(\.cookingMediaRoot,store.mediaRoot)
+                .environment(\.scoreMilestoneScope, "account.\(account.accountID.uuidString.lowercased())")
                 .id(account.accountID)
                 .environment(\.cookingSyncCoordinator, sync)
                 .task(id: account.accountID) {
@@ -53,6 +55,7 @@ struct AccountApplicationRoot: View {
                         let token = try sync.connect(store: store, account: account,
                             send: { envelope in try await session.applyResolvedOperation(envelope) },
                             load: { try await session.openResolvedLibrary() }, active: scenePhase == .active,
+                            photos: try session.cookingPhotoTransport(),
                             remember: { try session.rememberReadyAccount($0) })
                         defer { sync.disconnect(token) }
                         try await Task.sleep(for: .seconds(31_536_000)) // Cancelled when the account tree unmounts.

@@ -14,4 +14,13 @@ import Testing
         let orientations = Bundle.main.infoDictionary?["UISupportedInterfaceOrientations~iphone"] as? [String]
         #expect(orientations == ["UIInterfaceOrientationPortrait"])
     }
+
+    @Test func nativeShareImageSavingHasAnAddOnlyPrivacyPurpose() {
+        // The native share sheet may save the exported UIImage to Photos. Its
+        // system-managed add-only access requires a purpose in the built bundle.
+        // Declaring it never requests authorization on app launch or reads Photos.
+        let purpose = Bundle.main.infoDictionary?["NSPhotoLibraryAddUsageDescription"] as? String
+        #expect(purpose == "Save your StayGrubby share card to Photos when you choose Save Image.")
+        #expect(Bundle.main.infoDictionary?["NSPhotoLibraryUsageDescription"] == nil)
+    }
 }

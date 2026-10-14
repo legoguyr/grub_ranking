@@ -1,3 +1,4 @@
+import { storageStubSQL } from './storage-stub.mjs';
 import pg from 'pg';
 import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
@@ -25,6 +26,7 @@ try {
  create table auth.sessions(id uuid primary key,user_id uuid references auth.users(id),not_after timestamptz);
  create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
  create function auth.jwt() returns jsonb language sql stable as $$ select coalesce(nullif(current_setting('request.jwt.claims',true),''),'{}')::jsonb $$;`);
+ await db.query(storageStubSQL);
  const directory=new URL('../../supabase/migrations/',import.meta.url);
  for(const file of (await readdir(directory)).filter(n=>n.endsWith('.sql')).sort()) await db.query(await readFile(new URL(file,directory),'utf8'));
  const uid=randomUUID(),sid=randomUUID(),secondUser=randomUUID(),secondSession=randomUUID();

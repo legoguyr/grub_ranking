@@ -3,8 +3,17 @@ import UIKit
 
 /// The visual vocabulary lives here; feature views retain product state and routing.
 enum SGTheme {
+    /// Fixed export/identity colors. The supplied official PNG's dominant red
+    /// takes precedence over the conceptual mockup's approximate red.
+    enum Brand {
+        static let cream = Color(red: 250 / 255, green: 243 / 255, blue: 236 / 255)
+        static let red = Color(red: 241 / 255, green: 6 / 255, blue: 7 / 255)
+        static let charcoal = Color(red: 31 / 255, green: 31 / 255, blue: 31 / 255)
+    }
     enum ColorToken {
-        static let accent = Color.accentColor
+        // Accessible red variants for product controls; exports keep Brand.red.
+        static let accent = adaptive(light: 0xCB1015, dark: 0xFF6B63)
+        static let buttonAccent = Color(red: 203 / 255, green: 16 / 255, blue: 21 / 255)
         static let background = adaptive(light: 0xF6F5F0, dark: 0x111514)
         static let groupedBackground = background
         static let surface = adaptive(light: 0xFFFFFF, dark: 0x1C2220)
@@ -18,13 +27,39 @@ enum SGTheme {
         static let onAccent = Color.white
         static let selected = accent.opacity(0.13)
         static let focusBackground = adaptive(light: 0xE7EAE3, dark: 0x0B0F0D)
-        private static func adaptive(light: UInt32, dark: UInt32) -> Color {
+        fileprivate static func adaptive(light: UInt32, dark: UInt32) -> Color {
             Color(UIColor { traits in
                 let hex = traits.userInterfaceStyle == .dark ? dark : light
                 return UIColor(red: CGFloat((hex >> 16) & 255) / 255,
                                green: CGFloat((hex >> 8) & 255) / 255,
                                blue: CGFloat(hex & 255) / 255, alpha: 1)
             })
+        }
+    }
+    /// In-app presentation only. Exported cards deliberately keep Brand.red.
+    enum ScoreColor {
+        static let orangeMinimum = 5.0
+        static let goldMinimum = 7.6
+        enum Band: Equatable { case gold, orange, coral }
+        static let gold = ColorToken.adaptive(light: 0x80600F, dark: 0xEAC86B)
+        static let orange = ColorToken.adaptive(light: 0xA74910, dark: 0xF2A669)
+        static let coral = ColorToken.adaptive(light: 0xAA4243, dark: 0xF19D96)
+
+        // Classify the already-formatted score so its visible decimal and color agree.
+        // This neither rounds nor writes the underlying numerical ranking score.
+        static func band(forDisplayedScore text: String) -> Band? {
+            guard let score = Double(text), score.isFinite else { return nil }
+            if score >= goldMinimum { return .gold }
+            if score >= orangeMinimum { return .orange }
+            return .coral
+        }
+        static func color(forDisplayedScore text: String) -> Color {
+            switch band(forDisplayedScore: text) {
+            case .gold: gold
+            case .orange: orange
+            case .coral: coral
+            case nil: Color.secondary
+            }
         }
     }
     enum Space {
@@ -54,6 +89,8 @@ enum SGTheme {
         static let comparisonSeparator: CGFloat = 28
         static let comparisonLabelHeight: CGFloat = 62
         static let contentMaximum: CGFloat = 680
+        static let sharingContentMaximum: CGFloat = 440
+        static let sharingPreviewMaximumHeight: CGFloat = 320
         static let tagColumnWidth: CGFloat = 120
         static let border: CGFloat = 1
         static let selectedBorder: CGFloat = 3
@@ -78,15 +115,17 @@ enum SGTheme {
 
 struct SGButtonStyle: ButtonStyle {
     var prominent = false
+    var compact = false
+    var prominentColor: Color? = nil
     @Environment(\.isEnabled) private var enabled
     @Environment(\.sgReduceMotion) private var reduceMotion
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(SGTheme.TypeRole.headline)
-            .padding(.horizontal, SGTheme.Space.medium)
+            .padding(.horizontal, compact ? SGTheme.Space.xSmall : SGTheme.Space.medium)
             .frame(minHeight: SGTheme.Size.minimumTap)
             .foregroundStyle(prominent ? SGTheme.ColorToken.onAccent : SGTheme.ColorToken.primaryText)
-            .background(prominent ? SGTheme.ColorToken.accent : SGTheme.ColorToken.elevatedSurface,
+            .background(prominent ? (prominentColor ?? SGTheme.ColorToken.buttonAccent) : SGTheme.ColorToken.elevatedSurface,
                         in: RoundedRectangle(cornerRadius: SGTheme.Radius.field))
             .opacity(enabled ? (configuration.isPressed ? 0.8 : 1) : 0.4)
             .scaleEffect(configuration.isPressed && !reduceMotion ? SGTheme.Motion.pressedScale : 1)

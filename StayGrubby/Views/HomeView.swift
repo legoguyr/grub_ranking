@@ -7,23 +7,20 @@ struct HomeView: View {
     @State private var cookingList: RankingList?
     @State private var path = NavigationPath()
     @Query private var attempts: [CookingAttempt]
+    @Query private var scoreTombstones: [SyncTombstone]
 
     var body: some View {
         NavigationStack(path: $path) {
             Group {
-                if let cookingList {
-                    CookingRankingView(list: cookingList)
-                } else if let error {
-                    ContentUnavailableView {
-                        Label("Couldn't open Rankings", systemImage: "exclamationmark.triangle")
-                    } description: {
-                        Text(error)
-                    } actions: {
-                        Button("Try Again", action: prepareCooking)
-                    }
+                #if DEBUG
+                if let mode = DebugReviewConfiguration.current.sharingMode {
+                    SharingReviewFixture(mode: mode)
                 } else {
-                    ProgressView("Opening Rankings")
+                    rankingContent
                 }
+                #else
+                rankingContent
+                #endif
             }
             .navigationDestination(for: UUID.self) { id in
                 if let attempt = attempts.first(where: { $0.id == id }) { AttemptDetailView(attempt: attempt) }
@@ -31,6 +28,28 @@ struct HomeView: View {
             .task { prepareCooking() }
         }
         .environment(\.returnToRankings, { path = NavigationPath() })
+        .environment(\.scoreUnlockState, scoreState)
+    }
+
+    private var scoreState: ScoreUnlockState {
+        _ = attempts.count; _ = scoreTombstones.count
+        return ScoreUnlockPolicy.state(in: context, list: cookingList)
+    }
+
+    @ViewBuilder private var rankingContent: some View {
+        if let cookingList {
+            CookingRankingView(list: cookingList)
+        } else if let error {
+            ContentUnavailableView {
+                Label("Couldn't open Rankings", systemImage: "exclamationmark.triangle")
+            } description: {
+                Text(error)
+            } actions: {
+                Button("Try Again", action: prepareCooking)
+            }
+        } else {
+            ProgressView("Opening Rankings")
+        }
     }
 
     private func prepareCooking() {

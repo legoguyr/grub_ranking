@@ -16,6 +16,7 @@ import SwiftData
         let root = review.mediaRoot(in: FileManager.default.temporaryDirectory)
         let container = try LocalStoreStartup.openGuest(overrideURL:url)
         if review.discoveryFixture, let root { try DiscoveryReviewFixture.seed(container:container,mediaDirectory:root) }
+        if let count = review.scoreUnlockCount, let root { try ScoreUnlockReviewFixture.seed(container:container,mediaRoot:root,count:count) }
         return Self(container:container,mediaRoot:root,isolated:review.storeID != nil)
     }
 }

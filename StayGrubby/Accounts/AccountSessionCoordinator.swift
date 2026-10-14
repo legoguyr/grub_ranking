@@ -184,6 +184,17 @@ nonisolated enum AccountSessionState: Equatable {
         else { throw AccountFoundationError.identityChanged }
         return receipt
     }
+    func cookingPhotoTransport() throws -> any CookingPhotoTransport {
+        guard case .resolved(let account) = state, let service = backend as? any AccountPhotoBackend
+        else { throw AccountFoundationError.accountNotResolved }
+        let current = generation
+        return SessionCookingPhotoTransport(backend: service, authorize: { [weak self] in
+            try Task.checkCancellation()
+            guard let self, self.generation == current, case .resolved(let latest) = self.state,
+                  latest.accountID == account.accountID, latest.authUserID == account.authUserID
+            else { throw AccountFoundationError.identityChanged }
+        })
+    }
     func rememberReadyAccount(_ account: ProvisionedAccount) throws {
         guard case .resolved(let resolved) = state, resolved.accountID == account.accountID,
               resolved.authUserID == account.authUserID, let service = backend as? any AccountLibraryBackend else { throw AccountFoundationError.identityChanged }

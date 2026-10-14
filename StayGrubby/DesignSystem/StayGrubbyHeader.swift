@@ -77,7 +77,7 @@ struct SGIconButton: View {
             Image(systemName: symbol).font(SGTheme.TypeRole.headline)
                 .frame(width: SGTheme.Size.minimumTap, height: SGTheme.Size.minimumTap)
                 .foregroundStyle(emphasized ? SGTheme.ColorToken.onAccent : SGTheme.ColorToken.primaryText)
-                .background(emphasized ? SGTheme.ColorToken.accent : SGTheme.ColorToken.elevatedSurface, in: Circle())
+                .background(emphasized ? SGTheme.ColorToken.buttonAccent : SGTheme.ColorToken.elevatedSurface, in: Circle())
         }.buttonStyle(.plain).accessibilityLabel(title)
     }
 }

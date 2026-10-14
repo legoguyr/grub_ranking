@@ -5,7 +5,7 @@ import XCTest
 final class ReleaseAuthenticationGateUITests: StayGrubbyUITestCase {
     @MainActor func testReleaseIgnoresDevelopmentArgumentsAndHasNoPersonalOrBypassAccess() {
         let app = XCUIApplication()
-        for arguments in [[], ["--development-library", "--ui-test-store", UUID().uuidString, "--discovery-fixture", "--comparison-fixture", "11"]] {
+        for arguments in [[], ["--development-library", "--ui-test-store", UUID().uuidString, "--discovery-fixture", "--comparison-fixture", "11", "--sharing-fixture", "result", "--score-unlock-fixture", "10"]] {
             app.launchArguments = arguments
             app.launch()
             XCTAssertTrue(app.buttons["account-sign-in-apple"].waitForExistence(timeout: 20))

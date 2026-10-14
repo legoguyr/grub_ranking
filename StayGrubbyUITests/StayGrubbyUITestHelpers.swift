@@ -42,6 +42,20 @@ extension XCUIApplication {
         }
         XCTFail("Creation choices did not appear")
     }
+    /// Older version-specific regressions exercise the complete ranking view.
+    /// Verify the actual local presentation preference before querying siblings.
+    @MainActor func showAllVersions() {
+        let control = buttons["All Versions"]
+        XCTAssertTrue(control.waitForExistence(timeout: 15))
+        for _ in 0..<2 {
+            if control.isSelected { return }
+            control.tap()
+            let selected = XCTNSPredicateExpectation(predicate: NSPredicate(format: "isSelected == true"), object: control)
+            if XCTWaiter.wait(for: [selected], timeout: 3) == .completed { return }
+            activate()
+        }
+        XCTAssertTrue(control.isSelected, "All Versions must actually be selected")
+    }
     @MainActor func revealSearch() {
         if rankingSearchField.exists { return }
         buttons["ranking-search"].tap()

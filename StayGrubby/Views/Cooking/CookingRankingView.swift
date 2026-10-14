@@ -3,6 +3,8 @@ import SwiftData
 
 struct CookingRankingView: View {
     let list: RankingList
+    @Environment(\.modelContext) private var context
+    @AppStorage(RankingsDisplayMode.preferenceKey, store: RankingsDisplayPreferences.defaults) private var displayPreference = RankingsDisplayMode.topVersion.rawValue
     @Query private var attempts: [CookingAttempt]
     @Query(sort: \Dish.name) private var dishes: [Dish]
     @State private var newDish = false
@@ -15,13 +17,18 @@ struct CookingRankingView: View {
     @State private var searching = false
     @State private var creationExpanded = false
     @Environment(\.sgReduceMotion) private var reduceMotion
+    @Environment(\.scoreUnlockState) private var scores
     private var eligibleDishes: [Dish] { dishes.filter { dish in dish.attempts.contains { $0.rankedItem?.list?.id == list.id } } }
     private var hasSearch: Bool { !TagNormalization.display(searchText).isEmpty }
 
     var body: some View {
-        let entries = CookingDiscovery.entries(in: list, attempts: attempts, query: searchText, filters: filters)
+        let eligible = ScoreUnlockPolicy.entries(in: context, list: list)
+        let matching = CookingDiscovery.entries(in: list, attempts: attempts, query: searchText, filters: filters)
+        let entries = RankingsPresentation.entries(eligible, matching: matching,
+            mode: RankingsDisplayMode(rawValue: displayPreference) ?? .topVersion)
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
+                if !scores.isUnlocked { ScoreUnlockProgressBanner(state: scores) }
                 if list.items.isEmpty {
                     ContentUnavailableView {
                         Label("Your cooking, ranked", systemImage: "fork.knife")
@@ -36,7 +43,7 @@ struct CookingRankingView: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("cook-row-\(entry.attempt.rankedItemID)")
-                    .accessibilityLabel("Rank \(entry.globalRank), \(entry.attempt.displayName), score \(entry.attempt.rankedItem?.score.formatted(.number.precision(.fractionLength(1))) ?? "unknown")")
+                    .accessibilityLabel(rowLabel(entry))
                     .accessibilityHint("Course \(entry.attempt.category.label). Global rank. Opens dish details.")
                     Divider().overlay(SGTheme.ColorToken.border).accessibilityHidden(true)
                 }
@@ -61,9 +68,13 @@ struct CookingRankingView: View {
                     })
                     .transition(.opacity)
                 }
+                Picker("Ranking display", selection: $displayPreference) {
+                    ForEach(RankingsDisplayMode.allCases) { Text($0.rawValue).tag($0.rawValue) }
+                }.pickerStyle(.segmented).padding(.horizontal, SGTheme.Space.medium)
+                    .accessibilityIdentifier("rankings-display-mode")
                 filterControls
                 if !list.items.isEmpty && (hasSearch || filters.isActive) {
-                    Text("\(entries.count) of \(list.items.count) ranked cooks · Global ranks")
+                    Text("\(entries.count) of \(eligible.count) ranked cooks · Global ranks")
                         .font(SGTheme.TypeRole.secondary).foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, SGTheme.Space.medium)
@@ -82,6 +93,11 @@ struct CookingRankingView: View {
                 pendingDish = dish; choosingDish = false
             }, onCancel: { choosingDish = false })
         }
+    }
+
+    private func rowLabel(_ entry: CookingDiscovery.Entry) -> String {
+        let detail = entry.attempt.rankedItem.flatMap { scores.scoreText($0.score) }.map { "score \($0)" } ?? "score locked"
+        return "Rank \(entry.globalRank), \(entry.attempt.displayName), \(detail)"
     }
 
     private var filterControls: some View {

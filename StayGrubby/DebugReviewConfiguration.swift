@@ -13,6 +13,8 @@ nonisolated struct DebugReviewConfiguration {
     let largeType: Bool
     let discoveryFixture: Bool
     let comparisonMode: String?
+    let sharingMode: String?
+    let scoreUnlockCount: Int?
 
     init(arguments: [String], environment: [String: String] = [:]) {
         var token = environment["GRUB_TEST_STORE"]
@@ -30,6 +32,17 @@ nonisolated struct DebugReviewConfiguration {
            arguments.indices.contains(index + 1), ["11", "10", "01", "00"].contains(arguments[index + 1]) {
             comparisonMode = arguments[index + 1]
         } else { comparisonMode = nil }
+        if isolated, let index = arguments.firstIndex(of: "--sharing-fixture"),
+           arguments.indices.contains(index + 1),
+           ["photo", "plain", "fallback", "long", "result", "detail", "new-leader"].contains(arguments[index + 1]) {
+            sharingMode = arguments[index + 1]
+        } else { sharingMode = nil }
+        if isolated, let index = arguments.firstIndex(of: "--score-unlock-fixture"),
+           arguments.indices.contains(index + 1), let count = Int(arguments[index + 1]),
+           [0, 1, ScoreUnlockPolicy.requiredRankedEntryCount - 1, ScoreUnlockPolicy.requiredRankedEntryCount,
+            ScoreUnlockPolicy.requiredRankedEntryCount + 2].contains(count) {
+            scoreUnlockCount = count
+        } else { scoreUnlockCount = nil }
     }
 
     func storeURL(in temporaryDirectory: URL) -> URL? {

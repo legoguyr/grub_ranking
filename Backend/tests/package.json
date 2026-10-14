@@ -3,9 +3,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node schema.test.mjs && node structured-sync.test.mjs",
+    "test": "node schema.test.mjs && node structured-sync.test.mjs && node photo-security.test.mjs",
     "test:concurrency": "node provisioning.concurrent.mjs",
-    "test:structured:native": "node structured-sync.test.mjs --native"
+    "test:structured:native": "node structured-sync.test.mjs --native",
+    "test:photos:native": "node photo-security.test.mjs --native"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.8",

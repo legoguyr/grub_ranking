@@ -17,6 +17,7 @@ final class CookingUITests: StayGrubbyUITestCase {
         }
         app.launchWithReviewOptions()
         XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 15))
+        app.showAllVersions()
 
         func tap(_ button: XCUIElement) {
             XCTAssertTrue(button.waitForExistence(timeout: 15))
@@ -70,7 +71,9 @@ final class CookingUITests: StayGrubbyUITestCase {
             transition(liked, to: next)
             if comparisons { transition(next, to: app.buttons["ranking-result-close"]) }
             XCTAssertFalse(app.buttons["Save Cook"].exists)
-            XCTAssertTrue(app.staticTexts["result-score"].exists)
+            XCTAssertFalse(app.staticTexts["result-score"].exists)
+            XCTAssertTrue(app.images["score-locked"].exists)
+            XCTAssertFalse(app.buttons["result-share-dish"].exists)
             XCTAssertTrue(app.staticTexts["result-rank"].exists)
             tap(app.buttons["ranking-result-close"])
             XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 15))
@@ -124,11 +127,17 @@ final class CookingUITests: StayGrubbyUITestCase {
         tap(app.buttons["save-cook-metadata"])
         XCTAssertTrue(app.staticTexts["Grilled"].waitForExistence(timeout: 15))
 
-        tap(app.buttons["Re-rank"])
+        transition(app.buttons["Re-rank"], to: app.buttons["Liked it"])
+        XCTAssertTrue(app.buttons["It was fine"].exists && app.buttons["Didn't like it"].exists)
+        transition(app.buttons["Liked it"], to: app.buttons["Too Tough"])
+        // With one opponent, Too Tough is a legitimate ordinary stop and saves
+        // automatically. Multi-opponent Undo is covered in dedicated regression.
         tap(app.buttons["Too Tough"])
-        tap(app.buttons["Undo last answer"])
-        tap(app.buttons["Prefer Salmon — First cook"])
-        tap(app.buttons["Save Answers"])
+        XCTAssertFalse(app.buttons["Save Answers"].exists)
+        XCTAssertFalse(app.buttons["Save Score"].exists)
+        XCTAssertTrue(app.buttons["ranking-result-close"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.staticTexts["result-rank"].exists)
+        tap(app.buttons["ranking-result-close"])
         XCTAssertTrue(app.buttons["Edit Cook"].waitForExistence(timeout: 15))
 
         app.terminate(); app.launchWithReviewOptions()

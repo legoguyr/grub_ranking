@@ -27,6 +27,7 @@ import Network
     @ObservationIgnored private var send: (@Sendable (SyncEnvelope) async throws -> SyncReceipt)?
     @ObservationIgnored private var load: (@MainActor () async throws -> AccountLibrarySnapshot)?
     @ObservationIgnored private var remember: (@MainActor (ProvisionedAccount) throws -> Void)?
+    @ObservationIgnored private var photos: (any CookingPhotoTransport)?
     @ObservationIgnored private var jobID: UUID?
     @ObservationIgnored private var job: Task<Void, Never>?
     @ObservationIgnored private var retry: Task<Void, Never>?
@@ -39,6 +40,7 @@ import Network
     @discardableResult func connect(store: LocalStoreSession, account: ProvisionedAccount,
         send: @escaping @Sendable (SyncEnvelope) async throws -> SyncReceipt,
         load: @escaping @MainActor () async throws -> AccountLibrarySnapshot, active: Bool = true,
+        photos: (any CookingPhotoTransport)? = nil,
         remember: @escaping @MainActor (ProvisionedAccount) throws -> Void = { _ in }) throws -> UUID {
         disconnect()
         guard store.scope == .account(account.accountID), let binding = try SyncJournal.binding(store.container.mainContext),
@@ -46,6 +48,7 @@ import Network
         else { throw SyncFoundationError.wrongAccount }
         let token = UUID(); connection = token; self.active = active
         self.store = store; owner = account; self.send = send; self.load = load; self.remember = remember
+        self.photos = photos
         observer = NotificationCenter.default.addObserver(forName: .cookingSyncWorkCommitted, object: store.container, queue: .main) { [weak self] _ in
             guard let coordinator = self else { return }
             Task { @MainActor in coordinator.request() }
@@ -65,7 +68,7 @@ import Network
         connection = nil; job?.cancel(); job = nil; jobID = nil; retry?.cancel(); retry = nil
         if let observer { NotificationCenter.default.removeObserver(observer) }; observer = nil
         monitor?.cancel(); monitor = nil
-        store = nil; owner = nil; send = nil; load = nil; remember = nil; requested = false; holds.removeAll(); status = .idle
+        store = nil; owner = nil; send = nil; load = nil; remember = nil; photos = nil; requested = false; holds.removeAll(); status = .idle
     }
     func setActive(_ value: Bool) {
         active = value
@@ -80,6 +83,7 @@ import Network
         if job != nil { requested = true; return }
         retry?.cancel(); retry = nil; requested = false
         let work = UUID(); jobID = work
+        let photoTransport = photos
         job = Task { [weak self] in
             guard let self else { return }
             defer {
@@ -107,6 +111,7 @@ import Network
                 try Task.checkCancellation()
                 guard self.connection == token else { return }
                 let context = store.container.mainContext
+                var graphReady = false
                 // Never overwrite value drafts or another context's unsaved domain edits.
                 if !(try SyncJournal.pending(context)).isEmpty || !self.holds.isEmpty || context.hasChanges {
                     self.status = .savedLocally
@@ -119,14 +124,38 @@ import Network
                     if !self.holds.isEmpty || context.hasChanges || hasPending {
                         self.status = .savedLocally
                     } else {
+                        let previousMedia = try CookingGraphExport.snapshot(context: context).media
                         try CookingGraphHydration.apply(snapshot.graph, revision: snapshot.account.syncRevision, context: context)
+                        if let root = store.mediaRoot {
+                            for old in previousMedia where !snapshot.graph.media.contains(where: { $0.id == old.id }) {
+                                LocalPhotoStore.deleteFiles(displayFilename: old.displayFilename, thumbnailFilename: old.thumbnailFilename, rootURL: root)
+                            }
+                        }
                         try self.remember?(snapshot.account)
-                        self.status = .current
+                        graphReady = true
                     }
+                }
+                if let photoTransport, (try SyncJournal.pending(context)).isEmpty {
+                    let complete = try await CookingPhotoSync.run(store: store, account: owner, transport: photoTransport,
+                        forceRetry: forceRetry, allowDownloads: self.holds.isEmpty && !context.hasChanges,
+                        current: {
+                            try Task.checkCancellation()
+                            guard self.connection == token, self.active else { throw CancellationError() }
+                        })
+                    if !complete { self.status = .savedLocally; self.scheduleRetry(store: store, token: token) }
+                    else if graphReady, (try SyncJournal.pending(context)).isEmpty, !context.hasChanges { self.status = .current }
+                } else if graphReady {
+                    self.status = .current
                 }
             } catch {
                 guard self.connection == token, !Task.isCancelled else { return }
                 switch error {
+                case CookingPhotoError.integrity, CookingPhotoError.rejected: self.status = .needsReview
+                case CookingPhotoError.authenticationRequired: self.status = .signInRequired
+                case CookingPhotoError.obsolete:
+                    self.status = .savedLocally
+                    if (try? SyncJournal.pending(store.container.mainContext).isEmpty) == false { self.requested = true }
+                    else { self.scheduleRetry(store: store, token: token) }
                 case CookingSyncError.conflict: self.status = .conflict
                 case CookingSyncError.authenticationRequired, AccountFoundationError.identityChanged: self.status = .signInRequired
                 case CookingSyncError.rejected, is SyncFoundationError: self.status = .needsReview
@@ -138,8 +167,12 @@ import Network
     }
     private func scheduleRetry(store: LocalStoreSession, token: UUID) {
         let context = ModelContext(store.container)
-        guard let operation = try? SyncJournal.pending(context).first,
-              let deadline = operation.nextRetryAt else { return }
+        let operationDeadline = (try? SyncJournal.pending(context).first)?.nextRetryAt
+        let photoDeadline: Date?
+        if let root = store.mediaRoot, let owner = store.scope.accountID {
+            photoDeadline = (try? CookingPhotoJournal.load(owner: owner, root: root))?.retryAt
+        } else { photoDeadline = nil }
+        guard let deadline = [operationDeadline, photoDeadline].compactMap({ $0 }).min() else { return }
         retry?.cancel()
         retry = Task { [weak self] in
             do { try await Task.sleep(for: .seconds(max(1, deadline.timeIntervalSinceNow))) }

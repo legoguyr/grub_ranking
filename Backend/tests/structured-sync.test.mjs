@@ -1,3 +1,4 @@
+import { storageStubSQL } from './storage-stub.mjs';
 import { PGlite } from '@electric-sql/pglite';
 import pg from 'pg';
 import { readFile,readdir } from 'node:fs/promises';
@@ -45,6 +46,7 @@ try {
  create table auth.sessions(id uuid primary key,user_id uuid references auth.users(id),not_after timestamptz);
  create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
  create function auth.jwt() returns jsonb language sql stable as $$ select coalesce(nullif(current_setting('request.jwt.claims',true),''),'{}')::jsonb $$;`);
+ await db.exec(storageStubSQL);
  const directory=new URL('../../supabase/migrations/',import.meta.url);
  for(const file of (await readdir(directory)).filter(f=>f.endsWith('.sql')).sort())await db.exec(await readFile(new URL(file,directory),'utf8'));
  await db.query('insert into auth.users(id) values($1),($2)',[user,otherUser]);

@@ -31,7 +31,23 @@ final class StayGrubbyUITests: StayGrubbyUITestCase {
 
         let next = app.buttons["comparison-fixture-next"]
         XCTAssertTrue(next.waitForExistence(timeout: 15))
+        func advanceFixture(to mode: String) {
+            // The failed recording retained fixture 11 after the next tap.
+            // Retry only while the expected fixture has not arrived, so every
+            // photo combination still receives all original geometry checks.
+            for _ in 0..<3 {
+                if next.label.contains("current \(mode)") { return }
+                app.activate()
+                XCTAssertTrue(next.isHittable)
+                next.tap()
+                let updated = XCTNSPredicateExpectation(
+                    predicate: NSPredicate(format: "label CONTAINS %@", "current \(mode)"), object: next)
+                if XCTWaiter.wait(for: [updated], timeout: 5) == .completed { return }
+            }
+            XCTFail("Could not advance to comparison fixture \(mode): \(app.debugDescription)")
+        }
         for (index, mode) in ["11", "10", "01", "00"].enumerated() {
+            if index > 0 { advanceFixture(to: mode) }
             let updated = XCTNSPredicateExpectation(
                 predicate: NSPredicate(format: "label CONTAINS %@", mode), object: next)
             XCTAssertEqual(XCTWaiter.wait(for: [updated], timeout: 5), .completed)
@@ -58,7 +74,6 @@ final class StayGrubbyUITests: StayGrubbyUITestCase {
             attachment.name = "Comparison \(mode) Dark"
             attachment.lifetime = .keepAlways
             add(attachment)
-            if index < 3 { next.tap() }
         }
     }
 }

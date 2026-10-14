@@ -154,6 +154,7 @@ struct AttemptDetailView: View {
 
     private var newVersionButton: some View {
         Button("New Version", systemImage: "plus") { addingVersion = true }
+            .labelStyle(SGCenteredActionLabelStyle())
             .buttonStyle(SGButtonStyle()).accessibilityIdentifier("detail-new-version")
             .disabled(attempt.dish == nil || attempt.rankedItem?.list == nil)
     }
@@ -195,16 +196,29 @@ struct AttemptDetailView: View {
         }.frame(maxWidth: .infinity, alignment: .leading)
     }
     private var actionButtons: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: SGTheme.Space.small) { editButton; rerankButton }.fixedSize(horizontal: true, vertical: false)
-            VStack(alignment: .leading, spacing: SGTheme.Space.small) { editButton; rerankButton }
+        Group {
+            if textSize.isAccessibilitySize {
+                VStack(spacing: SGTheme.Space.small) { editButton; rerankButton; shareButton }
+            } else {
+                HStack(spacing: SGTheme.Space.xSmall) {
+                    editButton; rerankButton; shareButton
+                }
+            }
         }
     }
     private var editButton: some View {
-        Button("Edit Cook", systemImage: "pencil") { editing = true }.buttonStyle(SGButtonStyle())
+        Button { editing = true } label: {
+            Label("Edit Cook", systemImage: "pencil").frame(maxWidth: .infinity)
+                .labelStyle(SGCenteredActionLabelStyle())
+        }.buttonStyle(SGButtonStyle(compact: true)).accessibilityIdentifier("detail-edit-cook")
     }
     private var rerankButton: some View {
-        Button("Re-rank", systemImage: "arrow.triangle.2.circlepath") { reranking = true }.buttonStyle(SGButtonStyle())
+        Button { reranking = true } label: {
+            Label("Re-rank", systemImage: "arrow.triangle.2.circlepath").frame(maxWidth: .infinity)
+        }.buttonStyle(SGButtonStyle(compact: true)).accessibilityIdentifier("detail-rerank")
+    }
+    private var shareButton: some View {
+        DishShareAction(model: .make(for: attempt), compact: true, currentModel: { .make(for: attempt) })
     }
 
 }

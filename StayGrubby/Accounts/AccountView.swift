@@ -5,6 +5,8 @@ struct AccountView: View {
     @Environment(AccountSessionCoordinator.self) private var session
     @Environment(\.cookingSyncCoordinator) private var sync
     @Environment(\.modelContext) private var context
+    @Query private var sharingCooks: [CookingAttempt]
+    @Query private var sharingTombstones: [SyncTombstone]
     #if DEBUG
     @State private var restoreCheck: String?
     @State private var checkingRestore = false
@@ -16,6 +18,7 @@ struct AccountView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: SGTheme.Space.large) {
                 Label("Your StayGrubby account",systemImage:"person.crop.circle").font(.title2.bold())
+                TopThreeShareAction(list: sharingRanking)
                 #if DEBUG
                 if let endDevelopmentReview {
                     Text("Development library").font(.headline)
@@ -30,6 +33,10 @@ struct AccountView: View {
         .background(SGTheme.ColorToken.background)
         .navigationTitle("Account").toolbar(.hidden,for:.navigationBar)
         .safeAreaInset(edge:.top) { StayGrubbyHeader(page:"Account",searchText:.constant(""),searching:.constant(false)) }
+    }
+    private var sharingRanking: RankingList? {
+        _ = sharingCooks.count; _ = sharingTombstones.count
+        return try? CookingStore.globalRanking(context: context)
     }
     @ViewBuilder private var connectedAccount: some View {
         if case .resolved(let account) = session.state {
@@ -54,8 +61,10 @@ struct AccountView: View {
                         guard try SyncJournal.pending(context).isEmpty, !context.hasChanges,
                               try CookingGraphExport.snapshot(context: context).canonicalized() == snapshot.graph.canonicalized()
                         else { restoreCheck = "Wait for local and cloud cooking details to match, then retry."; return }
-                        restoreCheck = try FreshCookingRestoreCheck.verify(snapshot, for: account).label
-                    } catch { restoreCheck = "Couldn't verify fresh restore. Your main local store was not changed." }
+                        restoreCheck = try await FreshCookingRestoreCheck.verifyPhotos(snapshot, for: account,
+                            transport: session.cookingPhotoTransport()).label
+                    } catch CookingPhotoError.pending { restoreCheck = "Wait for photo backup to finish, then verify again. Your main local store was not changed." }
+                    catch { restoreCheck = "Couldn't verify fresh restore. Your main local store was not changed." }
                 }
             }.font(.footnote).disabled(checkingRestore).accessibilityIdentifier("development-verify-fresh-restore")
             if let restoreCheck { Text(restoreCheck).font(.footnote).foregroundStyle(.secondary) }

@@ -13,6 +13,7 @@ struct RankingView: View {
     @State private var draft: RankingDraft?
     @State private var lastCompleted: RankingDraft?
     @State private var error: String?
+    @Environment(\.scoreUnlockState) private var scores
 
     var body: some View {
         List {
@@ -24,12 +25,11 @@ struct RankingView: View {
                 HStack(spacing: 16) {
                     Text("\(index + 1)").font(.subheadline.monospacedDigit()).foregroundStyle(.secondary).frame(minWidth: 24)
                     Text(item.name).font(.body.weight(.medium)).frame(maxWidth: .infinity, alignment: .leading)
-                    Text(item.score, format: .number.precision(.fractionLength(1)))
-                        .font(.title3.weight(.semibold).monospacedDigit()).foregroundStyle(.tint)
+                    ScoreBadge(score: item.score)
                 }
                 .padding(.vertical, 10)
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel("Rank \(index + 1), \(item.name), score \(item.score.formatted(.number.precision(.fractionLength(1))))")
+                .accessibilityLabel("Rank \(index + 1), \(item.name), \(scores.scoreText(item.score).map { "score \($0)" } ?? "score locked")")
             }
             if let lastCompleted, lastCompleted.session?.canUndo == true {
                 Section {

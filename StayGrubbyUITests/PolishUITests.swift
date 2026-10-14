@@ -25,6 +25,26 @@ final class PolishUITests: StayGrubbyUITestCase {
     @MainActor private func row(_ text: String, app: XCUIApplication) -> XCUIElement {
         app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'cook-row-' AND label CONTAINS %@", text)).firstMatch
     }
+    @MainActor private func openDetail(_ text: String, app: XCUIApplication) {
+        // Full-suite recordings/hierarchies show occasional synthesized row
+        // taps leaving Rankings open. Require the actual destination before
+        // editing, with bounded retries; preserve every domain assertion.
+        for _ in 0..<3 {
+            tap(row(text, app: app), app: app)
+            if app.navigationBars["Dish Details"].waitForExistence(timeout: 5) { return }
+            app.activate()
+        }
+        XCTFail("Could not open \(text): \(app.debugDescription)")
+    }
+    @MainActor private func closeContains(app: XCUIApplication) {
+        let done = app.buttons["contains-done"]
+        tap(done, app: app)
+        // The failure recording showed the Contains sheet still covering the
+        // editor after a synthesized tap. Confirm dismissal before reaching
+        // for the editor's Cancel/Save controls, with one bounded retry.
+        if !done.waitForNonExistence(timeout: 5), done.exists && done.isHittable { done.tap() }
+        XCTAssertTrue(done.waitForNonExistence(timeout: 10))
+    }
     @MainActor private func capture(_ title: String, app: XCUIApplication) {
         let attachment = XCTAttachment(screenshot: app.screenshot()); attachment.name = title
         attachment.lifetime = .keepAlways; add(attachment)
@@ -33,6 +53,7 @@ final class PolishUITests: StayGrubbyUITestCase {
         XCUIDevice.shared.orientation = .portrait
         let app = XCUIApplication(); app.launchArguments = ["--ui-test-store", UUID().uuidString, "--test-reduce-motion"]
         app.launchWithReviewOptions(); XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 15))
+            app.showAllVersions()
         app.revealCreation(); tap(app.buttons["new-dish"], app: app)
         tap(app.textFields["dish-name"], app: app); app.textFields["dish-name"].typeText("Canceled Soup\n")
         tap(app.buttons["Continue"], app: app); tap(app.buttons["Cancel"], app: app)
@@ -44,8 +65,9 @@ final class PolishUITests: StayGrubbyUITestCase {
         XCTAssertTrue(app.buttons["ranking-result-close"].waitForExistence(timeout: 15))
         XCTAssertFalse(app.buttons["Save Cook"].exists)
         XCTAssertEqual(app.staticTexts["result-rank"].label, "#1 overall")
-        let score = app.staticTexts["result-score"].label
-        XCTAssertTrue(score.hasPrefix("Score "))
+        XCTAssertFalse(app.staticTexts["result-score"].exists)
+        XCTAssertTrue(app.images["score-locked"].exists)
+        XCTAssertFalse(app.buttons["result-share-dish"].exists)
         capture("Automatically saved ranking result", app: app)
         // Relaunch without closing proves the result is feedback for an already saved transaction.
         app.terminate(); app.launchWithReviewOptions()
@@ -53,7 +75,8 @@ final class PolishUITests: StayGrubbyUITestCase {
         let saved = row("Roasted Carrots", app: app)
         XCTAssertTrue(saved.waitForExistence(timeout: 10))
         XCTAssertTrue(saved.label.hasPrefix("Rank 1,"))
-        XCTAssertTrue(saved.label.hasSuffix(score.lowercased()))
+        XCTAssertTrue(saved.label.hasSuffix("score locked"))
+        XCTAssertFalse(saved.label.contains("5.5"))
         XCTAssertEqual(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'cook-row-' AND label CONTAINS 'Roasted Carrots'")).count, 1)
         XCTAssertFalse(row("Canceled Soup", app: app).exists)
     }
@@ -61,19 +84,20 @@ final class PolishUITests: StayGrubbyUITestCase {
         XCUIDevice.shared.orientation = .portrait
         let app = XCUIApplication(); app.launchArguments = ["--ui-test-store", UUID().uuidString, "--discovery-fixture"]
         app.launchWithReviewOptions(); XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 15))
-        tap(row("Golden sear", app: app), app: app); transition(app.buttons["Edit Cook"], to: app.textFields["dish-name"], app: app)
+            app.showAllVersions()
+        openDetail("Golden sear", app: app); transition(app.buttons["Edit Cook"], to: app.textFields["dish-name"], app: app)
         transition(app.buttons["cook-contains"], to: app.buttons["contains-done"], app: app)
         tap(app.buttons["contains-milk"], app: app); tap(app.buttons["contains-wheat"], app: app)
-        tap(app.buttons["contains-done"], app: app); tap(app.buttons["save-cook-metadata"], app: app)
+        closeContains(app: app); tap(app.buttons["save-cook-metadata"], app: app)
         XCTAssertTrue(app.staticTexts["detail-contains"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.staticTexts["detail-contains"].label.contains("Milk"))
         app.terminate(); app.launchWithReviewOptions()
         XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 15))
-        tap(row("Golden sear", app: app), app: app); transition(app.buttons["Edit Cook"], to: app.textFields["dish-name"], app: app)
+        openDetail("Golden sear", app: app); transition(app.buttons["Edit Cook"], to: app.textFields["dish-name"], app: app)
         transition(app.buttons["cook-contains"], to: app.buttons["contains-done"], app: app)
         XCTAssertEqual(app.buttons["contains-milk"].value as? String, "Selected")
         XCTAssertEqual(app.buttons["contains-wheat"].value as? String, "Selected")
-        tap(app.buttons["contains-done"], app: app); tap(app.buttons["Cancel"], app: app)
+        closeContains(app: app); tap(app.buttons["Cancel"], app: app)
         tap(app.navigationBars.buttons.firstMatch, app: app)
         tap(app.buttons["ranking-filter-avoid"], app: app)
         XCTAssertTrue(app.staticTexts["allergen-safety"].exists)
@@ -98,11 +122,12 @@ final class PolishUITests: StayGrubbyUITestCase {
         for options in [["--test-light"], ["--test-dark"], ["--test-light", "--test-large-type"], ["--test-dark", "--test-large-type", "--test-reduce-motion"]] {
             let app = XCUIApplication(); app.launchArguments = ["--ui-test-store", UUID().uuidString, "--discovery-fixture"] + options
             app.launchWithReviewOptions(); XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 15))
-            tap(row("Smoky Sunday", app: app), app: app)
+            app.showAllVersions()
+            openDetail("Smoky Sunday", app: app)
             XCTAssertTrue(app.descendants(matching: .any)["hero-photo"].waitForExistence(timeout: 10))
             capture("Hero photo \(options)", app: app)
             tap(app.navigationBars.buttons.firstMatch, app: app)
-            tap(row("Golden sear", app: app), app: app)
+            openDetail("Golden sear", app: app)
             XCTAssertTrue(app.descendants(matching: .any)["hero-placeholder"].waitForExistence(timeout: 10))
             capture("Hero placeholder \(options)", app: app)
             tap(app.navigationBars.buttons.firstMatch, app: app)
@@ -122,7 +147,7 @@ final class PolishUITests: StayGrubbyUITestCase {
             tap(app.buttons["Cancel"], app: app)
             if options == ["--test-light"] {
                 // Create from a nested version detail, then close all the way to Rankings.
-                tap(row("Golden sear", app: app), app: app)
+                openDetail("Golden sear", app: app)
                 let sibling = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'version-row-' AND label CONTAINS 'Smoky Sunday'")).firstMatch
                 tap(sibling, app: app); tap(app.buttons["detail-new-version"], app: app)
                 tap(app.buttons["Continue"], app: app); tap(app.buttons["Liked it"], app: app)

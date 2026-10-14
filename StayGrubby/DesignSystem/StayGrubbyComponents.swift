@@ -8,17 +8,19 @@ struct DishPhoto: View {
     var thumbnail = false
     var name = "Dish"
     @State private var loadedImage: UIImage?
+    @State private var fileRevision = 0
 
     private struct ImageRequest: Equatable {
         let mediaID: UUID?
         let filename: String?
         let thumbnail: Bool
         let preparedData: Data?
+        let fileRevision: Int
     }
 
     private var request: ImageRequest {
         ImageRequest(mediaID: media?.id, filename: thumbnail ? media?.thumbnailFilename : media?.displayFilename,
-                     thumbnail: thumbnail, preparedData: prepared.map { thumbnail ? $0.thumbnailData : $0.displayData })
+                     thumbnail: thumbnail, preparedData: prepared.map { thumbnail ? $0.thumbnailData : $0.displayData }, fileRevision: fileRevision)
     }
 
     var body: some View {
@@ -40,6 +42,10 @@ struct DishPhoto: View {
         .clipped()
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(loadedImage == nil ? "No photo for \(name)" : "Photo of \(name)")
+        .onReceive(NotificationCenter.default.publisher(for: .cookingPhotoFilesRestored)) { notification in
+            if let root = notification.object as? URL, root == mediaRoot,
+               notification.userInfo?["mediaID"] as? UUID == media?.id { fileRevision += 1 }
+        }
         .task(id: request) {
             // Retain the decoded thumbnail through query/filter re-renders. Only a
             // changed photo source or size triggers disk access and decoding.
@@ -51,14 +57,18 @@ struct DishPhoto: View {
 
 struct ScoreBadge: View {
     let score: Double
+    @Environment(\.scoreUnlockState) private var scores
     var body: some View {
-        Text(score, format: .number.precision(.fractionLength(1)))
+        if let text = scores.scoreText(score) {
+        Text(text)
             .font(SGTheme.TypeRole.score)
-            .foregroundStyle(SGTheme.ColorToken.accent)
+            .foregroundStyle(SGTheme.ScoreColor.color(forDisplayedScore: text))
             .padding(.horizontal, SGTheme.Space.small).padding(.vertical, SGTheme.Space.xSmall)
-            .background(SGTheme.ColorToken.selected, in: RoundedRectangle(cornerRadius: SGTheme.Radius.chip))
+            .background(SGTheme.ScoreColor.color(forDisplayedScore: text).opacity(0.10),
+                        in: RoundedRectangle(cornerRadius: SGTheme.Radius.chip))
             .fixedSize()
-            .accessibilityLabel("Score \(score.formatted(.number.precision(.fractionLength(1))))")
+            .accessibilityLabel("Score \(text)")
+        } else { LockedScoreIndicator() }
     }
 }
 
@@ -127,6 +137,17 @@ struct SGSectionHeader: View {
     let title: String
     var body: some View {
         Text(title).font(SGTheme.TypeRole.headline).frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// Keep action symbols centered beside their title instead of using label baselines.
+struct SGCenteredActionLabelStyle: LabelStyle {
+    @ScaledMetric(relativeTo: .headline) private var symbolSize: CGFloat = 20
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(alignment: .center, spacing: SGTheme.Space.xSmall) {
+            configuration.icon.frame(width: symbolSize, height: symbolSize, alignment: .center)
+            configuration.title
+        }
     }
 }
 

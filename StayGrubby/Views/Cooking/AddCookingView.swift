@@ -16,6 +16,7 @@ struct AddCookingView: View {
     @State private var savedAttempt: CookingAttempt?
     @State private var saving = false
     @State private var saveFailed = false
+    @State private var completionSnapshot: RankingCompletionSnapshot?
 
     init(list: RankingList, dish: Dish? = nil, onResultClose: @escaping () -> Void = {}) {
         self.list = list; self.dish = dish; self.onResultClose = onResultClose
@@ -28,7 +29,8 @@ struct AddCookingView: View {
         NavigationStack {
             Group {
                 if let savedAttempt {
-                    CookingRankingResultView(attempt: savedAttempt, onClose: { onResultClose(); dismiss() })
+                    CookingRankingResultView(attempt: savedAttempt, event: completionSnapshot,
+                                             onClose: { onResultClose(); dismiss() })
                 } else if let session {
                     if let opponent = list.items.first(where: { $0.id == session.nextOpponent }) {
                         let opponentAttempt = attempts.first { $0.rankedItemID == opponent.id }
@@ -67,7 +69,7 @@ struct AddCookingView: View {
                 }
             }
             .safeAreaInset(edge: .bottom) {
-                if !choosingReaction && session == nil {
+                if savedAttempt == nil && !choosingReaction && session == nil {
                     Button { choosingReaction = true } label: {
                         Text("Continue").frame(maxWidth: .infinity)
                     }
@@ -88,7 +90,11 @@ struct AddCookingView: View {
         guard let session, session.isComplete, savedAttempt == nil, !saving else { return }
         saving = true; error = nil; saveFailed = false
         defer { saving = false }
-        do { savedAttempt = try CookingStore.create(draft: draft, existingDish: dish, session: session, context: context, mediaDirectory: mediaRoot) }
+        do {
+            let before = RankingCompletionSnapshot.capture(from: list)
+            savedAttempt = try CookingStore.create(draft: draft, existingDish: dish, session: session, context: context, mediaDirectory: mediaRoot)
+            completionSnapshot = before
+        }
         catch { saveFailed = true; self.error = error.localizedDescription }
     }
 }

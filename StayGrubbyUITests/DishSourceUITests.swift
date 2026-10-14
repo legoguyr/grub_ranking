@@ -43,7 +43,14 @@ final class DishSourceUITests: StayGrubbyUITestCase {
         XCTAssertFalse(app.buttons["Save Cook"].exists)
         tapWhenVisible(app.buttons["ranking-result-close"])
         let row = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", ", Pasta — Version 1, score ")).firstMatch
-        tapWhenVisible(row)
+        func openRow() {
+            for _ in 0..<3 {
+                tapWhenVisible(row)
+                if app.navigationBars["Dish Details"].waitForExistence(timeout: 5) { return }
+            }
+            XCTFail("Could not open the saved Pasta cook: \(app.debugDescription)")
+        }
+        openRow()
         XCTAssertTrue(app.staticTexts["Cookbook · Zahav"].waitForExistence(timeout: 15))
 
 
@@ -63,7 +70,7 @@ final class DishSourceUITests: StayGrubbyUITestCase {
         XCTAssertFalse(app.staticTexts["Restaurant · Carbone"].exists)
         app.terminate(); app.launchWithReviewOptions()
         XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 15))
-        tapWhenVisible(row)
+        openRow()
         XCTAssertFalse(app.staticTexts["Restaurant · Carbone"].exists)
         tapWhenVisible(app.buttons["Edit Cook"])
         chooseSource("My Own")
@@ -90,7 +97,7 @@ final class DishSourceUITests: StayGrubbyUITestCase {
         XCTAssertTrue(savedURL.exists)
         app.terminate(); app.launchWithReviewOptions()
         XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 15))
-        tapWhenVisible(row)
+        openRow()
         for _ in 0..<5 { if savedURL.exists { break }; app.swipeUp() }
         XCTAssertTrue(savedURL.exists)
     }

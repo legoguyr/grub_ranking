@@ -1,3 +1,23 @@
+# Current numerical score visibility
+
+ScoreUnlockPolicy is the single presentation gate over accepted local global-ranking bridges. Ten saved active eligible ranked entries reveal scores; each independent CookingAttempt/version counts once. Re-rank adds observations to the same entry and does not increase this count. Scores always calculate normally. Rankings/Detail/version rows/completion/accessibility and individual share models obey the gate; locked cards cannot render. The cream progress banner lives inside the Rankings scroll content. The first local crossing offers the fixed Top 3 composition through the common local renderer/native image sheet; account-scoped local presentation receipts do not enter the cooking graph. See V1_FINAL_REVISIONS_REVIEW.md for current-count relocking, restoration, privacy and multi-device semantics.
+
+# Current presentation — V1 branding and sharing
+
+Completed creation and completed saved re-ranking sessions present one celebration with an accessible private rank/movement summary and a preview of the reusable rendered share card. Dish Detail uses the same local renderer and native image share action. The official PNG and native light/dark/tinted app icon assets live in the asset catalog; fixed cream share exports are independent of phone appearance. Debug visual fixtures require an isolated store and media root and are absent from Release. See V1_SHARING_ARCHITECTURE.md and STAYGRUBBY_MASTER_ROADMAP.md. The physical photo-sync data-path test passed. The individual/Top 3 card designs, score gate and final workflow/presentation revisions passed physical review. The pre-alpha UI corrections retain that behavior; the combined work remains uncommitted.
+
+---
+
+# In-app numerical score colors
+
+In-app numerical scores use the centralized `SGTheme.ScoreColor` palette: displayed 1.0–4.9 muted coral, 5.0–7.5 orange, and 7.6–10.0 gold. Shared ScoreBadge covers ranking and Detail/version rows; the native completion score uses the same policy. Light/dark shades and a subtle matching badge tint retain readable contrast. This is presentation over the existing one-decimal string; it does not change score calculation, mapping, unlocking or stored values. General controls/progress keep the brand accent. Exported card scores, including the raster preview inside results, always keep fixed `SGTheme.Brand.red` and their approved layout/typography.
+
+# Current Phase 3D Part 2 media integration
+
+The existing Profile status/Retry now includes pending/failed photo backup, restore and cleanup. Debug fresh restore adds an actual recovered-photo count using isolated scratch files. Existing DishPhoto views reload when validated files arrive in their own account root; local photo layout/import/preview/replacement behavior is unchanged. No authentication, navigation, ranking, Source/tag/filter, portrait or social UI redesign. See MEDIA_SYNC_ARCHITECTURE.md and PHASE_3D_PHOTO_SYNC_REVIEW.md for validation and the passed physical-iPhone verification sequence.
+
+---
+
 # Current access boundary — Phase 3D Part 1
 
 Authenticated Profile now has a small cooking-sync status and Retry. Its Debug-only fresh-restore check uses a separate disposable store and requires matching local/cloud data; it never replaces the primary store or uploads. Incoming hydration waits for retained cooking/detail view lifetimes to end. Rankings rows, Source/tag/search semantics and portrait layouts are unchanged. See SYNC_ARCHITECTURE.md and PHASE_3D_SYNC_REVIEW.md for the structured-only scope and manual review.
@@ -206,3 +226,13 @@ The current guest UI, upright portrait configuration and navigation are unchange
 ## Phase 3C Part 2 account entry
 
 The Profile tab hosts a lightweight Account screen with Apple’s native Sign in with Apple button, loading/setup/retry/connected states, local sign-out and a return-to-guest-Rankings action. Existing cooking navigation and the portrait-upright requirement are unchanged. The screen supports Dynamic Type in portrait. Successful account setup does not mount/initialize an account library or move/upload guest dishes or photos. Root restoration runs alongside guest presentation; isolated review stores skip real Keychain restoration. See ACCOUNT_ARCHITECTURE.md and NATIVE_APPLE_SIGN_IN_REVIEW.md.
+
+## Final Core App V1 presentation revisions
+
+Re-rank uses `CookingReRankingWorkflow` to create the unchanged normal `RankingEngine` with the existing item ID and current ordering excluding that item. It begins with `InitialReactionView`, uses the same `ComparisonView`, Skip/Too Tough/Undo and normal stopping rules, and automatically commits through `CookingStore.rerank` → `RankingStore.record`. The reaction guides acquisition only; it is not a fabricated numerical score or comparison. Historical observations/timestamps are preserved, fresh evidence is appended, and no Dish/version/item is created. A before-commit snapshot supports truthful movement and new-#1 presentation. Cancel writes nothing; save errors retain retry/cancel as an exceptional recovery state. Navigation defers remote reconciliation through the existing lease.
+
+Top Version is the local default; All Versions shows every eligible ranked attempt. Search and filters first select matching eligible entries, then Top Version retains the highest globally ranked matching version per Dish. This lets a search/filter find a lower version when its higher sibling does not match. Each row keeps its true global rank, including gaps. This grouping never changes unlock counting, card Top 3, evidence, scores or order. The preference is local UserDefaults; isolated Debug fixtures use separate suites.
+
+Detail uses one same-family Edit Cook / Re-rank / Share action row at normal text sizes, with a readable vertical stack at accessibility sizes. Locked Share retains its lock and explanation. Profile permanently offers current Top 3 sharing after unlock. Normal Top 3 has no milestone pill; the first-unlock card alone may show SCORES UNLOCKED. A truthful new-#1 result offers optional Updated Top 3 while preserving the primary individual result/share action.
+
+`SGTheme.ColorToken.accent` uses readable red appearance variants, with a darker red filled-button token for white-text contrast. The app AccentColor asset is also red. Export/identity colors remain unchanged. The unlock bar uses an explicit shape-based ProgressViewStyle with the official Brand.red fill and neutral track, avoiding the system dark-mode monochrome substitution. Native Apple authorization and share-sheet semantics retain their own system appearance.

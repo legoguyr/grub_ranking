@@ -11,6 +11,8 @@ final class CookingDiscoveryUITests: StayGrubbyUITestCase {
         if largeType { app.launchArguments.append("--test-large-type") }
         app.launchWithReviewOptions()
         XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 15))
+        app.showAllVersions()
+        XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 15))
         return app
     }
 

@@ -7,12 +7,14 @@ import UIKit
 
 @MainActor struct DebugReviewIsolationTests {
     @Test(arguments: [[], ["--test-large-type", "--test-light", "--test-reduce-motion", "--discovery-fixture"],
-                      ["--ui-test-store", "invalid", "--comparison-fixture", "11"], ["--ui-test-store"]])
+                      ["--ui-test-store", "invalid", "--comparison-fixture", "11", "--sharing-fixture", "result"],
+                      ["--sharing-fixture", "photo"], ["--ui-test-store"]])
     func normalLaunchCannotEnableReview(arguments: [String]) {
         let review = DebugReviewConfiguration(arguments: arguments)
         #expect(review.storeID == nil)
         #expect(!review.light && !review.dark && !review.reduceMotion && !review.largeType && !review.discoveryFixture)
         #expect(review.comparisonMode == nil)
+        #expect(review.sharingMode == nil)
         #expect(review.mediaRoot(in: URL(fileURLWithPath: "/tmp")) == nil)
     }
 
@@ -29,6 +31,8 @@ import UIKit
         #expect(env.mediaRoot(in: root) == a.mediaRoot(in: root))
         let invalid = DebugReviewConfiguration(arguments: ["--ui-test-store", "invalid"], environment: ["GRUB_TEST_STORE": first.uuidString])
         #expect(invalid.storeID == nil)
+        let sharing = DebugReviewConfiguration(arguments: ["--ui-test-store", first.uuidString, "--sharing-fixture", "photo"])
+        #expect(sharing.sharingMode == "photo" && sharing.mediaRoot(in: root) == a.mediaRoot(in: root))
     }
 
     @Test func discoveryPhotosStayInExplicitFixtureRootAcrossReload() throws {

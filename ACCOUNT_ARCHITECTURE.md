@@ -1,3 +1,9 @@
+# Current Phase 3D Part 2 account boundary
+
+Required Apple authentication, permanent-account resolution and verified account-store readiness are unchanged. The ready account tree also injects an authenticated photo adapter guarded by the exact account generation before/after suspension. Sign-out/account switching cancel work; Debug/demo never connects. Structured readiness permits usable placeholders while private photo recovery runs separately. See MEDIA_SYNC_ARCHITECTURE.md and PHASE_3D_PHOTO_SYNC_REVIEW.md; earlier statements deferring byte transport are historical.
+
+---
+
 # Current Phase 3D Part 1 sync integration
 
 The authenticated ready account tree now connects the existing durable outbox to the authenticated structured apply/snapshot RPCs. Local mutations remain immediate and offline-capable; metadata/evidence/identities synchronize separately. No guest adoption, photo-byte transport or social navigation is introduced. Pending local work survives startup and revision conflicts; account switching/sign-out cancels the prior worker. See SYNC_ARCHITECTURE.md and PHASE_3D_SYNC_REVIEW.md for lifecycle, fidelity, limitations and manual verification. The account/authentication architecture below remains applicable except earlier statements deferring structured outgoing transport.
