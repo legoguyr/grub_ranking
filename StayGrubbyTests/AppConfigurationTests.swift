@@ -13,6 +13,13 @@ import Testing
         // are verified rather than duplicating the project configuration.
         let orientations = Bundle.main.infoDictionary?["UISupportedInterfaceOrientations~iphone"] as? [String]
         #expect(orientations == ["UIInterfaceOrientationPortrait"])
+        #expect(Bundle.main.infoDictionary?["UIDeviceFamily"] as? [Int] == [1])
+    }
+
+    @Test func initialReleaseVersionAndExemptEncryptionAreExplicit() {
+        #expect(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String == "1.0")
+        #expect(Bundle.main.infoDictionary?["CFBundleVersion"] as? String == "1")
+        #expect(Bundle.main.infoDictionary?["ITSAppUsesNonExemptEncryption"] as? Bool == false)
     }
 
     @Test func nativeShareImageSavingHasAnAddOnlyPrivacyPurpose() {

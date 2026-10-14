@@ -1,0 +1,147 @@
+# StayGrubby V1 — TestFlight readiness review
+
+Audited October 14, 2026. Frozen starting checkpoint: `9968390465658c2a118d2668ee44a0958ea1ec1b` (`Finalize StayGrubby V1 for TestFlight`). Main and origin/main both matched, with zero ahead/behind and a clean working tree before changes. No upload, export, distribution, tester addition, submission, certificate creation, hosted write or real-account deletion occurred.
+
+## Verdict and bounded changes
+
+A valid locally signed Release archive can be created. **It is development-signed, not an App Store distribution-signed deliverable.** The existing local identity is Apple Development; an Apple Distribution identity was not available in the local signing-identity audit. App Store Connect record, agreement and distribution-provisioning status could not be established through authenticated local tooling. Local signature verification does not replace Organizer/App Store Connect distribution validation.
+
+Two safe release-configuration fixes are uncommitted for review:
+
+- The project previously advertised iPad, Mac and visionOS support despite the approved iPhone-only product. App/test targets now support only iphoneos/iphonesimulator with device family 1; the app disables designed-for-iPhone availability on Mac/visionOS. Unused iPad orientation settings were removed. Existing upright-portrait behavior is retained. No iPad UI work was added.
+- Generated Info.plist explicitly sets `ITSAppUsesNonExemptEncryption = NO` for Debug and Release. This follows the audited use of Apple URLSession/TLS, Keychain/Security and CryptoKit hashes/signature verification, including the pinned Swift Crypto Darwin implementation. No custom encryption or independent TLS implementation was found in the shipping path. This means **exempt encryption**, not no encryption. [Apple declaration guidance](https://developer.apple.com/documentation/bundleresources/information-property-list/itsappusesnonexemptencryption).
+
+AppConfigurationTests verifies the built bundle's iPhone-only device family, upright portrait, initial version/build and Boolean encryption declaration. No application Swift source, product UI, ranking, persistence, authentication, sharing, SDK pin, backend or migration was changed.
+
+## Release identity and archive
+
+| Property | Verified value |
+| --- | --- |
+| Project / target / shared scheme / product / executable / module | StayGrubby |
+| Display name / bundle name | StayGrubby |
+| Bundle ID | `com.guyrettig.StayGrubby` |
+| Team / signing style | `5DSB36G7LZ` / Automatic |
+| Signed application identifier | `5DSB36G7LZ.com.guyrettig.StayGrubby` |
+| Capability | `com.apple.developer.applesignin = [Default]` in source, signed entitlement and Apple-signed provisioning profile |
+| Marketing version / build | **1.0 / 1**, unchanged |
+| Deployment target | **iOS 26.5**, unchanged; beta testers must have a compatible iPhone/iOS version |
+| Supported devices / orientation | UIDeviceFamily `[1]`; upright portrait only |
+| Assets | Official supplied wordmark; default/light, dark and tinted 1024-pixel opaque icons; compiled Assets.car |
+| Archive action | Shared scheme, Release, generic iOS device |
+| Archive | `/private/tmp/StayGrubby-V1-Readiness.xcarchive` |
+| Signing identity | Apple Development: Guy Rettig (Y5SX4XB4FD) |
+| Provisioning profile | iOS Team Provisioning Profile: com.guyrettig.StayGrubby; team 5DSB36G7LZ; expires October 12, 2027 |
+| Archive code-signature check | `codesign --verify --deep --strict` passed |
+| Debugger entitlement | **get-task-allow = true** because this is a development provisioning profile; distribution signing must replace it with an appropriate App Store profile and **false** |
+
+Version/build are controlled in the application target's Debug/Release build settings in StayGrubby.xcodeproj/project.pbxproj. Generated Info.plist reads MARKETING_VERSION/CURRENT_PROJECT_VERSION; both configurations and test targets agree. There is no contradictory hand-written shipping Info.plist. No increment was made for local builds.
+
+No active old Grub Ranked/Grub Ranking application identity was found. Old repository/workspace paths and historical/migration documentation are internal history, not shipping display names. No repository rename was attempted.
+
+The archive was produced with normal `xcodebuild archive`, without `-allowProvisioningUpdates`, using existing local signing material. No private key was displayed/exported. No `-exportArchive`, remote validation or upload command was run. Archive signing metadata is recorded in `/private/tmp/staygrubby-readiness-archive-audit.json`. Obtain/confirm normal distribution signing through Xcode/Apple account management before a future approved upload; do not treat this development signature as final TestFlight signing.
+
+## Debug isolation and authentication
+
+Archive binary inspection found none of the development-library, isolated-store, score/share fixture, large-type review or fresh-restore entry-point strings/types. No backend test controls, seed/reset menu, mock account or personal-library bypass is available in Release. Debug tooling remains intact. The actual optimized Release authentication-gate UI test ignores malicious development launch switches and remains at onboarding without personal content.
+
+Native Sign in with Apple remains the sole visible production entry. Nonce/identity credentials are ephemeral and redacted in descriptions; Supabase verifies them. SDK sessions and verified ready-account mappings use Keychain. Personal data mounts only after matching account resolution and account-store readiness. Sign-out immediately removes personal access even if its network request fails; ordinary sign-out deliberately preserves account-local files and is **not account deletion**.
+
+The bundled approved client-safe configuration points to the audited StayGrubby hosted project. Public provider settings confirm Apple enabled and email/password disabled; only Apple is enabled in the public provider list. There is no anonymous sign-in code path, provision/Storage guards reject anonymous users, and hosted anonymous-user count is zero. No new real Apple authorization occurred during this audit.
+
+## Account deletion — unresolved release requirement
+
+**There is no in-app StayGrubby account-deletion mechanism.** Profile offers Sign Out only. Deleting a cook, local data, or a Supabase Auth identity alone is not equivalent to deleting this permanent account and its private data. Local PostgreSQL tests explicitly show that deleting an Auth identity leaves the independent permanent account; its protected mapping is the only Auth cascade. There are no deployed Edge Functions and no existing account-erasure/revocation API.
+
+Apple requires apps with account creation to let users initiate account deletion within the app, including associated data; Sign in with Apple also needs token revocation. This is an **external Beta App Review/public App Store readiness blocker**. Internal team-only TestFlight ordinarily has no Beta App Review, but its lack of review does not establish compliance or complete this missing lifecycle. [Apple account-deletion guidance](https://developer.apple.com/help/app-review/guideline-reference/5-1-1-account-deletion).
+
+The smallest correct implementation, based on this app's architecture, needs:
+
+1. A discoverable Profile deletion action with explicit destructive confirmation, explaining that private account/cooking/photo data will be erased and already-exported images cannot be recalled.
+2. Fresh Apple authorization and a server-verified identity matching the current authenticated owner. The current flow forwards only the ID token/nonce; it does not preserve an authorization code or Apple refresh token for revocation.
+3. A trusted server-side endpoint/worker, authenticated against a live Supabase session, with durable idempotent deletion state. Ownership must be derived on the server, not trusted from an arbitrary client account UUID.
+4. Coordinated prevention of further writes/provisioning races, Apple-token revocation, session invalidation, Storage API deletion of all owned variants/replacements, permanent account/private-graph erasure and Supabase Auth-user deletion. Cross-service failure/retry must not strand private data or report false success.
+5. A verifiable completion/status contract. Cancel/failure before acceptance must not erase local data or sign the user out as though deletion succeeded. Local account cache/files/media/receipts are removed only at the correct confirmed stage; a durable server worker must finish even if the app closes.
+6. Synthetic two-account tests for wrong-owner attempts, cancellation, each service failure, interrupted retries, old-token access, concurrent upload and no resurrection. Never use the real account as the deletion fixture.
+
+Protected Supabase admin privileges and Apple revocation signing configuration belong exclusively on the server. Configure Apple team/key/client identifiers and private-key material through protected server secrets, never the app bundle, repository, logs or chat. No privileged secrets were requested. No migration/function was applied, no destructive operation was attempted, and no fake Delete button or client-only wipe was added. This flow is **not implemented or claimed complete**. It needs a dedicated reviewed server/client change before external/public release. [Supabase user-deletion caveats](https://supabase.com/docs/guides/auth/managing-user-data).
+
+## Privacy and actual V1 data
+
+This is an inventory/draft disclosure mapping, not submitted App Privacy answers. Collection is private account-linked app functionality, not advertising or cross-app tracking. [Apple disclosure definitions](https://developer.apple.com/app-store/app-privacy-details/).
+
+| Data | On-device / hosted behavior | Candidate App Privacy mapping |
+| --- | --- | --- |
+| Apple subject, Supabase user/session ID, permanent account ID | Keychain/local identity and private Supabase Auth/account mapping; Apple email or relay email is stored by Auth | User ID; Email Address; linked, App Functionality |
+| Account/profile records | Minimal private profile exists; no public profile, following or profile-edit feature; full Apple name is not requested | Account identifiers; do not infer future public-profile fields |
+| Dishes, cooks/versions, dates, notes, tags, Courses, Contains, Sources and recipe URLs | Local SwiftData plus private structured cloud sync | Other User Content; linked, App Functionality |
+| Optional Person/source name | User may enter a person name as a private Friend/Family Source credit | Include Names where personal names are supplied; no address-book/Contacts access |
+| Ranking evidence, choices, reaction/session diagnostics, order, scores | Local calculation and private structured backup | User content and relevant Product Interaction data; App Functionality, not an analytics SDK |
+| Selected photos | Optimized display/thumbnail JPEGs on-device and private Storage; original photo-library files are not uploaded | Photos or Videos; linked, App Functionality |
+| Revisions, receipts, tombstones, media IDs/checksums/manifests | Local and private hosted sync history used for retries/integrity/deletion | Other Data as applicable; linked, App Functionality |
+| Display-mode preference and milestone receipt | Local own-app preferences only; not cloud-synchronized | Not off-device collection |
+| Auth/network provider diagnostics | Supabase may retain request/security information such as IP and service errors; confirm provider retention/settings for policy/disclosure | Relevant diagnostic/other data if retained; do not claim no provider logs |
+
+No advertising, analytics or tracking SDK is configured; the optional Supabase logger is nil and its OpenTelemetry trait is not enabled. No ATT request is needed for audited V1 behavior. No location, microphone, camera, address-book, calendar, reminder, Bluetooth or local-network capability is used. Dish dietary/Contains/Avoid metadata is food information, not HealthKit or a collected medical profile. The image pipeline creates new JPEGs from decoded pixels and does not copy source EXIF/GPS dictionaries. Nothing is automatically public: the user deliberately shares only rendered local images through Apple's native sheet. Sources/notes/account identifiers are excluded from those card models.
+
+**Privacy policy is another unresolved external/public review requirement.** No actual policy URL or in-app policy link is present. The user must approve/publish a truthful policy covering data, vendors, retention/deletion and contact information, then supply its real URL for metadata and an accessible in-app link. No invented URL, published policy, or unsupported deletion promise was added. [Apple privacy-policy requirement, 5.1.1(i)](https://developer.apple.com/app-store/review/guidelines/#privacy).
+
+## Permissions, manifests and dependencies
+
+- PhotosPicker grants access only to selected items; no broad photo-library read-purpose string was added. Native Share Sheet Save Image retains the existing add-only NSPhotoLibraryAddUsageDescription. Other purpose strings are unnecessary for the audited shipping APIs and were not added.
+- The archive includes the app manifest with UserDefaults reason **CA92.1**, matching own-app preferences. It also includes swift-crypto_Crypto.bundle's manifest (no tracking/collection/required-reason APIs declared by that SDK resource).
+- Source and actual executable imports did not reveal additional app-used file timestamp, boot-time, disk-space or keyboard required-reason APIs. File-size/symlink checks alone do not justify inventing a timestamp reason. No additional declarations were added. [Apple current API categories](https://developer.apple.com/documentation/bundleresources/app-privacy-configuration/nsprivacyaccessedapitypes/nsprivacyaccessedapitype).
+- SDK pin/checkout revisions match: Supabase Swift **2.55.3**, swift-crypto **4.5.2**, swift-asn1 **1.7.3**, swift-http-types **1.8.0**, swift-clocks **1.1.1**, swift-concurrency-extras **1.4.1**, xctest-dynamic-overlay **1.13.1**. No dependency was added/upgraded. Non-shipping SDK test dependencies are not treated as shipped analytics/crypto.
+
+## Hosted production audit — read only
+
+StayGrubby project is active/healthy; eight hosted migration MD5 hashes match the eight unchanged local files, and Backend/schema.sql equals their concatenation. All **16/16** private tables have RLS, anonymous application-table grants are zero, and all four authenticated API functions deny anonymous execution. Fifteen owner-scoped policies protect application reads; the auth mapping intentionally has no client policy. Storage has authenticated owner/session/action policies for read/write/delete, a private JPEG-only bucket and a 2 MiB limit. Provision, operation and media helpers validate current live sessions/ownership; clients cannot supply another owner to bypass the boundary.
+
+Observed user-retained state: **one account / one active ranking, 8 active Dishes, 10 active attempts/items, 24 active comparisons, 10 active media records and 20 Storage objects**. Raw history is 16 Dishes, 19 attempts, 49 comparisons, 19 media/manifests, 9 cleaned manifests, 37 receipts and revision 38. It reflects the user's subsequent physical testing rather than the older V1 development snapshot. Zero fixture-named Dishes, anonymous users, invalid active bridges, missing ready-media backups, missing variant objects or unreferenced Storage objects were found. No data/history was purged to alter counts.
+
+Advisors retain the intentional mapping RLS/no-policy INFO and disabled leaked-password protection WARN; the unused email/password provider is disabled. No new security error was found. Reviewed relevant current changelog items: CBC TLS cipher deprecation does not require a change for the modern OS TLS client; PostgreSQL 17.11 changes do not imply a new schema migration for this app. No ltree/btree_gist or custom legacy crypto use was found. [TLS notice](https://supabase.com/changelog/cbc-tls-ciphers-deprecated), [PostgreSQL notice](https://supabase.com/changelog/postgres-15-19-17-11-breaking-changes).
+
+## Network, logging and data integrity
+
+Bounded regression covers absent session/signed-out relaunch, authenticated restoration, fail-closed wrong identity/partial setup, offline previously-ready account access, network sign-out failure, retryable provisioning/setup, local pending edits, structured-sync/photo errors, corrupt/missing transfers, cancellation, automatic retry and no resurrection. These fault cases use isolated mocks/disposable stores; no live outage or destructive real-account test was induced. Previous physical offline/authenticated/photo lifecycle results remain valid. Brief startup/session-restoration and sync-status transitions are existing future polish, not a new architecture project.
+
+No app print/debug logger containing tokens or private payloads was found. SDK request logging remains unconfigured; safe generic errors/credential redaction remain. The shipped archive was inspected for developer-control and privileged-secret leakage. The public client key is client-safe; it is not treated as the authorization boundary. RLS/live-session guards remain that boundary.
+
+Original Simulator demo preservation and final privileged-secret/whitespace checks are recorded in the final audit artifact after all test launches. All tests use isolated stores/media, and no real authorization/provisioning/upload occurs.
+
+## App Store Connect and beta preparation — drafts only
+
+No authenticated read-only app-record lookup was available without additional account credentials. The local archive/profile proves a registered App ID, **not** an App Store Connect app record. The altool help confirms app/provider listing needs authenticated provider context; it was not invoked against the service with guessed credentials. No record was created and no keychain/account configuration was changed.
+
+If the record is absent, manually choose **iOS; Name StayGrubby; primary language English (U.S.); bundle ID com.guyrettig.StayGrubby; SKU staygrubby-ios-v1**. Choose Full Access for the existing team or Limited Access for the intended team members; either is team access, not public distribution. Check agreements, app-name availability, user roles and whether build 1 is unused. [Apple app-record setup](https://developer.apple.com/help/app-store-connect/create-an-app-record/add-a-new-app/).
+
+Internal team-only TestFlight is the first recommended path after release fixes/signing/record review. It requires a processed eligible build, encryption answers, authorized App Store Connect testers/groups and an appropriate role/app access. It does not need public-launch keywords, subtitle, promotional text, marketing URL or a complete screenshot campaign. External testing adds Beta App Review and its app description, feedback/contact information and testing instructions. A friend with no App Store Connect role is an **external** tester. No tester/group was added. [Apple TestFlight overview](https://developer.apple.com/help/app-store-connect/test-a-beta-version/testflight-overview/), [beta information](https://developer.apple.com/help/app-store-connect/test-a-beta-version/provide-test-information/).
+
+Recommended drafts:
+
+**Beta description:** StayGrubby is a private cooking journal that helps you remember what you cook and discover your favorites through quick comparisons. Keep photos, notes and versions, back up your library, and share branded cooking cards.
+
+**What to Test:** Sign in with Apple; add dishes and versions; rank and re-rank using Skip, Undo and Too Tough; check search, filters and Top Version/All Versions; unlock scores after ten ranked entries; verify edits, photos, sync/retry, relaunch persistence and individual/Top 3 sharing. Report unexpected data changes, missing photos, crashes, confusing errors or locked-score exposure. Confirm sync before deliberately reinstalling. No development-library controls exist in this build.
+
+**Feedback/review contact:** User must supply a monitored feedback email and actual review contact name/email/phone. No personal contact details were invented or automatically published from Git/signing metadata.
+
+**Sign-in/review notes:** Native Sign in with Apple is required; no shared password account or production guest bypass exists. A new reviewer/tester account starts empty and is private. Create ten independently ranked dishes/versions to see numerical scores and numerical share exports. Do not provide the developer's personal Apple credentials. Resolve deletion/policy requirements before external review; do not claim those features exist today.
+
+Public App Store description, subtitle, keywords, promotional text, screenshots, marketing URL, final category and other public-listing assets can wait until that submission. Recommended category is Food & Drink. A genuine support/contact destination and privacy policy need to be prepared for the corresponding review/disclosure steps; privacy/deletion cannot be dismissed as marketing. No external metadata or App Privacy answers were submitted.
+
+Age-rating recommendation: answer for a private cooking tool with no public UGC feed, messaging, unrestricted in-app web browser, ads, gambling or developer-supplied objectionable content. User-entered private photos/notes are not a public social network. Do not declare future social features. A low age rating, likely 4+ subject to the actual regional questionnaire, is appropriate; final ratings come from App Store Connect. [Apple current age-rating guidance](https://developer.apple.com/help/app-store-connect/manage-app-information/set-an-app-age-rating/).
+
+## Verification and next step
+
+- Complete unit suite: **206 functions / 301 executions passed**.
+- Bounded Debug UI smoke/regression: **6/6 passed**; combined result **212 functions / 307 executions**, zero failures, expected failures or skips, in `/private/tmp/staygrubby-readiness-regression.xcresult`.
+- Backend: **171 local assertions passed** (69 schema/RLS, 60 structured sync, 42 photo-security); no hosted mutation.
+- Debug normal build/run passed (66 seconds). Signed device Release archive passed; local signature/entitlement/identity/dev-isolation inspection passed.
+- Release test build initially rejected @testable imports from a non-testable optimized module. The test-only invocation adds ENABLE_TESTABILITY=YES without DEBUG; no shipping setting was changed. The optimized Release auth gate passed **1/1**, with zero failures, expected failures or skips. Across Debug and Release checks, **213 functions / 308 executions** passed; the 171 backend assertions are separate. Its result bundle is `/private/tmp/staygrubby-readiness-release-gate.xcresult`.
+
+Final read-only audit passed. The original Simulator demo's complete semantic/media manifest and SQLite metadata match the preserved baseline exactly; SQLite integrity is `ok`: **1 ranking, 12 Dishes, 15 CookingAttempts/RankedItems, 356 Comparisons, 10 Sources, 21 tags, 48 memberships and 190 media files**. No sync operations/bindings/tombstones or photo-transfer journal leaked into this guest library. Manifest SHA-256: `bedd790ea8487f3b1baad442acd9092a6890b0a38cede4951aef0018469b9a51`.
+
+The existing privileged-secret patterns scanned 184 nonignored repository files (180 text files) and the actual archive with zero findings. Client configuration remains unchanged and contains only the approved public fields. Local backups, node dependencies, Supabase local state and local credential/config paths remain ignored. Official wordmark bytes match the supplied original; the three icons remain opaque 1024 × 1024 PNGs. All eight migration hashes and the schema concatenation still match. Audit artifact: `/private/tmp/staygrubby-readiness-final-safety.json`.
+
+`git diff --check` and `git diff --cached --check` passed. Nothing is staged. Main and origin/main still point to the approved checkpoint. Exactly three paths are uncommitted: modified `StayGrubby.xcodeproj/project.pbxproj`, modified `StayGrubbyTests/AppConfigurationTests.swift`, and new `TESTFLIGHT_READINESS_REVIEW.md`. Every other tracked file, including application code, ranking/domain/auth/sync/sharing, backend, migrations, dependencies and official assets, remains identical to HEAD. No commit or push was made.
+
+Next: review the uncommitted release-configuration changes; resolve distribution signing/App Store Connect record access and explicitly address the deletion/privacy-policy release gaps. Then create a new reviewed checkpoint/archive for an approved upload. This development-signed archive is evidence of build readiness only. No public marketing expansion is needed for the initial internal beta, and no upload or external validation has been attempted.
