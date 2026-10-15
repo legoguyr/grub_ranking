@@ -1,5 +1,6 @@
 import SwiftUI
 import AuthenticationServices
+import Accessibility
 
 struct NativeAppleAuthenticationButton: View {
     @Environment(AccountSessionCoordinator.self) private var session
@@ -30,48 +31,182 @@ struct NativeAppleAuthenticationButton: View {
     }
 }
 
+/// Presentation only. AccountApplicationRoot remains the sole authority for app access.
 struct AuthenticationGateView: View {
     @Environment(AccountSessionCoordinator.self) private var session
+    @Environment(\.dynamicTypeSize) private var typeSize
     let setupFailed: Bool
     let retrySetup: () -> Void
+
+    private var presentation: AuthenticationGatePresentation {
+        .init(state: session.state, setupFailed: setupFailed, isSigningOut: session.isSigningOut)
+    }
+
     var body: some View {
+        // Large text gets one continuous scroll, so the action area can never
+        // consume the entire screen. At standard sizes, sign-in stays in reach.
         ScrollView {
             VStack(alignment: .leading, spacing: SGTheme.Space.large) {
-                Text("StayGrubby").font(.largeTitle.bold()).accessibilityIdentifier("onboarding-brand")
-                Image(systemName: "fork.knife.circle.fill").font(.system(size: 64)).foregroundStyle(SGTheme.ColorToken.accent)
-                Text("Cook. Remember. Rank.").font(.title.bold())
-                Text("Keep the dishes you cook, remember what worked, and find your favorites through simple comparisons.")
-                    .foregroundStyle(.secondary)
-                status
-                NativeAppleAuthenticationButton()
-                if session.remoteSignOutFailed { Text("Signed out on this device. The server couldn't confirm sign-out.").font(.footnote).foregroundStyle(.secondary) }
-            }.padding(SGTheme.Space.large).frame(maxWidth: .infinity, alignment: .leading)
+                introduction
+                if typeSize.isAccessibilitySize { authentication }
+            }
+            .frame(maxWidth: SGTheme.Size.sharingContentMaximum, alignment: .leading)
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, SGTheme.Space.large)
+            .padding(.vertical, SGTheme.Space.medium)
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if !typeSize.isAccessibilitySize {
+                authentication
+                    .frame(maxWidth: SGTheme.Size.sharingContentMaximum)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, SGTheme.Space.large)
+                    .padding(.vertical, SGTheme.Space.medium)
+                    .background(SGTheme.ColorToken.background)
+            }
         }
         .background(SGTheme.ColorToken.background)
+        .tint(SGTheme.ColorToken.accent)
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("authentication-gate")
     }
-    @ViewBuilder private var status: some View {
-        switch session.state {
-        case .guest: Text("Sign in with Apple to start your own cooking library.")
-        case .signInFailed: Text("Couldn't sign in. Check your connection and try again.").accessibilityIdentifier("account-sign-in-error")
-        case .authorizingApple: ProgressView("Waiting for Apple…")
-        case .authenticating: ProgressView("Signing in…"); signOut("Cancel sign-in")
-        case .loadingSession: ProgressView("Restoring your account…"); signOut("Sign out")
-        case .provisioning: ProgressView("Setting up your account…"); signOut("Sign out")
-        case .retryRequired:
-            Text("Couldn't finish account setup. Your personal library stays protected.")
-            Button("Try again") { Task { await session.retry() } }.buttonStyle(.borderedProminent).accessibilityIdentifier("account-retry")
-            signOut("Sign out")
-        case .resolved:
-            if setupFailed {
-                Text("Couldn't open your personal library. Your saved data has not been reset.")
-                Button("Try again",action:retrySetup).buttonStyle(.borderedProminent).accessibilityIdentifier("library-retry")
-            } else { ProgressView("Opening your cooking library…") }
-            signOut("Sign out")
+
+    private var introduction: some View {
+        VStack(alignment: .leading, spacing: SGTheme.Space.medium) {
+            // The canonical PNG includes transparent margins; display the
+            // existing artwork without reconstructing its lettering.
+            Image("StayGrubbyWordmark")
+                .resizable().scaledToFit()
+                .frame(width: 168, height: 168)
+                .frame(height: 100).clipped()
+                .accessibilityRepresentation {
+                    Text("#stayGRUBBY").accessibilityIdentifier("onboarding-brand")
+                }
+
+            VStack(alignment: .leading, spacing: SGTheme.Space.small) {
+                Text("Your cooking, worth remembering.")
+                    .font(.system(.largeTitle, design: .rounded, weight: .bold))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
+                Text("Cook something. Find your favorites.")
+                    .font(.body).foregroundStyle(.secondary)
+            }
+
+            comparisonExample
+
+            VStack(alignment: .leading, spacing: SGTheme.Space.medium) {
+                story("Cook & remember", detail: "Save dishes, photos, and every new version.", symbol: "book.closed")
+                story("Share your favorites", detail: "Send a dish or your Top 3 when you want.", symbol: "square.and.arrow.up")
+            }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("onboarding-story")
+    }
+
+    private var comparisonExample: some View {
+        VStack(alignment: .leading, spacing: SGTheme.Space.small) {
+            Text("Which would you cook again?").font(.headline)
+            HStack(spacing: SGTheme.Space.medium) {
+                exampleDish("🍝", name: "Sunday pasta")
+                Image(systemName: "arrow.left.arrow.right")
+                    .font(.subheadline).foregroundStyle(.secondary)
+                exampleDish("🌮", name: "Taco night")
+            }
+            Text("Rank by comparison. No made-up numbers.")
+                .font(.subheadline).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .sgCard()
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Rank by comparison. Which would you cook again: Sunday pasta or Taco night? No made-up numbers.")
+        .accessibilityIdentifier("onboarding-comparison-example")
+    }
+
+    private func exampleDish(_ emoji: String, name: String) -> some View {
+        VStack(spacing: SGTheme.Space.hairline) {
+            Text(emoji).font(.system(size: 36))
+            Text(name).font(.caption.weight(.medium))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func story(_ title: String, detail: String, symbol: String) -> some View {
+        HStack(alignment: .top, spacing: SGTheme.Space.medium) {
+            Image(systemName: symbol)
+                .font(.title3).frame(width: 28)
+                .foregroundStyle(.secondary).accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: SGTheme.Space.hairline) {
+                Text(title).font(.headline)
+                Text(detail).font(.subheadline).foregroundStyle(.secondary)
+            }
+        }
+        .fixedSize(horizontal: false, vertical: true)
+        .accessibilityElement(children: .combine)
+    }
+
+    private var authentication: some View {
+        VStack(alignment: .leading, spacing: SGTheme.Space.small) {
+            VStack(alignment: .leading, spacing: SGTheme.Space.xSmall) {
+                HStack(alignment: .firstTextBaseline, spacing: SGTheme.Space.small) {
+                    if presentation.isWorking { ProgressView().accessibilityHidden(true) }
+                    Text(presentation.title).font(.headline)
+                }
+                Text(presentation.message)
+                    .font(.footnote).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier(presentation.isError ? "account-sign-in-error" : "account-status")
+            .onChange(of: presentation.title) { _, _ in
+                if presentation.isError {
+                    AccessibilityNotification.Announcement("\(presentation.title) \(presentation.message)").post()
+                }
+            }
+
+            // Never conditionally replace this control while Apple owns its request.
+            NativeAppleAuthenticationButton()
+
+            if let retry = presentation.retry {
+                Button("Try again") {
+                    switch retry {
+                    case .account: Task { await session.retry() }
+                    case .library: retrySetup()
+                    }
+                }
+                .buttonStyle(SGButtonStyle(prominent: true))
+                .disabled(session.isSigningOut)
+                .accessibilityIdentifier(retry == .account ? "account-retry" : "library-retry")
+            }
+            if let label = presentation.signOutTitle {
+                Button(label) { Task { await session.signOut() } }
+                    .font(.subheadline).frame(minHeight: SGTheme.Size.minimumTap)
+                    .disabled(session.isSigningOut)
+                    .accessibilityIdentifier("account-sign-out")
+            }
+            if session.remoteSignOutFailed {
+                Text("Signed out on this device. The server couldn’t confirm sign-out.")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
         }
     }
-    private func signOut(_ label: String) -> some View {
-        Button(label) { Task { await session.signOut() } }.buttonStyle(.bordered)
-            .disabled(session.isSigningOut).accessibilityIdentifier("account-sign-out")
-    }
+}
+
+#Preview("Welcome · Dark") {
+    AuthenticationGateView(setupFailed: false, retrySetup: {})
+        .environment(AccountSessionCoordinator()).preferredColorScheme(.dark)
+}
+
+#Preview("Welcome · Large text") {
+    AuthenticationGateView(setupFailed: false, retrySetup: {})
+        .environment(AccountSessionCoordinator())
+        .environment(\.dynamicTypeSize, .accessibility3).preferredColorScheme(.light)
+}
+
+#Preview("Sign-in retry") {
+    let session = AccountSessionCoordinator()
+    let request = session.beginAppleSignIn()
+    if let request { session.appleAuthorizationFailed(requestID: request.id, cancelled: false) }
+    return AuthenticationGateView(setupFailed: false, retrySetup: {})
+        .environment(session).preferredColorScheme(.dark)
 }
