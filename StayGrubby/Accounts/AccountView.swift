@@ -15,24 +15,79 @@ struct AccountView: View {
     @Environment(\.endDevelopmentReview) private var endDevelopmentReview
     #endif
     var body: some View {
+        #if DEBUG
+        if endDevelopmentReview != nil, ProfileAccountReview.requested {
+            ProfileAccountReview()
+        } else { profile }
+        #else
+        profile
+        #endif
+    }
+
+    @ViewBuilder private var profile: some View {
+        let ranking = sharingRanking
+        let snapshot = ProfileSnapshot(context: context, list: ranking)
         ScrollView {
             VStack(alignment: .leading, spacing: SGTheme.Space.large) {
-                Label("Your StayGrubby account",systemImage:"person.crop.circle").font(.title2.bold())
-                TopThreeShareAction(list: sharingRanking)
+                identity
+                ProfileCookingContent(snapshot: snapshot, ranking: ranking)
                 #if DEBUG
                 if let endDevelopmentReview {
-                    Text("Development library").font(.headline)
-                    Text("Demo data only. No authenticated account or cloud upload.").foregroundStyle(.secondary)
-                    Button("Exit development library",action:endDevelopmentReview).accessibilityIdentifier("development-exit")
-                } else { connectedAccount }
+                    VStack(alignment: .leading, spacing: SGTheme.Space.small) {
+                        Text("Development library").font(SGTheme.TypeRole.headline)
+                        Text("Demo data only. No authenticated account or cloud upload.")
+                            .font(SGTheme.TypeRole.body).foregroundStyle(.secondary)
+                        Button("Exit development library", action: endDevelopmentReview)
+                            .buttonStyle(SGButtonStyle()).accessibilityIdentifier("development-exit")
+                    }.sgCard()
+                } else { accountUtilities }
                 #else
-                connectedAccount
+                accountUtilities
                 #endif
-            }.padding(SGTheme.Space.large).frame(maxWidth:.infinity,alignment:.leading)
+            }
+            .frame(maxWidth: SGTheme.Size.contentMaximum)
+            .padding(SGTheme.Space.medium).padding(.bottom, SGTheme.Space.large)
+            .frame(maxWidth: .infinity, alignment: .center)
         }
         .background(SGTheme.ColorToken.background)
-        .navigationTitle("Account").toolbar(.hidden,for:.navigationBar)
-        .safeAreaInset(edge:.top) { StayGrubbyHeader(page:"Account",searchText:.constant(""),searching:.constant(false)) }
+        .navigationTitle("Profile").toolbar(.hidden, for: .navigationBar)
+        .safeAreaInset(edge: .top) {
+            StayGrubbyHeader(page: "Profile", searchText: .constant(""), searching: .constant(false))
+        }
+    }
+
+    private var identity: some View {
+        VStack(alignment: .leading, spacing: SGTheme.Space.small) {
+            Image(systemName: "person.crop.circle.fill").font(.largeTitle)
+                .foregroundStyle(SGTheme.ColorToken.accent).accessibilityHidden(true)
+            Text("Your cooking profile").font(.system(.largeTitle, design: .rounded, weight: .bold))
+                .fixedSize(horizontal: false, vertical: true).accessibilityAddTraits(.isHeader)
+            Text("Cook. Rank. Make it again.").font(SGTheme.TypeRole.body).foregroundStyle(.secondary)
+            if case .resolved(let account) = session.state {
+                Text("Account · \(account.accountID.uuidString.suffix(8).lowercased())")
+                    .font(SGTheme.TypeRole.secondary.monospaced())
+                    .foregroundStyle(.secondary)
+                    .accessibilityLabel("Account ending in \(account.accountID.uuidString.suffix(8).lowercased())")
+            }
+        }.padding(.vertical, SGTheme.Space.small).accessibilityIdentifier("profile-identity")
+    }
+
+    @ViewBuilder private var accountUtilities: some View {
+        if case .resolved = session.state {
+            DisclosureGroup {
+                VStack(alignment: .leading, spacing: SGTheme.Space.medium) { connectedAccount }
+                    .padding(.top, SGTheme.Space.medium)
+            } label: {
+                VStack(alignment: .leading, spacing: SGTheme.Space.xSmall) {
+                    Label("Account & sync", systemImage: "gearshape").font(SGTheme.TypeRole.headline)
+                        .foregroundStyle(SGTheme.ColorToken.primaryText)
+                        .accessibilityIdentifier("profile-account-utilities")
+                    if let sync, sync.status != .idle {
+                        Text(sync.status.label).font(SGTheme.TypeRole.secondary).foregroundStyle(Color.secondary)
+                    }
+                }
+            }.tint(SGTheme.ColorToken.accent).sgCard()
+        }
     }
     private var sharingRanking: RankingList? {
         _ = sharingCooks.count; _ = sharingTombstones.count
@@ -45,7 +100,8 @@ struct AccountView: View {
             if let sync, sync.status != .idle {
                 Text(sync.status.label).font(.footnote).foregroundStyle(.secondary)
                 if [.savedLocally, .conflict, .needsReview].contains(sync.status) {
-                    Button("Retry sync") { sync.request(forceRetry: true) }.font(.footnote)
+                    Button("Retry sync") { sync.request(forceRetry: true) }
+                        .buttonStyle(SGButtonStyle(compact: true))
                 }
             }
             #if DEBUG
@@ -66,11 +122,12 @@ struct AccountView: View {
                     } catch CookingPhotoError.pending { restoreCheck = "Wait for photo backup to finish, then verify again. Your main local store was not changed." }
                     catch { restoreCheck = "Couldn't verify fresh restore. Your main local store was not changed." }
                 }
-            }.font(.footnote).disabled(checkingRestore).accessibilityIdentifier("development-verify-fresh-restore")
+            }.buttonStyle(SGButtonStyle(compact: true)).disabled(checkingRestore)
+                .accessibilityIdentifier("development-verify-fresh-restore")
             if let restoreCheck { Text(restoreCheck).font(.footnote).foregroundStyle(.secondary) }
             #endif
             Button("Sign out") { Task { await session.signOut() } }
-                .buttonStyle(.bordered).accessibilityIdentifier("account-sign-out")
+                .buttonStyle(.bordered).controlSize(.large).accessibilityIdentifier("account-sign-out")
         }
     }
 }
