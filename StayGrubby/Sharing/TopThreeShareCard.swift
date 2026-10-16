@@ -85,7 +85,8 @@ struct ScoreUnlockMilestoneView: View {
     @Environment(\.sgReduceMotion) private var reduceMotion
     @State private var card: RenderedDishShareCard?
     @State private var sharing: RenderedDishShareCard?
-    @State private var failed = false
+    @State private var notice: ShareCardNotice?
+    @State private var previewError: String?
     @State private var appeared = false
     @State private var fileRevision = 0
     private struct PreviewRequest: Equatable {
@@ -100,12 +101,15 @@ struct ScoreUnlockMilestoneView: View {
                 Text("Your scores are unlocked!").font(SGTheme.TypeRole.title)
                 Text("You've ranked \(ScoreUnlockPolicy.requiredRankedEntryCount) dishes and versions. Your numerical scores are now available!")
                     .font(SGTheme.TypeRole.body).foregroundStyle(.secondary)
-                if let card, model != nil {
-                    Image(uiImage: card.image).resizable().scaledToFit()
-                        .frame(maxHeight: SGTheme.Size.sharingPreviewMaximumHeight)
-                        .accessibilityLabel(previewLabel)
-                        .accessibilityIdentifier("top-three-preview")
+                if let model {
+                    if let card, card.topThreeModel == model {
+                        ShareCardPreview(card: card, label: previewLabel, identifier: "top-three-preview")
+                    } else if let previewError {
+                        SharePreviewFailure(message: previewError) { fileRevision += 1 }
+                    } else { ProgressView("Preparing your card") }
                 }
+                Text("Share your current Top 3 again anytime from Profile.")
+                    .font(SGTheme.TypeRole.body).foregroundStyle(.secondary)
             }.multilineTextAlignment(.center).padding(SGTheme.Space.large)
                 .frame(maxWidth: SGTheme.Size.sharingContentMaximum).frame(maxWidth: .infinity)
                 .opacity(appeared ? 1 : 0)
@@ -116,30 +120,34 @@ struct ScoreUnlockMilestoneView: View {
                 Button("Share My Top 3", systemImage: "square.and.arrow.up") {
                     guard let current = model else { return }
                     do { sharing = try ShareCardRenderer.render(topThree: current, mediaRoot: mediaRoot) }
-                    catch { failed = true }
+                    catch { notice = .preparationFailed(error.localizedDescription) }
                 }.buttonStyle(SGButtonStyle(prominent: true, prominentColor: SGTheme.ColorToken.buttonAccent))
                     .disabled(model == nil).accessibilityIdentifier("share-top-three")
+                    .accessibilityHint("Opens image sharing. Choose Save Image to save your Top 3 to Photos.")
                 Button("Done", action: onClose).buttonStyle(SGButtonStyle()).accessibilityIdentifier("ranking-result-close")
             }.padding(SGTheme.Space.medium).frame(maxWidth: .infinity).background(SGTheme.ColorToken.background)
         }
         .background(SGTheme.ColorToken.background)
         .task(id: PreviewRequest(model: model, fileRevision: fileRevision)) {
-            card = model.flatMap { try? ShareCardRenderer.render(topThree: $0, mediaRoot: mediaRoot) }
+            card = nil; previewError = nil
+            if let model {
+                do { card = try ShareCardRenderer.render(topThree: model, mediaRoot: mediaRoot) }
+                catch { previewError = error.localizedDescription }
+            }
             if model == nil { sharing = nil }
             withAnimation(reduceMotion ? nil : SGTheme.Motion.standard) { appeared = true }
         }
-        .sheet(item: $sharing) { NativeDishShareSheet(card: $0) }
+        .shareCardSheet(card: $sharing, notice: $notice)
         .onReceive(NotificationCenter.default.publisher(for: .cookingPhotoFilesRestored)) { notification in
             if notification.object as? URL == mediaRoot,
                model?.rows.contains(where: { $0.dish.photo?.id == notification.userInfo?["mediaID"] as? UUID }) == true {
                 fileRevision += 1
             }
         }
-        .alert("Couldn't prepare share card", isPresented: $failed) { Button("OK", role: .cancel) {} }
     }
     private var previewLabel: String {
         guard let model else { return "Scores locked" }
-        return "My Top 3 Dishes So Far. " + model.rows.map {
+        return "My Top 3 Dishes So Far. Scores unlocked. " + model.rows.map {
             "\($0.position), \($0.dish.title), \($0.dish.versionSubtitle ?? ""), \($0.dish.scoreText ?? "") out of 10"
         }.joined(separator: ". ")
     }

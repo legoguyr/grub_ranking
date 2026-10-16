@@ -50,21 +50,30 @@ final class ReviewEnvironmentUITests: StayGrubbyUITestCase {
         app.launchArguments = []
         app.launch()
         XCTAssertTrue(app.staticTexts["onboarding-brand"].waitForExistence(timeout: 15))
-        let normal = app.staticTexts["onboarding-brand"].frame.height
+        // The canonical wordmark is fixed artwork, not a Dynamic Type probe.
+        // Measure scalable copy and compare the same ranking header at both sizes.
+        let title = app.staticTexts["Your cooking, worth remembering."]
+        XCTAssertTrue(title.exists)
+        let normal = title.frame.height
         app.terminate()
         app.launchArguments = ["--test-large-type", "--test-light", "--test-reduce-motion"]
         app.launch()
         XCTAssertTrue(app.staticTexts["onboarding-brand"].waitForExistence(timeout: 15))
-        XCTAssertEqual(app.staticTexts["onboarding-brand"].frame.height, normal, accuracy: 1)
+        XCTAssertEqual(title.frame.height, normal, accuracy: 1)
         app.terminate()
-        app.launchArguments = ["--ui-test-store", UUID().uuidString, "--discovery-fixture", "--test-large-type"]
+        app.launchArguments = ["--ui-test-store", UUID().uuidString, "--discovery-fixture"]
         app.launchWithReviewOptions()
         XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 15))
-        XCTAssertGreaterThan(app.rankingHeader.frame.height, normal * 1.3)
+        let normalRankingHeader = app.rankingHeader.frame.height
+        app.terminate()
+        app.launchArguments.append("--test-large-type")
+        app.launchWithReviewOptions()
+        XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 15))
+        XCTAssertGreaterThan(app.rankingHeader.frame.height, normalRankingHeader * 1.3)
         app.terminate()
         app.launchArguments = []
         app.launch()
         XCTAssertTrue(app.staticTexts["onboarding-brand"].waitForExistence(timeout: 15))
-        XCTAssertEqual(app.staticTexts["onboarding-brand"].frame.height, normal, accuracy: 1)
+        XCTAssertEqual(title.frame.height, normal, accuracy: 1)
     }
 }

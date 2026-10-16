@@ -1,3 +1,11 @@
+# Integrated sharing presentation — October 15, 2026
+
+The approved card model/renderer/compositions, export dimensions, brand-red scores and eligibility/achievement policy remain unchanged. Profile's permanent Top 3 and completion/milestone actions share the same image-only native sheet. Reusable Top 3 stays distinct from the genuine SCORES UNLOCKED milestone; Updated Top 3 still requires a genuine new global #1.
+
+ShareCardPreview displays the actual rendered bytes. Results keep identity, semantic native score and private position separate from export accessibility. Preview failures offer retry without committing ranking data again. NativeShareOutcome maps UIKit completion: Save Image success alone reports Image saved, save/share errors report failure, ordinary sharing/cancellation do not claim a saved photo. NativeShareFeedback handles callback/dismissal ordering before showing notices. The DEBUG fault-review subtree requires an isolated UUID store/media root and is excluded from Release.
+
+See V1_INTEGRATION_REVIEW.md for combined regression/visual evidence and pending integrated physical approval. Earlier verification sections are dated history; V1 and release configuration are checkpointed and 1.0 (1) uploaded Internal Only. No new public URL/social service exists.
+
 # Current score gate and second fixed composition
 
 Individual numerical exports are available only when ScoreUnlockPolicy finds at least ten eligible active ranked entries (including independent versions) in the accepted local global ranking. ShareCardModel carries no score before that threshold, and ShareCardRenderer rejects a locked model. Completion and Detail suppress their numerical previews/actions while locked and refresh live models before exporting. The TopThreeShareCardModel factory requires the same gate and preserves the actual first three eligible ranked entries, including versions of the same Dish. Both compositions reuse official branding, palette, bounded JPEG lookup, universal outline, exact ImageRenderer infrastructure and native UIImage-only sharing. Top 3 always exports 1080 × 1350. No historical gallery or themes are added. See V1_FINAL_REVISIONS_REVIEW.md for presentation receipts and current verification.
@@ -56,7 +64,7 @@ Debug review fixtures must use isolated stores and media roots. Development revi
 
 Focused tests cover export dimensions, title/version/score formatting, photo selection/fallback, achievement eligibility and precedence, event/current-state separation, export privacy, shared rendering paths and native image items. The complete Debug suite, Release authentication gate, backend policies, builds, migration hashes and saved-store/credential checks are required for the combined working tree.
 
-The exported card is a deterministic graphic; Dynamic Type remains required for the in-app results, actions and Dish Detail within upright portrait. Simulator review covers photo/no-photo, badge/no-badge, long identity text, version/no-version, score range and application appearances. Final physical-iPhone approval covers the actual app icon, visual quality and native image-sharing experience, with the passed photo-sync lifecycle documented separately. Neither change set is committed or pushed by this task.
+The exported card is a deterministic graphic; Dynamic Type remains required for the in-app results, actions and Dish Detail within upright portrait. Simulator review covers photo/no-photo, badge/no-badge, long identity text, version/no-version, score range and application appearances. Final physical-iPhone approval covers the actual app icon, visual quality and native image-sharing experience, with the passed photo-sync lifecycle documented separately. That original implementation task did not commit or push; later V1/release checkpoints and upload are recorded above.
 
 See [V1_BRANDING_SHARING_REVIEW.md](V1_BRANDING_SHARING_REVIEW.md) for the combined verification evidence, exact feature inventory and one ordered physical/manual checklist.
 

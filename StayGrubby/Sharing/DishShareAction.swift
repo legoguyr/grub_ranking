@@ -9,29 +9,31 @@ struct DishShareAction: View {
     var currentModel: (() -> ShareCardModel)? = nil
     @Environment(\.cookingMediaRoot) private var mediaRoot
     @State private var card: RenderedDishShareCard?
-    @State private var failed = false
+    @State private var notice: ShareCardNotice?
 
     var body: some View {
-        if model.scoreText == nil {
-            Label(compact ? "Share" : "Share Dish unlocks with your scores", systemImage: "lock.fill")
-                .font(compact ? SGTheme.TypeRole.headline : SGTheme.TypeRole.secondary).foregroundStyle(.secondary)
-                .accessibilityIdentifier("dish-sharing-locked")
-                .accessibilityLabel("Share locked. Rank \(ScoreUnlockPolicy.requiredRankedEntryCount) dishes or versions to unlock sharing.")
-                .frame(maxWidth: compact ? .infinity : nil, minHeight: compact ? SGTheme.Size.minimumTap : nil)
-                .background(compact ? SGTheme.ColorToken.elevatedSurface : .clear, in: RoundedRectangle(cornerRadius: SGTheme.Radius.field))
-        } else {
-        Button {
-            do { card = try ShareCardRenderer.render(model: currentModel?() ?? model, mediaRoot: mediaRoot) }
-            catch { failed = true }
-        } label: {
-            Label(compact ? "Share" : "Share Dish", systemImage: "square.and.arrow.up").frame(maxWidth: .infinity)
+        Group {
+            if model.scoreText == nil {
+                Label(compact ? "Share" : "Share Dish unlocks with your scores", systemImage: "lock.fill")
+                    .font(compact ? SGTheme.TypeRole.headline : SGTheme.TypeRole.secondary).foregroundStyle(.secondary)
+                    .accessibilityIdentifier("dish-sharing-locked")
+                    .accessibilityLabel("Share locked. Rank \(ScoreUnlockPolicy.requiredRankedEntryCount) dishes or versions to unlock sharing.")
+                    .frame(maxWidth: compact ? .infinity : nil, minHeight: compact ? SGTheme.Size.minimumTap : nil)
+                    .background(compact ? SGTheme.ColorToken.elevatedSurface : .clear, in: RoundedRectangle(cornerRadius: SGTheme.Radius.field))
+            } else {
+                Button {
+                    do { card = try ShareCardRenderer.render(model: currentModel?() ?? model, mediaRoot: mediaRoot) }
+                    catch { notice = .preparationFailed(error.localizedDescription) }
+                } label: {
+                    Label(compact ? "Share" : "Share Dish", systemImage: "square.and.arrow.up").frame(maxWidth: .infinity)
+                }
+                .buttonStyle(SGButtonStyle(prominent: prominent, compact: compact, prominentColor: SGTheme.ColorToken.buttonAccent))
+                .accessibilityIdentifier(identifier)
+                .accessibilityLabel("Share Dish")
+                .accessibilityHint("Opens image sharing. Choose Save Image to save your card to Photos.")
+            }
         }
-        .buttonStyle(SGButtonStyle(prominent: prominent, compact: compact, prominentColor: SGTheme.ColorToken.buttonAccent))
-        .accessibilityIdentifier(identifier)
-        .sheet(item: $card) { NativeDishShareSheet(card: $0) }
-        .alert("Couldn’t prepare share card", isPresented: $failed) {
-            Button("OK", role: .cancel) { }
-        } message: { Text("Please try sharing again.") }
-        }
+        .shareCardSheet(card: $card, notice: $notice)
+        .onChange(of: model.scoreText) { _, score in if score == nil { card = nil } }
     }
 }

@@ -103,6 +103,8 @@ final class V1RevisionUITests: StayGrubbyUITestCase {
         tap(app.buttons["Profile"], app)
         let top = app.buttons["profile-share-top-three"]
         XCTAssertTrue(top.waitForExistence(timeout: 15) && top.isEnabled)
+        XCTAssertEqual(app.descendants(matching: .any).matching(identifier: "profile-entry-count").firstMatch.label,
+                       "12 ranked entries", "Re-rank must not count as another entry in Profile")
         tap(top, app)
         XCTAssertTrue(app.cells.matching(identifier: "actionGroupCell").matching(NSPredicate(format: "label == 'Copy'")).firstMatch.waitForExistence(timeout: 15))
         capture("Profile current Top 3 native share", app)
@@ -125,6 +127,7 @@ final class V1RevisionUITests: StayGrubbyUITestCase {
         XCTAssertTrue(app.descendants(matching: .any)["score-unlock-banner"].label.contains("9 / 10"))
         tap(app.buttons["Profile"], app)
         XCTAssertFalse(app.buttons["profile-share-top-three"].isEnabled)
+        let dishCountBefore = app.descendants(matching: .any).matching(identifier: "profile-dish-count").firstMatch.label
         tap(app.buttons["Rankings"], app)
         app.revealCreation(); tap(app.buttons["new-version"], app)
         let dish = app.buttons["choose-dish-Matzo Ball Soup"]
@@ -137,6 +140,22 @@ final class V1RevisionUITests: StayGrubbyUITestCase {
         }
         XCTAssertTrue(app.staticTexts["Your scores are unlocked!"].waitForExistence(timeout: 15))
         capture("Second version crosses entry threshold large text", app)
+        tap(app.buttons["ranking-result-close"], app)
+        XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 15))
+        tap(app.tabBars.buttons["Profile"], app)
+        let entries = app.descendants(matching: .any).matching(identifier: "profile-entry-count").firstMatch
+        XCTAssertTrue(entries.waitForExistence(timeout: 15))
+        XCTAssertEqual(entries.label, "10 ranked entries")
+        XCTAssertEqual(app.descendants(matching: .any).matching(identifier: "profile-dish-count").firstMatch.label,
+                       dishCountBefore, "The tenth independently ranked version is not a new Dish")
+        XCTAssertTrue(app.buttons["profile-share-top-three"].isEnabled)
+        XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "score-unlock-banner").firstMatch.exists)
+        for rank in 1...3 {
+            let food = app.descendants(matching: .any).matching(identifier: "profile-top-food-\(rank)").firstMatch
+            XCTAssertTrue(food.exists)
+            XCTAssertNotNil(food.label.range(of: "score [0-9]+\\.[0-9]", options: .regularExpression))
+        }
+        capture("Version unlock reaches integrated Profile", app)
     }
     @MainActor func testSearchAndDietaryFilterCanFindLowerMatchingVersionInEitherMode() {
         let app = XCUIApplication()

@@ -1,5 +1,11 @@
 # StayGrubby V1 — TestFlight readiness review
 
+## Current release status — October 15, 2026
+
+The user confirms **StayGrubby 1.0 (1)** archived, validated and uploaded successfully as **TestFlight Internal Only**. The approved release configuration was committed at `067c7b69b223ea60067297132a765a0ccd352238`. Upload is no longer outstanding. The historical local-development-signing limitation below does not describe the subsequently validated/uploaded build. The current Onboarding/Profile/Sharing integration is newer and requires physical-iPhone review before considering another build; no upload is authorized by integration. Account deletion/privacy-policy gaps remain separate external/public-release work. See [V1_INTEGRATION_REVIEW.md](V1_INTEGRATION_REVIEW.md).
+
+## Historical readiness audit — October 14
+
 Audited October 14, 2026. Frozen starting checkpoint: `9968390465658c2a118d2668ee44a0958ea1ec1b` (`Finalize StayGrubby V1 for TestFlight`). Main and origin/main both matched, with zero ahead/behind and a clean working tree before changes. No upload, export, distribution, tester addition, submission, certificate creation, hosted write or real-account deletion occurred.
 
 ## Verdict and bounded changes

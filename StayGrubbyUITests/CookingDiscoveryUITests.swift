@@ -73,7 +73,19 @@ final class CookingDiscoveryUITests: StayGrubbyUITestCase {
     }
 
     @MainActor private func doneFilters(in app: XCUIApplication) {
-        app.buttons["filters-done"].tap()
+        let done = app.buttons["filters-done"]
+        XCTAssertTrue(done.waitForExistence(timeout: 10))
+        // The failure recording showed Dietary still presented after a missed
+        // synthesized Done tap. A background ranking control is not dismissal.
+        for attempt in 0..<3 {
+            if attempt > 0 {
+                capture("Retry missed filter dismissal", app: app)
+                app.activate()
+            }
+            done.tap()
+            if done.waitForNonExistence(timeout: 3) { break }
+        }
+        XCTAssertTrue(done.waitForNonExistence(timeout: 10), "The filter sheet must actually close")
         XCTAssertTrue(app.buttons["ranking-filter-course"].waitForExistence(timeout: 10))
     }
 

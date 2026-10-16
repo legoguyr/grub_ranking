@@ -1,3 +1,9 @@
+# Integrated account presentation — October 15, 2026
+
+The onboarding and cooking-focused Profile presentation were integrated without changes to Apple/Supabase services, account resolution, store readiness, session restoration, sign-out or sync contracts. AuthenticationGatePresentation is copy/recovery-action projection only. ProfileSnapshot reads eligible global entries through ScoreUnlockPolicy; it cannot grant access, fit rankings or mutate the graph. ProfileAccountReview is an explicitly isolated DEBUG-only subtree with disposable account/backend state, absent from Release.
+
+Current release: user-confirmed 1.0 (1) Internal Only upload succeeded. The integrated build still needs physical review. Coordinated account erasure/revocation remains unimplemented; sign-out/dish deletion is not account deletion. Future usernames, public profile concepts and friendship/privacy work are planning in STAYGRUBBY_MASTER_ROADMAP.md, not current behavior.
+
 # Current Phase 3D Part 2 account boundary
 
 Required Apple authentication, permanent-account resolution and verified account-store readiness are unchanged. The ready account tree also injects an authenticated photo adapter guarded by the exact account generation before/after suspension. Sign-out/account switching cancel work; Debug/demo never connects. Structured readiness permits usable placeholders while private photo recovery runs separately. See MEDIA_SYNC_ARCHITECTURE.md and PHASE_3D_PHOTO_SYNC_REVIEW.md; earlier statements deferring byte transport are historical.
@@ -16,7 +22,7 @@ The first physical-iPhone Apple test and repeated sign-in were manually verified
 
 V1 has no user-facing guest personal application. `AccountApplicationRoot` constructs onboarding until the SDK session is authenticated, the permanent account receipt is validated, and `AccountLibraryAccess` has a ready store for that exact Auth/account pair. The personal tree is conditional, not behind a dismissible sheet. Pending/error/sign-out states unmount it immediately. The internal historical `.guest` session enum now means logged out; it grants no production data access.
 
-Onboarding is a single semantic dark/light SwiftUI screen: StayGrubby, “Cook. Remember. Rank.”, concise value text, Apple's native control, and safe loading/retry/sign-out states. There is no guest, skip, dismiss or fake credential path. The Apple control stays mounted through authorization. The existing secure nonce/ID-token flow is preserved. Authenticated Profile shows account status and Sign Out; it no longer offers optional authentication.
+Onboarding is a single semantic dark/light SwiftUI screen with the canonical wordmark, “Your cooking, worth remembering.”, a comparison example, Apple's native control, and safe loading/retry/sign-out states. There is no guest, skip, dismiss or fake credential path. The Apple control stays mounted through authorization. The existing secure nonce/ID-token flow is preserved. Authenticated Profile shows account status and Sign Out; it no longer offers optional authentication.
 
 ## New and existing account libraries
 
