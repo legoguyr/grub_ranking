@@ -13,13 +13,26 @@ struct SharingReviewFixture: View {
     @State private var event: RankingCompletionSnapshot?
     @State private var closed = false
     @State private var failure = false
+    @State private var previewFailureConsumed = false
 
     var body: some View {
         Group {
             if closed { Text("Review result dismissed").accessibilityIdentifier("review-result-dismissed") }
             else if let attempt {
-                if mode == "result" || mode == "new-leader" {
-                    CookingRankingResultView(attempt: attempt, event: event, onClose: { closed = true })
+                if DebugReviewConfiguration.current.storeID != nil,
+                   ProcessInfo.processInfo.arguments.contains("--sharing-save-failure-review") {
+                    SharingSaveFailureReview()
+                } else if mode == "result" || mode == "new-leader" {
+                    CookingRankingResultView(attempt: attempt, event: event, onClose: { closed = true },
+                        previewRenderer: { model, root in
+                            if DebugReviewConfiguration.current.storeID != nil,
+                               ProcessInfo.processInfo.arguments.contains("--sharing-preview-fails-once"),
+                               !previewFailureConsumed {
+                                previewFailureConsumed = true
+                                throw ShareCardRenderer.RenderError.renderingFailed
+                            }
+                            return try ShareCardRenderer.render(model: model, mediaRoot: root)
+                        })
                 } else if mode == "detail" { AttemptDetailView(attempt: attempt) }
                 else {
                     ScrollView {
@@ -93,6 +106,18 @@ struct SharingReviewFixture: View {
             else { attempt = cooks.first { $0.primaryImage != nil } }
             if let attempt { card = try ShareCardRenderer.render(model: .make(for: attempt), mediaRoot: mediaRoot) }
         } catch { failure = true }
+    }
+}
+/// Exercises the same app-level error presentation; never writes to Photos.
+private struct SharingSaveFailureReview: View {
+    @State private var card: RenderedDishShareCard?
+    @State private var notice: ShareCardNotice?
+    var body: some View {
+        VStack(spacing: SGTheme.Space.large) {
+            Text("Isolated sharing feedback review")
+            Button("Review failed Save Image") { notice = .imageSaveFailed }
+                .buttonStyle(SGButtonStyle()).accessibilityIdentifier("review-save-failure")
+        }.padding().shareCardSheet(card: $card, notice: $notice)
     }
 }
 #endif

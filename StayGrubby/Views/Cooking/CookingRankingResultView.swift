@@ -6,10 +6,16 @@ struct CookingRankingResultView: View {
     let attempt: CookingAttempt
     var event: RankingCompletionSnapshot? = nil
     let onClose: () -> Void
+    #if DEBUG
+    /// Isolated review can exercise a recoverable renderer failure without
+    /// removing the canonical asset or changing the approved renderer.
+    var previewRenderer: ((ShareCardModel, URL?) throws -> RenderedDishShareCard)? = nil
+    #endif
     @Environment(\.sgReduceMotion) private var reduceMotion
     @Environment(\.cookingMediaRoot) private var mediaRoot
     @Environment(\.scoreMilestoneScope) private var milestoneScope
     @State private var card: RenderedDishShareCard?
+    @State private var previewError: String?
     @State private var appeared = false
     @State private var fileRevision = 0
     @State private var milestone = false
@@ -42,16 +48,18 @@ struct CookingRankingResultView: View {
                     Text(scores.isUnlocked ? "Here’s how it did." : scores.completionText)
                         .font(SGTheme.TypeRole.body).foregroundStyle(.secondary)
                 }.multilineTextAlignment(.center)
-                if model.scoreText != nil, let card {
-                    Image(uiImage: card.image).resizable().scaledToFit()
-                        .frame(maxHeight: SGTheme.Size.sharingPreviewMaximumHeight)
-                        .clipShape(RoundedRectangle(cornerRadius: SGTheme.Radius.card))
-                        .accessibilityLabel([model.title, model.versionSubtitle,
-                                             model.scoreText.map { "\($0) out of 10" }, model.achievement?.title]
-                            .compactMap { $0 }.joined(separator: ", "))
-                        .accessibilityIdentifier("ranking-share-preview")
-                } else if scores.isUnlocked { ProgressView("Preparing your card") }
                 VStack(spacing: SGTheme.Space.small) {
+                    Text(model.title).font(SGTheme.TypeRole.title)
+                        .multilineTextAlignment(.center).accessibilityIdentifier("result-dish-title")
+                    if let version = model.versionSubtitle {
+                        Text(version).font(SGTheme.TypeRole.body).foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center).accessibilityIdentifier("result-version")
+                    }
+                    if let achievement = model.achievement {
+                        Label(achievement.title, systemImage: achievement.symbol)
+                            .font(SGTheme.TypeRole.headline).foregroundStyle(SGTheme.ColorToken.accent)
+                            .multilineTextAlignment(.center).accessibilityIdentifier("result-achievement")
+                    }
                     // Accessible score text complements the raster preview.
                     if let score = model.scoreText {
                     Text("\(score) / 10").font(SGTheme.TypeRole.score)
@@ -69,7 +77,26 @@ struct CookingRankingResultView: View {
                             .font(SGTheme.TypeRole.body).foregroundStyle(.secondary)
                             .accessibilityIdentifier("result-movement")
                     }
+                    Text("Your overall position and movement stay in the app.")
+                        .font(SGTheme.TypeRole.secondary).foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center).accessibilityIdentifier("result-rank-privacy")
                 }.frame(maxWidth: .infinity).sgCard()
+                if model.scoreText != nil {
+                    VStack(spacing: SGTheme.Space.small) {
+                        Text("Your share card").font(SGTheme.TypeRole.headline)
+                        if let card, card.model == model {
+                            ShareCardPreview(card: card, label: [model.title, model.versionSubtitle,
+                                model.scoreText.map { "\($0) out of 10" }, model.achievement?.title]
+                                .compactMap { $0 }.joined(separator: ", "), identifier: "ranking-share-preview")
+                        } else if let previewError {
+                            SharePreviewFailure(message: previewError) { fileRevision += 1 }
+                        } else { ProgressView("Preparing your card") }
+                    }
+                }
+                if scores.isUnlocked, model.achievement == .newNumberOne {
+                    Text("Your Top 3 has a new leader. You can also share your updated Top 3 below.")
+                        .font(SGTheme.TypeRole.body).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                }
             }
             .frame(maxWidth: SGTheme.Size.sharingContentMaximum).padding(SGTheme.Space.large).frame(maxWidth: .infinity)
             .opacity(appeared ? 1 : 0)
@@ -90,7 +117,11 @@ struct CookingRankingResultView: View {
         }
         .background(SGTheme.ColorToken.background)
         .task(id: PreviewRequest(model: model, fileRevision: fileRevision)) {
-            card = model.scoreText == nil ? nil : try? ShareCardRenderer.render(model: model, mediaRoot: mediaRoot)
+            card = nil; previewError = nil
+            if model.scoreText != nil {
+                do { card = try renderPreview() }
+                catch { previewError = error.localizedDescription }
+            }
             if let list = attempt.rankedItem?.list, TopThreeShareCardModel.make(in: list) != nil {
                 milestone = ScoreUnlockMilestones.claim(scope: milestoneScope,
                     previous: event?.eligibleRankedEntryCount, current: scores)
@@ -103,4 +134,12 @@ struct CookingRankingResultView: View {
         }
         }
     }
+
+    private func renderPreview() throws -> RenderedDishShareCard {
+        #if DEBUG
+        if let previewRenderer { return try previewRenderer(model, mediaRoot) }
+        #endif
+        return try ShareCardRenderer.render(model: model, mediaRoot: mediaRoot)
+    }
+
 }
