@@ -1,10 +1,11 @@
 import SwiftUI
 
 nonisolated enum CookingFilterGroup: String, Identifiable {
-    case course, dietary, avoid
+    case course, dietary, avoid, cuisine
     var id: String { rawValue }
     var title: String {
         switch self {
+        case .cuisine: "Cuisine"
         case .course: CookingProductOptions.courseTitle
         case .dietary: "Dietary"
         case .avoid: "Avoid"
@@ -22,6 +23,7 @@ struct CookingFilterView: View {
             ScrollView {
                 VStack(spacing: SGTheme.Space.xSmall) {
                     switch group {
+                    case .cuisine: EmptyView() // Presented by the shared searchable Cuisine picker.
                     case .course:
                         SGSelectionRow(title: "All courses", selected: filters.category == nil) { filters.category = nil }
                         ForEach(CookingProductOptions.courses) { course in

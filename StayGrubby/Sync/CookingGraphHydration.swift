@@ -12,7 +12,8 @@ import SwiftData
         guard revision >= 0, revision >= (binding?.acceptedRevision ?? -1) else { throw SyncFoundationError.staleRevision }
         guard try SyncJournal.pending(context).isEmpty, !context.hasChanges else { throw SyncFoundationError.pendingLocalChanges }
         let encoded = try graph.encoded()
-        if revision == binding?.acceptedRevision, let accepted = binding?.acceptedSnapshotData, accepted != encoded {
+        if revision == binding?.acceptedRevision, let accepted = binding?.acceptedSnapshotData, accepted != encoded,
+           try CookingGraph.decode(accepted).canonicalized() != graph {
             throw SyncFoundationError.revisionCollision
         }
         let tombstones = try context.fetch(FetchDescriptor<SyncTombstone>())
@@ -62,6 +63,7 @@ import SwiftData
                 value.id = row.id
                 value.name = row.name
                 value.defaultCategoryCode = row.defaultCategoryCode
+                value.cuisine = row.cuisine
                 value.createdAt = row.createdAt
             }
             for row in graph.items {

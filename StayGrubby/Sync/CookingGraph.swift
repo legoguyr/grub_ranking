@@ -30,13 +30,25 @@ nonisolated struct DishTransfer: Codable, Equatable, Sendable {
     var defaultCategoryCode: String
     var createdAt: Date
     var sourceID: UUID?
+    var cuisine: Cuisine?
     @MainActor init(_ value: Dish) {
         self.id = value.id
         self.name = value.name
         self.defaultCategoryCode = value.defaultCategoryCode
         self.createdAt = value.createdAt
         self.sourceID = value.source?.id
+        self.cuisine = value.cuisine
     }
+    private enum CodingKeys: String, CodingKey { case id, name, defaultCategoryCode, createdAt, sourceID, cuisine }
+    // Missing means an old client; explicit null means the user removed Cuisine.
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id); try c.encode(name, forKey: .name)
+        try c.encode(defaultCategoryCode, forKey: .defaultCategoryCode)
+        try c.encode(createdAt, forKey: .createdAt); try c.encodeIfPresent(sourceID, forKey: .sourceID)
+        try c.encode(cuisine, forKey: .cuisine)
+    }
+
 }
 
 nonisolated struct AttemptTransfer: Codable, Equatable, Sendable {

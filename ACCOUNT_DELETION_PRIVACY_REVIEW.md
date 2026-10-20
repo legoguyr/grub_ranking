@@ -1,5 +1,9 @@
 # StayGrubby post-V1 account deletion and privacy readiness
 
+## Owner closeout — October 20, 2026
+
+The owner confirms staygrubby.com is publicly deployed with operational HTTPS and appropriate HTTP/HTTPS and www/non-www routing. The canonical policy is https://staygrubby.com/privacy; privacy contact is privacy@staygrubby.com and support contact is support@staygrubby.com. The owner completed the App Store Connect App Privacy questionnaire. The ninth account-deletion migration and delete-account Edge Function v2 are deployed. **Implemented and automated/security verified; real Apple credential revocation remains physically unverified.** The owner intentionally deferred that destructive physical test; it does not block continued core development. Earlier publication/disclosure/test-pending statements below describe the prior review state, superseded by this owner closeout. No new deployment, App Store Connect action or real deletion test was performed for Cuisine.
+
 Review continued October 20, 2026. Starting checkpoint: `ba539bd0bf971fa3ea5afff18a956d7411005fce` on `main`. The canonical checkout is the original working tree. GitHub renamed the repository from the historical `legoguyr/grub_ranking` name to `legoguyr/StayGrubby`; `origin` now uses the renamed HTTPS URL. Application, bundle, Apple and Supabase identities remain unchanged. The starting 23 tracked modifications and 10 new files exactly matched the previous 33-file inventory; nothing was staged. All prior work was retained.
 
 ## October 20 deployment and website status

@@ -2,11 +2,12 @@ import Foundation
 
 /// Presentation state only. Discovery never writes models or invokes inference.
 nonisolated struct CookingFilters: Equatable {
+    var cuisineID: String?
     var category: DishCategory?
     var dietary: Set<DietaryTag> = []
     var avoidedAllergens: Set<Allergen> = []
 
-    var count: Int { (category == nil ? 0 : 1) + dietary.count + avoidedAllergens.count }
+    var count: Int { (category == nil ? 0 : 1) + (cuisineID == nil ? 0 : 1) + dietary.count + avoidedAllergens.count }
     var isActive: Bool { count > 0 }
 }
 
@@ -31,6 +32,7 @@ enum CookingDiscovery {
     }
 
     private static func matches(_ attempt: CookingAttempt, search: String, filters: CookingFilters) -> Bool {
+        if let cuisineID = filters.cuisineID, attempt.dish?.cuisine?.id != cuisineID { return false }
         if let category = filters.category, attempt.category != category { return false }
         let dietary = attempt.dietaryTags
         let allergies = attempt.allergyTags

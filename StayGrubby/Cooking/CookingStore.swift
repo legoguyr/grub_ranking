@@ -83,6 +83,7 @@ enum CookingStore {
             if let existingDish { dish = existingDish }
             else {
                 dish = Dish(name: draft.cleanDishName, category: draft.category)
+                dish.cuisine = draft.cuisine
                 context.insert(dish)
                 DishSourceStore.apply(draft.source, to: dish, context: context)
             }
@@ -121,6 +122,7 @@ enum CookingStore {
         do {
             let renamed = dish.name != draft.cleanDishName
             dish.name = draft.cleanDishName
+            dish.cuisine = draft.cuisine
             DishSourceStore.apply(draft.source, to: dish, context: context)
             apply(draft, to: attempt)
             attempt.tags = try tags(for: draft, context: context)

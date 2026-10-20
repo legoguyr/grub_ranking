@@ -2,6 +2,7 @@ import Foundation
 
 @MainActor struct CookingDraft {
     var dishName = ""
+    var cuisine: Cuisine?
     var category: DishCategory = .main
     var cookedAt: Date? = .now
     var versionTitle = ""
@@ -18,11 +19,12 @@ import Foundation
 
     init() {}
     init(dish: Dish) {
-        dishName = dish.name; category = dish.defaultCategory
+        dishName = dish.name; category = dish.defaultCategory; cuisine = dish.cuisine
         source = dish.source.map(DishSourceDraft.init(source:))
     }
     init(attempt: CookingAttempt) {
         dishName = attempt.dish?.name ?? attempt.rankedItem?.name ?? ""
+        cuisine = attempt.dish?.cuisine
         category = attempt.category; cookedAt = attempt.cookedAt
         versionTitle = attempt.versionTitle ?? ""; notes = attempt.notes ?? ""
         dietary = attempt.dietaryTags; allergy = attempt.allergyTags; contains = attempt.containedAllergens; customTags = attempt.customTags

@@ -9,6 +9,7 @@ struct CookingMetadataForm: View {
     @State private var newTag = ""
     @State private var selection: CookingMetadataSelection?
     @State private var sourceEditor = false
+    @State private var cuisinePicker = false
     @FocusState private var titleFocused: Bool
 
     var body: some View {
@@ -25,8 +26,16 @@ struct CookingMetadataForm: View {
                         .accessibilityIdentifier("dish-name").sgField()
                 }
                 if editing {
-                    Text("The dish name and Source are shared by all versions.")
+                    Text("The dish name, Cuisine and Source are shared by all versions.")
                         .font(SGTheme.TypeRole.secondary).foregroundStyle(.secondary)
+                }
+                if existingDish && !editing {
+                    Label(draft.cuisine?.label ?? "No cuisine", systemImage: "globe")
+                        .font(SGTheme.TypeRole.body).foregroundStyle(.secondary)
+                        .accessibilityIdentifier("inherited-dish-cuisine")
+                } else {
+                    selector("Cuisine", value: draft.cuisine?.label ?? "Optional", symbol: "globe") { cuisinePicker = true }
+                        .accessibilityIdentifier("dish-cuisine")
                 }
                 if existingDish && !editing {
                     Label(draft.source?.summary ?? "No source", systemImage: "text.book.closed")
@@ -92,6 +101,7 @@ struct CookingMetadataForm: View {
                     .lineLimit(2...6).accessibilityIdentifier("cook-notes").sgField()
             }
         }
+        .sheet(isPresented: $cuisinePicker) { CuisinePicker(selection: $draft.cuisine) }
         .sheet(isPresented: $sourceEditor) { DishSourceEditor(source: $draft.source) }
         .sheet(item: $selection) { selection in
             switch selection {

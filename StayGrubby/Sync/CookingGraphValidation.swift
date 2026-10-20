@@ -36,6 +36,11 @@ extension CookingGraph {
             try require(source.dishID.map(dishIDs.contains) == true && dishes.first(where: { $0.id == source.dishID })?.sourceID == source.id)
         }
         for dish in dishes {
+            if let cuisine = dish.cuisine {
+                try require(!cuisine.id.isEmpty && cuisine.id.unicodeScalars.count <= 160
+                    && !cuisine.label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    && cuisine.label.unicodeScalars.count <= CuisineCatalog.maximumLabelLength)
+            }
             if let source = dish.sourceID { try require(sources.contains { $0.id == source && $0.dishID == dish.id }) }
         }
         for photo in media {

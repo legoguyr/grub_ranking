@@ -1,5 +1,9 @@
 # StayGrubby public website
 
+## Owner closeout — October 20, 2026
+
+The owner confirms staygrubby.com is publicly deployed with operational HTTPS and appropriate HTTP/HTTPS and www/non-www routing. The canonical policy is https://staygrubby.com/privacy; privacy contact is privacy@staygrubby.com and support contact is support@staygrubby.com. The owner completed the App Store Connect App Privacy questionnaire. The ninth account-deletion migration and delete-account Edge Function v2 are deployed. **Implemented and automated/security verified; real Apple credential revocation remains physically unverified.** The owner intentionally deferred that destructive physical test; it does not block continued core development. Earlier publication/disclosure/test-pending statements below describe the prior review state, superseded by this owner closeout. No new deployment, App Store Connect action or real deletion test was performed for Cuisine.
+
 Small static Cloudflare Pages site. No browser JavaScript, external fonts, analytics, cookies, forms, Supabase client, database, authentication, or server-side application runtime. Production is deliberately light-only cream/red/charcoal, including when the browser prefers dark appearance. The PNG is copied byte-for-byte from the app's official supplied wordmark; its typography is never recreated.
 
 ## Canonical content and build

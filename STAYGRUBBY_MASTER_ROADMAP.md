@@ -49,7 +49,13 @@ Historical physical approvals apply to their tested builds; integrated approval 
 
 Already implemented: native Apple/Supabase authentication, protected permanent-account ownership, private structured/photo sync, restore, receipts/revisions/tombstones and account isolation. A minimal private profile table and case-insensitive username constraint also exist; user-facing handle lifecycle and social profiles do not. Build on this.
 
-Implemented for the next release: deliberate account deletion UI, fresh Apple verification, a deployed server-only idempotent deletion state machine, private Storage/account/Auth cleanup ordering, exact local cleanup, and signed-in/signed-out access to the canonical policy with a public system link and offline copy. Remaining release work: validate with a disposable physical account, connect/publish the prepared static Cloudflare website, and complete App Store disclosures. The single-source policy is `StayGrubby/Legal/PrivacyPolicy.md`; the app bundles it and the website build renders it. Future product work remains usernames, user-facing profiles and public/friends/private concepts; independent content visibility and social ownership/authorization; compatibility with saved recipes, creator attribution and shared cooking. Backend enforcement is mandatory, not merely hidden UI.
+Implemented for the next release: deliberate account deletion UI, fresh Apple verification, a deployed server-only idempotent deletion state machine, private Storage/account/Auth cleanup ordering, exact local cleanup, and signed-in/signed-out access to the canonical policy with a public system link and offline copy. Owner-completed release closeout: the static Cloudflare website is publicly deployed with operational HTTPS/routing and App Store Connect App Privacy answers are complete. Real physical Apple credential revocation/deletion testing is intentionally deferred and remains unverified; it does not block continued core development. The single-source policy is `StayGrubby/Legal/PrivacyPolicy.md`; the app bundles it and the website build renders it. Future product work remains usernames, user-facing profiles and public/friends/private concepts; independent content visibility and social ownership/authorization; compatibility with saved recipes, creator attribution and shared cooking. Backend enforcement is mandatory, not merely hidden UI.
+
+## 2A. Cuisine Selection — Post-TestFlight Core Enhancement
+
+Approved for this implementation: one optional primary Cuisine per Dish, stable predefined identifiers and account-owned custom values, searchable Add/Edit selection and display-only Rankings filtering that preserves global ranks. No inference, ranking change or recommendation system. See [Cuisine architecture and verification](CUISINE_REVIEW.md).
+
+Release-foundation owner closeout: public staygrubby.com HTTPS/routing and App Store Connect App Privacy questionnaire are complete; ninth deletion migration and delete-account v2 are deployed. Implemented and automated/security verified; real Apple credential revocation remains physically unverified and intentionally deferred by the owner. No physical Apple revocation/deletion test is claimed.
 
 ## 3. Profiles + Friends
 
@@ -112,6 +118,12 @@ Challenges/sponsored challenges only after reliable personal/social/safety found
 ## 13. Creator / Commerce / Discovery — later
 
 Possible creator profiles, one-way following, public web profiles, recipe/premium creator collections, brand/publisher partnerships, affiliate commerce and advanced discovery/trending. Tasteful website advertising may be considered; **keep conventional display advertising out of the native app**. Commercial relationships never alter personal ranking.
+
+## 14. Personalized Taste Intelligence & Discovery
+
+Final long-term major phase, after Friends, Social, Recipe Engine, public sharing and community discovery. Future inputs may include personal ranking/comparison history, cuisines, ingredients/proteins, techniques, flavor characteristics, recipes/original sources, permitted photos and explicit preferences/feedback. Possible outputs: individual taste profiles, favorite cuisines/ingredients/proteins, flavor profiles, personalized recipes/Discover, friend taste compatibility, recommendation explanations and optional premium advanced analytics.
+
+AI-assisted recipe/photo analysis may suggest characteristics; images alone never prove ingredients, allergens or flavor. Distinguish taste preference from execution quality and avoid confident conclusions from small datasets. Personal ranking and recommendations remain independent: recommendations, popularity, sponsorship, social engagement and monetization NEVER alter Bradley–Terry rankings. Personal ranking remains free; subscriptions must add genuine new value rather than restricting existing core features. No AI infrastructure, processing costs or intelligence integrations are introduced now.
 
 ## Supporting references
 

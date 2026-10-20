@@ -1,5 +1,9 @@
 # StayGrubby V1 — TestFlight readiness review
 
+## Owner closeout — October 20, 2026
+
+The owner confirms staygrubby.com is publicly deployed with operational HTTPS and appropriate HTTP/HTTPS and www/non-www routing. The canonical policy is https://staygrubby.com/privacy; privacy contact is privacy@staygrubby.com and support contact is support@staygrubby.com. The owner completed the App Store Connect App Privacy questionnaire. The ninth account-deletion migration and delete-account Edge Function v2 are deployed. **Implemented and automated/security verified; real Apple credential revocation remains physically unverified.** The owner intentionally deferred that destructive physical test; it does not block continued core development. Earlier publication/disclosure/test-pending statements below describe the prior review state, superseded by this owner closeout. No new deployment, App Store Connect action or real deletion test was performed for Cuisine.
+
 ## Current release status — October 20, 2026
 
 The user confirms **StayGrubby 1.0 (1)** archived, validated and uploaded successfully as **TestFlight Internal Only**. The approved release configuration was committed at `067c7b69b223ea60067297132a765a0ccd352238`. The newer Onboarding/Profile/Sharing integration passed physical-iPhone review on October 18 using the existing real account and data. That approval did not create or authorize another archive/upload; 1.0 (1) remains the uploaded baseline. See [V1_INTEGRATION_REVIEW.md](V1_INTEGRATION_REVIEW.md).

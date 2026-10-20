@@ -83,7 +83,13 @@ struct CookingRankingView: View {
             }.padding(.bottom, SGTheme.Space.xSmall).background(SGTheme.ColorToken.background)
         }
         .scrollDismissesKeyboard(.interactively)
-        .sheet(item: $filterGroup) { CookingFilterView(filters: $filters, group: $0) }
+        .sheet(item: $filterGroup) { group in
+            if group == .cuisine {
+                CuisinePicker(selection: Binding(
+                    get: { CuisineCatalog.options(saved: dishes.compactMap(\.cuisine)).first { $0.id == filters.cuisineID } },
+                    set: { filters.cuisineID = $0?.id }), allowsCreation: false)
+            } else { CookingFilterView(filters: $filters, group: group) }
+        }
         .sheet(isPresented: $newDish) { AddCookingView(list: list) }
         .sheet(item: $selectedDish) { AddCookingView(list: list, dish: $0) }
         .sheet(isPresented: $choosingDish, onDismiss: {
@@ -105,6 +111,7 @@ struct CookingRankingView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: SGTheme.Space.xSmall) {
                     filterButton(.course, detail: filters.category?.label, count: filters.category == nil ? 0 : 1)
+                    filterButton(.cuisine, detail: dishes.compactMap(\.cuisine).first { $0.id == filters.cuisineID }?.label, count: filters.cuisineID == nil ? 0 : 1)
                     filterButton(.dietary, count: filters.dietary.count)
                     filterButton(.avoid, count: filters.avoidedAllergens.count)
                 }

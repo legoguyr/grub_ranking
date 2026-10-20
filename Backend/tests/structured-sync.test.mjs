@@ -48,7 +48,7 @@ try {
  create function auth.jwt() returns jsonb language sql stable as $$ select coalesce(nullif(current_setting('request.jwt.claims',true),''),'{}')::jsonb $$;`);
  await db.exec(storageStubSQL);
  const directory=new URL('../../supabase/migrations/',import.meta.url);
- for(const file of (await readdir(directory)).filter(f=>f.endsWith('.sql')).sort())await db.exec(await readFile(new URL(file,directory),'utf8'));
+ for(const file of (await readdir(directory)).filter(f=>f.endsWith('.sql')&&!f.endsWith('_dish_primary_cuisine.sql')).sort())await db.exec(await readFile(new URL(file,directory),'utf8'));
  await db.query('insert into auth.users(id) values($1),($2)',[user,otherUser]);
  await db.query('insert into auth.sessions(id,user_id) values($1,$2),($3,$4)',[session,user,otherSession,otherUser]);
  await db.query('insert into staygrubby.accounts(id,sync_revision) values($1,1)',[owner]);
@@ -88,6 +88,35 @@ try {
   const restored=(await snapshot()).graph.sources.find(s=>s.id.toUpperCase()===source.id.toUpperCase());
   check(restored.typeCode===typeCode&&restored.onlineURL===source.onlineURL&&restored.socialURL===source.socialURL&&restored.friendNote===source.friendNote,'Full Source fields '+typeCode);
  }
+ // Exercise the additive migration on an already populated legacy graph.
+ const legacyGraph=canonical((await snapshot()).graph);
+ await db.exec('reset role');
+ const cuisineMigration=(await readdir(directory)).find(f=>f.endsWith('_dish_primary_cuisine.sql'));
+ await db.exec(await readFile(new URL(cuisineMigration,directory),'utf8'));
+ await actor(user,session);
+ assert.deepEqual(canonical((await snapshot()).graph),legacyGraph);checks++;
+ // Cuisine is optional Dish metadata; old clients preserve it, explicit null removes it.
+ const beforeCuisine=(await snapshot()).graph;
+ const evidenceBefore=canonical({items:beforeCuisine.items,comparisons:beforeCuisine.comparisons,attempts:beforeCuisine.attempts});
+ for(const cuisine of [{id:'italian',label:'Italian'},{id:'custom:basque home cooking',label:'Basque Home Cooking'},null]) {
+  await apply(operation([record('dish',{...dish,cuisine})],[],latest));latest++;
+  const restored=(await snapshot()).graph;
+  assert.deepEqual(restored.dishes.find(d=>d.id.toUpperCase()===dish.id.toUpperCase()).cuisine,cuisine);checks++;
+  assert.deepEqual(canonical({items:restored.items,comparisons:restored.comparisons,attempts:restored.attempts}),evidenceBefore);checks++;
+  if(cuisine) {
+   await apply(operation([record('dish',dish)],[],latest));latest++;
+   assert.deepEqual((await snapshot()).graph.dishes.find(d=>d.id.toUpperCase()===dish.id.toUpperCase()).cuisine,cuisine);checks++;
+  }
+ }
+ for(const cuisine of [{id:'',label:'Empty ID'},{id:'italian'}, {id:'italian',label:' '},
+    {id:'custom:long',label:'x'.repeat(81)}, {id:'italian',label:'Italian',accountID:owner}]) {
+  await rejected(operation([record('dish',{...dish,cuisine})],[],latest),'23514','Invalid Cuisine rejected atomically');
+ }
+ const privileges=await db.query(`select
+  (select relrowsecurity from pg_class where oid='staygrubby.dishes'::regclass) rls,
+  has_table_privilege('anon','staygrubby.dishes','select') anon_read,
+  has_table_privilege('authenticated','staygrubby.dishes','update') direct_write`);
+ check(privileges.rows[0].rls&&!privileges.rows[0].anon_read&&!privileges.rows[0].direct_write,'Cuisine preserves RLS and restricted writes');
  const afterSources=canonical((await snapshot()).graph);
  await rejected(operation([record('dish',{...dish,sourceID:randomUUID()})],[],latest),'55000','Dangling active Source rejected atomically');
  await rejected(operation([record('media',{...fixture.expected.media[0],displayFilename:'../outside.jpg'})],[],latest),'23514','Unsafe restored media path rejected');
