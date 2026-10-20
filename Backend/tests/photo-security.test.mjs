@@ -27,7 +27,7 @@ try{
   for(const role of ['authenticated','anon','authenticator'])if(!(await admin.query('select 1 from pg_roles where rolname=$1',[role])).rowCount)await admin.query(`create role ${role} nologin`);
   database='staygrubby_photos_'+randomUUID().replaceAll('-','');await admin.query(`create database ${database}`);
   const client=new pg.Client({...base,database});await client.connect();db={query:(...args)=>client.query(...args),exec:sql=>client.query(sql),close:()=>client.end()};
- }else{db=new PGlite();await db.exec('create role authenticated;create role anon;create role authenticator')}
+ }else{db=new PGlite();await db.exec('create role authenticated;create role anon;create role authenticator;create role service_role')}
  await db.exec(`create schema auth;create table auth.users(id uuid primary key,is_anonymous boolean default false,deleted_at timestamptz);
  create table auth.sessions(id uuid primary key,user_id uuid references auth.users(id),not_after timestamptz);
  create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;

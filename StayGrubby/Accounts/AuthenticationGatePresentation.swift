@@ -44,6 +44,10 @@ nonisolated struct AuthenticationGatePresentation {
             message = "Setting up your StayGrubby account."
             isWorking = true
             signOutTitle = "Sign out"
+        case .deletionRequired:
+            title = "Finish deleting your account."
+            message = "Verify with the linked Apple account to safely finish the pending deletion."
+            isError = true
         case .retryRequired(let step, _):
             title = step == .restoreSession ? "Couldn’t restore your account." : "Couldn’t finish account setup."
             message = "Check your connection and try again. Your cooking library stays protected."

@@ -32,6 +32,7 @@ struct AccountApplicationRoot: View {
             #endif
         }
         .task {
+            session.finishPendingLocalDeletion()
             #if DEBUG
             if DevelopmentLibraryAccess.requestedOnLaunch { openDevelopment(); return }
             #endif
@@ -75,7 +76,11 @@ struct AccountApplicationRoot: View {
     }
     private func prepareAccess() async {
         access.reset()
-        guard case .resolved(let account) = session.state else { return }
+        guard case .resolved(let account) = session.state else {
+            await Task.yield()
+            session.finishPendingLocalDeletion()
+            return
+        }
         await access.prepare(account,offline:session.offlineResolution,
             load:{ try await session.openResolvedLibrary() },remember:{ try session.rememberReadyAccount($0) })
     }

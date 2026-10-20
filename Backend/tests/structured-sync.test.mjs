@@ -40,7 +40,7 @@ try {
   const client=new pg.Client({...base,database});await client.connect();
   db={query:(...args)=>client.query(...args),exec:sql=>client.query(sql),close:()=>client.end()};
  }else{
-  db=new PGlite();await db.exec('create role authenticated;create role anon;create role authenticator');
+  db=new PGlite();await db.exec('create role authenticated;create role anon;create role authenticator;create role service_role');
  }
  await db.exec(`create schema auth;create table auth.users(id uuid primary key,is_anonymous boolean default false,deleted_at timestamptz);
  create table auth.sessions(id uuid primary key,user_id uuid references auth.users(id),not_after timestamptz);

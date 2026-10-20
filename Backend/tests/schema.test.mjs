@@ -12,7 +12,7 @@ const a='10000000-0000-0000-0000-000000000001', b='10000000-0000-0000-0000-00000
 const ua='20000000-0000-0000-0000-000000000001', ub='20000000-0000-0000-0000-000000000002';
 const ranking='30000000-0000-0000-0000-000000000001';
 const item1='40000000-0000-0000-0000-000000000001', item2='40000000-0000-0000-0000-000000000002';
-await db.exec(`create role authenticated; create role anon; create schema auth;
+await db.exec(`create role authenticated; create role anon; create role service_role; create schema auth;
  create table auth.users(id uuid primary key,is_anonymous boolean default false,deleted_at timestamptz);
  create table auth.sessions(id uuid primary key,user_id uuid references auth.users(id) on delete cascade,not_after timestamptz);
  create function auth.jwt() returns jsonb language sql stable as $$ select coalesce(nullif(current_setting('request.jwt.claims',true),''),'{}')::jsonb $$;
@@ -20,7 +20,7 @@ await db.exec(`create role authenticated; create role anon; create schema auth;
 await db.exec(storageStubSQL);
 const migrationDirectory = new URL('../../supabase/migrations/', import.meta.url);
 const migrations = (await readdir(migrationDirectory)).filter(name => name.endsWith('.sql')).sort();
-check(migrations.length === 8, 'Setup includes account-library bootstrap migration');
+check(migrations.length === 9, 'Setup includes account-deletion migration');
 const initial = (await Promise.all(migrations.map(name => readFile(new URL(name, migrationDirectory), 'utf8')))).join('');
 check(initial === await readFile(new URL('../schema.sql', import.meta.url), 'utf8'), 'Reference and complete migration chain agree');
 for (const name of migrations) await db.exec(await readFile(new URL(name, migrationDirectory), 'utf8'));
@@ -86,7 +86,7 @@ check((await db.query('select * from staygrubby.rankings')).rows.length===0,'Del
 await db.exec('reset role');
 const exposed=(await db.query(`select count(*)::int n from pg_tables where schemaname='staygrubby' and not rowsecurity`)).rows[0].n;
 check(exposed===0,'Every application table has RLS');
-check((await db.query(`select count(*)::int n from pg_tables where schemaname='staygrubby'`)).rows[0].n===16,'Private foundation plus media manifests exist');
+check((await db.query(`select count(*)::int n from pg_tables where schemaname='staygrubby'`)).rows[0].n===17,'Private foundation, media manifests and deletion jobs exist');
 const permissions = (await db.query(`select c.relname,
  has_table_privilege('anon',c.oid,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER') as anon_access,
  has_table_privilege('authenticated',c.oid,'INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER') as client_write,
@@ -94,7 +94,7 @@ const permissions = (await db.query(`select c.relname,
  from pg_class c join pg_namespace n on n.oid=c.relnamespace
  where n.nspname='staygrubby' and c.relkind='r'`)).rows;
 check(permissions.every(p => !p.anon_access && !p.client_write), 'No client write/bypass privileges on any table');
-check(permissions.every(p => p.client_read === (p.relname !== 'auth_account_links')), 'Only intended owner-readable tables have SELECT grants');
+check(permissions.every(p => p.client_read === !['auth_account_links','account_deletion_jobs'].includes(p.relname)), 'Only intended owner-readable tables have SELECT grants');
 check(!(await db.query(`select has_function_privilege('anon','staygrubby.current_account_id()','EXECUTE') as access`)).rows[0].access, 'No anonymous helper execution');
 check(!(await db.query(`select has_function_privilege('authenticated','staygrubby.stamp_record()','EXECUTE') as access`)).rows[0].access, 'Trigger helper is not a client RPC');
 await db.exec(`delete from auth.users where id='${ua}'`);
@@ -143,8 +143,9 @@ await rejects('select api.provision_account()','Supabase anonymous Auth user rej
 await actor(ub); await db.exec(`select set_config('request.jwt.claims','{"session_id":"${sid}"}',false)`);
 await rejects('select api.provision_account()','Session belonging to a different user rejected','42501');
 await db.exec('reset role');
-check((await db.query(`select count(*)::int n from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='api'`)).rows[0].n===4,'Only provisioning, library, apply and media API functions exposed');
+check((await db.query(`select count(*)::int n from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='api'`)).rows[0].n===8,'API adds only self-start/status and service-only deletion finalizers');
 check(!(await db.query(`select has_function_privilege('anon','api.provision_account()','EXECUTE') as access`)).rows[0].access,'Anonymous function execution denied');
+check(!(await db.query(`select has_function_privilege('authenticated','api.erase_account_data(uuid)','EXECUTE') as access`)).rows[0].access,'Client cannot invoke privileged account erasure');
 // Library bootstrap is authenticated, empty, idempotent, owner-derived and non-destructive.
 await db.exec('reset role');
 await db.exec(`update staygrubby.accounts set status='active' where id='${first.account_id}'`);
@@ -168,5 +169,37 @@ await db.exec('reset role; set role anon');await rejects('select api.open_accoun
 await db.exec('reset role');
 await db.exec(`delete from auth.sessions where id='${sid}'`);await actor(newcomer);
 await rejects('select api.open_account_library()','Revoked session cannot open library','42501');
+
+// Account deletion is owner-derived, durable and ordered. Storage byte removal is
+// represented by deleting only from this disposable catalog; production uses Storage API.
+const deletingUser='20000000-0000-0000-0000-000000000005';
+const deletingSession='60000000-0000-0000-0000-000000000005';
+await db.exec(`reset role; insert into auth.users(id) values('${deletingUser}');
+ insert into auth.sessions(id,user_id) values('${deletingSession}','${deletingUser}')`);
+await actor(deletingUser); await db.exec(`select set_config('request.jwt.claims','{"session_id":"${deletingSession}"}',false)`);
+const deletingAccount=(await db.query('select api.provision_account() result')).rows[0].result.account_id;
+const started=(await db.query('select api.begin_account_deletion() result')).rows[0].result;
+check(started.accountID===deletingAccount && started.state==='requested','Deletion derives the current permanent owner');
+const repeatedStart=(await db.query('select api.begin_account_deletion() result')).rows[0].result;
+check(JSON.stringify(repeatedStart)===JSON.stringify(started),'Repeated deletion start is idempotent');
+check((await db.query('select api.account_deletion_state() result')).rows[0].result.pending===true,'Pending deletion survives retry/relaunch lookup');
+await rejects(`select api.erase_account_data('${deletingUser}'::uuid)`,'Authenticated client cannot finalize any account','42501');
+await db.exec('reset role; set role anon');
+await rejects('select api.begin_account_deletion()','Anonymous deletion denied','42501');
+await db.exec(`reset role; insert into storage.objects(bucket_id,name,metadata,owner_id)
+ values('cooking-photos','${deletingAccount}/orphan/display.jpg','{"size":10,"mimetype":"image/jpeg"}','${deletingUser}')`);
+await db.exec(`set role service_role; select api.advance_account_deletion('${deletingUser}'::uuid,'apple_revoked');
+ select api.advance_account_deletion('${deletingUser}'::uuid,'storage_cleared')`);
+await rejects(`select api.erase_account_data('${deletingUser}'::uuid)`,'Account graph cannot erase while private photo objects remain','55000');
+await db.exec(`reset role; delete from storage.objects where name like '${deletingAccount}/%'; set role service_role`);
+const erased=(await db.query(`select api.erase_account_data('${deletingUser}'::uuid) result`)).rows[0].result;
+check(erased.state==='account_erased','Account graph erasure records a resumable Auth-cleanup stage');
+check((await db.query(`select api.erase_account_data('${deletingUser}'::uuid) result`)).rows[0].result.state==='account_erased','Account graph erasure retry is idempotent');
+await db.exec('reset role');
+check((await db.query(`select count(*)::int n from staygrubby.accounts where id='${deletingAccount}'`)).rows[0].n===0,'Owned graph cascades from permanent account');
+check((await db.query(`select count(*)::int n from staygrubby.accounts where id='${b}'`)).rows[0].n===1,'Another account is untouched');
+check((await db.query(`select count(*)::int n from staygrubby.account_deletion_jobs where auth_user_id='${deletingUser}'`)).rows[0].n===1,'Job remains until Auth deletion succeeds');
+await db.exec(`delete from auth.users where id='${deletingUser}'`);
+check((await db.query(`select count(*)::int n from staygrubby.account_deletion_jobs where auth_user_id='${deletingUser}'`)).rows[0].n===0,'Auth deletion removes the final deletion job');
 console.log(`PASS ${checks} PostgreSQL schema/RLS assertions; simulated JWT mapping, no hosted project.`);
 await db.close();

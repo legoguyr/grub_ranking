@@ -7,6 +7,9 @@ struct AccountView: View {
     @Environment(\.modelContext) private var context
     @Query private var sharingCooks: [CookingAttempt]
     @Query private var sharingTombstones: [SyncTombstone]
+    @State private var showingPrivacyPolicy = false
+    @State private var confirmingDeletion = false
+    @State private var showingDeletion = false
     #if DEBUG
     @State private var restoreCheck: String?
     @State private var checkingRestore = false
@@ -53,6 +56,19 @@ struct AccountView: View {
         .navigationTitle("Profile").toolbar(.hidden, for: .navigationBar)
         .safeAreaInset(edge: .top) {
             StayGrubbyHeader(page: "Profile", searchText: .constant(""), searching: .constant(false))
+        }
+        .sheet(isPresented: $showingPrivacyPolicy) { PrivacyPolicyView() }
+        .sheet(isPresented: $showingDeletion) {
+            AccountDeletionAuthorizationView(canCancel: true) { showingDeletion = false }
+                .presentationDetents([.medium, .large])
+        }
+        .alert("Permanently delete your account?", isPresented: $confirmingDeletion) {
+            Button("Cancel", role: .cancel) {}
+            Button("Continue", role: .destructive) {
+                session.requestAccountDeletion(); showingDeletion = true
+            }
+        } message: {
+            Text("Your StayGrubby account, cooking library, rankings, comparison history, and backed-up photos will be permanently deleted. This cannot be undone.")
         }
     }
 
@@ -126,8 +142,12 @@ struct AccountView: View {
                 .accessibilityIdentifier("development-verify-fresh-restore")
             if let restoreCheck { Text(restoreCheck).font(.footnote).foregroundStyle(.secondary) }
             #endif
+            Button("Privacy Policy") { showingPrivacyPolicy = true }
+                .buttonStyle(.bordered).controlSize(.large).accessibilityIdentifier("privacy-policy-open")
             Button("Sign out") { Task { await session.signOut() } }
                 .buttonStyle(.bordered).controlSize(.large).accessibilityIdentifier("account-sign-out")
+            Button("Delete account…", role: .destructive) { confirmingDeletion = true }
+                .buttonStyle(.bordered).controlSize(.large).accessibilityIdentifier("account-delete-start")
         }
     }
 }

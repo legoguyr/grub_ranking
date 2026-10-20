@@ -189,6 +189,35 @@ final class ProfileUITests: StayGrubbyUITestCase {
         }
     }
 
+    @MainActor func testPrivacyAndAccountDeletionRequireDeliberateConfirmation() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-test-store", UUID().uuidString, "--profile-account-review",
+                               "--profile-sync-current", "--test-light", "--test-reduce-motion"]
+        app.launchWithReviewOptions()
+        XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 20)); openProfile(in: app)
+        let disclosure = app.buttons.matching(NSPredicate(format: "label CONTAINS 'Account & sync'")).firstMatch
+        reach(disclosure, in: app); disclosure.tap()
+
+        let privacy = app.buttons["privacy-policy-open"]
+        reach(privacy, in: app); privacy.tap()
+        XCTAssertTrue(app.navigationBars["Privacy Policy"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.descendants(matching: .any)["privacy-policy-public-link"].exists)
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'private cooking journal' ")).firstMatch.exists)
+        app.buttons["Done"].tap()
+
+        let start = app.buttons["account-delete-start"]
+        reach(start, in: app); start.tap()
+        XCTAssertTrue(app.alerts["Permanently delete your account?"].waitForExistence(timeout: 10))
+        app.alerts.buttons["Cancel"].tap()
+        XCTAssertTrue(app.staticTexts["Your cooking profile"].exists)
+
+        start.tap(); app.alerts.buttons["Continue"].tap()
+        XCTAssertTrue(app.staticTexts["Permanently delete account"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["account-delete-apple"].exists)
+        app.buttons["account-delete-cancel"].tap()
+        XCTAssertTrue(app.staticTexts["Your cooking profile"].waitForExistence(timeout: 10))
+    }
+
 }
 #endif
 

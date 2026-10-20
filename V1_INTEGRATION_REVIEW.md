@@ -72,17 +72,11 @@ The canonical [Master Roadmap](STAYGRUBBY_MASTER_ROADMAP.md) now separates priva
 
 User confirms **1.0 (1) archived, validated and uploaded TestFlight Internal Only**. That uploaded build predates this integration. The readiness document now labels the earlier signing audit as historical rather than an outstanding upload task. Version/build are unchanged; no new archive, upload, tester change or submission is performed here. Coordinated account deletion/privacy policy remain separate external/public-release requirements.
 
-## Physical-iPhone review — still required
+## Physical-iPhone review — passed October 18, 2026
 
-Do not treat automated/Simulator verification as physical approval of this build. Use existing data without reset:
+The user completed the integrated post-worker review on a physical iPhone with the existing real account and data. The following observed checks passed: authentication/sign-in; restoration and preservation of existing account data; the integrated authenticated presentation; Profile Entries / Versions / Last Cooked summary; correct Top 3; account disclosure and Sign Out availability; Verify Fresh Restore availability; dark appearance; increased text-size presentation; a normal Re-rank; ranking result flow; native share sheet; and Save Image with the expected output.
 
-1. Check combined onboarding/restoration and native Apple entry; sign-out returns to onboarding.
-2. Inspect Profile counts/Top 3, account/sync disclosure and reachable controls.
-3. Complete a normal re-rank, inspect the result, share its image, and return to Profile.
-4. Check native Save Image feedback/cancellation and reusable Top 3; confirm normal Top 3 has no unlock footer.
-5. Briefly check light/dark and preferred larger text/touch behavior; report clipping or unreachable actions.
-
-Do not deliberately delete/reinstall or erase the real account for this presentation review. After physical approval, decide separately whether a new TestFlight build is warranted.
+No other physical-device checks are claimed. The existing **StayGrubby 1.0 (1) Internal Only** TestFlight upload remains the earlier baseline build and predates this integrated presentation. No new archive or upload was performed for this approval.
 
 ## Exact file inventory
 

@@ -65,6 +65,17 @@ import AuthenticationServices
         #expect(!String(reflecting: nonce).contains(nonce.raw))
         #expect(Mirror(reflecting: nonce).children.isEmpty && Mirror(reflecting: credentials).children.isEmpty)
     }
+    @Test func deletionCredentialsRequireAndRedactAuthorizationCode() throws {
+        let nonce = try AppleSignInNonce.generate()
+        let credentials = try AppleAccountDeletionCredentials(identityToken: token,
+            authorizationCode: Data("one-time-authorization-code".utf8), nonce: nonce)
+        #expect(credentials.authorizationCode() == "one-time-authorization-code")
+        #expect(!String(reflecting: credentials).contains("one-time-authorization-code"))
+        #expect(Mirror(reflecting: credentials).children.isEmpty)
+        #expect(throws: AppleSignInError.self) {
+            try AppleAccountDeletionCredentials(identityToken: token, authorizationCode: nil, nonce: nonce)
+        }
+    }
     @Test(arguments: [nil, Data(), Data([0xff]), Data("a.b".utf8), Data("a..c".utf8), Data("a.b.c.d".utf8), Data("a.b.c\n".utf8), Data(repeating: 65, count: 16_385)])
     func missingOrMalformedTokensNeverReachBackend(token: Data?) async throws {
         let backend = AppleMockBackend(), session = AccountSessionCoordinator(backendFactory: { backend })

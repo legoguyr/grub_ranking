@@ -8,7 +8,7 @@ The temporary Onboarding / Profile / Sharing experiment is complete. Parallel fe
 
 Use **one Simulator/UI-test lane at a time**. Do not create new feature worktrees or parallel workers unless the user explicitly requests them. Future genuinely independent social/backend/moderation work may justify parallelization, with shared contracts and Simulator ownership agreed first. Inspect branch/status before work; never reset, clean, discard or overwrite unexpected changes. Physical approval and distribution remain separate gates.
 
-The repository remains `legoguyr/grub_ranking`; this checkout is not renamed or moved.
+The repository is now `legoguyr/StayGrubby`. The historical local checkout path is unchanged.
 
 ## Completed experiment and retained history
 

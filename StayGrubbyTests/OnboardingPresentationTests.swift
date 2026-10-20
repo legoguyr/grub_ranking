@@ -42,9 +42,17 @@ struct OnboardingPresentationTests {
         #expect(presentation(.provisioning(identity), failed: true).isWorking)
     }
 
+    @Test func interruptedDeletionHasASeparatedRecoveryMessage() {
+        let value = presentation(.deletionRequired(identity, account.accountID))
+        #expect(value.isError && !value.isWorking && value.retry == nil)
+        #expect(value.title.contains("deleting") && value.message.contains("Apple"))
+        #expect(value.signOutTitle == nil)
+    }
+
     @Test func signOutCleanupTakesPriorityOverAllOtherPresentation() {
         for state in [AccountSessionState.guest, .signInFailed, .authorizingApple, .authenticating,
-                      .loadingSession, .provisioning(identity), .retryRequired(.provision, identity), .resolved(account)] {
+                      .loadingSession, .provisioning(identity), .retryRequired(.provision, identity),
+                      .resolved(account), .deletionRequired(identity, account.accountID)] {
             let value = presentation(state, failed: true, signingOut: true)
             #expect(value.title == "Signing out…" && value.isWorking)
             #expect(!value.isError && value.retry == nil && value.signOutTitle == nil)

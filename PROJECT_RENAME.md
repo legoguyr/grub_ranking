@@ -1,5 +1,7 @@
 # StayGrubby project identity and simulator library transfer
 
+Repository note (October 18, 2026): GitHub subsequently renamed the repository to `legoguyr/StayGrubby`, and the canonical `origin` now uses `https://github.com/legoguyr/StayGrubby.git`. References below to the older remote are retained only as history of the product/project rename checkpoint.
+
 The canonical application identity is **StayGrubby**, bundle ID `com.guyrettig.StayGrubby`. The project is `StayGrubby.xcodeproj`, its shared scheme and app target/module/executable are `StayGrubby`, and the test targets/modules are `StayGrubbyTests` and `StayGrubbyUITests`. Debug and Release preserve automatic signing with team `5DSB36G7LZ` and the `Default` Sign in with Apple entitlement in `StayGrubby/StayGrubby.entitlements`. The app remains iPhone upright-portrait only.
 
 The approved starting checkpoint was `4e391b9124379e4cf94c8c2792792704eb7e36f5` on main. Manual team/entitlement changes were retained. Although the requested bundle ID had been selected manually, the saved project still contained the old ID in both configurations; this pass corrects those saved settings. No native Apple login is implemented.

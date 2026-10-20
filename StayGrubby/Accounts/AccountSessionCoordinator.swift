@@ -10,7 +10,12 @@ nonisolated enum AccountSessionState: Equatable {
     case loadingSession
     case provisioning(AuthenticatedIdentity)
     case resolved(ProvisionedAccount)
+    case deletionRequired(AuthenticatedIdentity, UUID)
     case retryRequired(RetryStep, AuthenticatedIdentity?)
+}
+
+nonisolated enum AccountDeletionProgress: Equatable {
+    case idle, needsAuthorization, authorizingApple, deleting, failed
 }
 
 /// Auth/account resolution is separate from library readiness. The application
@@ -21,6 +26,8 @@ nonisolated enum AccountSessionState: Equatable {
     private(set) var remoteSignOutFailed = false
     private(set) var isSigningOut = false
     private(set) var offlineResolution = false
+    private(set) var deletionProgress: AccountDeletionProgress = .idle
+    private(set) var pendingLocalDeletionAccountID = AccountDeletionCleanupJournal.pendingAccountID
     var hasPendingAppleRequest: Bool { pendingApple != nil }
     @ObservationIgnored private let backendFactory: @MainActor () throws -> any AccountBackend
     @ObservationIgnored private let stopAccountWork: @MainActor () -> Void
@@ -30,6 +37,7 @@ nonisolated enum AccountSessionState: Equatable {
     @ObservationIgnored private var generation = 0
     @ObservationIgnored private var identity: AuthenticatedIdentity?
     @ObservationIgnored private var pendingApple: (request: AppleSignInRequest, nonce: AppleSignInNonce)?
+    @ObservationIgnored private var pendingDeletionApple: (request: AppleSignInRequest, nonce: AppleSignInNonce)?
     @ObservationIgnored private var authenticationWork: Task<AuthenticatedIdentity, Error>?
     @ObservationIgnored private var startedRestoration = false
     @ObservationIgnored private let nonceFactory: () throws -> AppleSignInNonce
@@ -49,6 +57,8 @@ nonisolated enum AccountSessionState: Equatable {
         generation += 1; eventWork?.cancel(); eventWork = nil
         preparedStore = nil; identity = nil; stopAccountWork()
         pendingApple = nil
+        pendingDeletionApple = nil
+        deletionProgress = .idle
         offlineResolution = false
     }
     /// Runs behind onboarding; no saved session means no provisioning/network.
@@ -156,6 +166,13 @@ nonisolated enum AccountSessionState: Equatable {
             state = .resolved(account)
         } catch {
             guard current == generation, !Task.isCancelled else { return }
+            if let deletion = service as? any AccountDeletionBackend,
+               let status = try? await deletion.accountDeletionStatus(), status.pending,
+               let accountID = status.accountID, current == generation, !Task.isCancelled {
+                deletionProgress = .needsAuthorization
+                state = .deletionRequired(identity, accountID)
+                return
+            }
             if isOfflineConnectionError(error), let library = service as? any AccountLibraryBackend,
                let cached = try? library.offlineAccount(for: identity),
                (try? cached.validate(for: identity)) != nil, cached.libraryState == .initialized {
@@ -210,6 +227,65 @@ nonisolated enum AccountSessionState: Equatable {
         default: break
         }
     }
+    func requestAccountDeletion() { deletionProgress = .needsAuthorization }
+    func cancelAccountDeletionRequest() {
+        guard pendingDeletionApple == nil, deletionProgress != .deleting else { return }
+        if case .deletionRequired = state { deletionProgress = .needsAuthorization }
+        else { deletionProgress = .idle }
+    }
+    func beginAccountDeletionAuthorization() -> AppleSignInRequest? {
+        guard !isSigningOut, deletionProgress == .needsAuthorization || deletionProgress == .failed else { return nil }
+        let expected: AuthenticatedIdentity?
+        switch state {
+        case .resolved(let account): expected = AuthenticatedIdentity(userID: account.authUserID)
+        case .deletionRequired(let identity, _): expected = identity
+        default: expected = nil
+        }
+        guard expected == identity else { return nil }
+        do {
+            let nonce = try nonceFactory(), request = AppleSignInRequest(id: UUID(), hashedNonce: nonce.hash)
+            pendingDeletionApple = (request, nonce); deletionProgress = .authorizingApple
+            return request
+        } catch { deletionProgress = .failed; return nil }
+    }
+    func accountDeletionAuthorizationFailed(requestID: UUID, cancelled: Bool) {
+        guard pendingDeletionApple?.request.id == requestID else { return }
+        pendingDeletionApple = nil
+        deletionProgress = cancelled ? .needsAuthorization : .failed
+    }
+    func completeAccountDeletion(requestID: UUID, identityToken: Data?, authorizationCode: Data?) async {
+        guard let pending = pendingDeletionApple, pending.request.id == requestID,
+              let expected = identity, let service = backend as? any AccountDeletionBackend else { return }
+        pendingDeletionApple = nil; deletionProgress = .deleting
+        let accountID: UUID
+        switch state {
+        case .resolved(let account) where account.authUserID == expected.userID: accountID = account.accountID
+        case .deletionRequired(let user, let owner) where user == expected: accountID = owner
+        default: deletionProgress = .failed; return
+        }
+        do {
+            let credentials = try AppleAccountDeletionCredentials(identityToken: identityToken,
+                authorizationCode: authorizationCode, nonce: pending.nonce)
+            let authenticated = try await service.signInWithApple(credentials.signIn)
+            guard authenticated == expected else { throw AccountFoundationError.identityChanged }
+            try await service.deleteCurrentAccount(authorizationCode: credentials.authorizationCode())
+            try AccountDeletionCleanupJournal.record(accountID)
+            pendingLocalDeletionAccountID = accountID
+            invalidateAccount(); observer?.cancel(); observer = nil
+            state = .guest; deletionProgress = .idle
+            try? await service.signOutLocally()
+        } catch {
+            deletionProgress = .failed
+        }
+    }
+    func finishPendingLocalDeletion() {
+        guard let accountID = pendingLocalDeletionAccountID else { return }
+        do {
+            try LocalAccountDataDeletion.remove(accountID)
+            AccountDeletionCleanupJournal.clear(accountID)
+            pendingLocalDeletionAccountID = nil
+        } catch { }
+    }
     /// Selects the resolved permanent UUID, never the Auth UUID. Part 1 does not mount it.
     @discardableResult func prepareResolvedStore(root: URL? = nil) throws -> LocalStoreSession {
         guard case .resolved(let account) = state, account.authUserID == identity?.userID
@@ -220,7 +296,7 @@ nonisolated enum AccountSessionState: Equatable {
         return session
     }
     func signOut() async {
-        guard !isSigningOut else { return }
+        guard !isSigningOut, deletionProgress != .deleting else { return }
         isSigningOut = true
         let authenticating = authenticationWork
         authenticating?.cancel()

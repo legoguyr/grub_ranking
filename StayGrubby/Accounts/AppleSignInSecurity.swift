@@ -34,7 +34,7 @@ nonisolated struct AppleSignInRequest: Equatable {
     }
 }
 
-nonisolated enum AppleSignInError: Error { case randomnessUnavailable, invalidToken }
+nonisolated enum AppleSignInError: Error { case randomnessUnavailable, invalidToken, invalidAuthorizationCode }
 
 nonisolated struct AppleSignInCredentials: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable {
     private let identityToken: String
@@ -53,6 +53,22 @@ nonisolated struct AppleSignInCredentials: CustomStringConvertible, CustomDebugS
         OpenIDConnectCredentials(provider: .apple, idToken: identityToken, nonce: rawNonce)
     }
     var description: String { "AppleSignInCredentials(redacted)" }
+    var debugDescription: String { description }
+    var customMirror: Mirror { Mirror(self, children: [:]) }
+}
+
+nonisolated struct AppleAccountDeletionCredentials: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable {
+    let signIn: AppleSignInCredentials
+    private let code: String
+    init(identityToken: Data?, authorizationCode: Data?, nonce: AppleSignInNonce) throws {
+        signIn = try AppleSignInCredentials(identityToken: identityToken, nonce: nonce)
+        guard let authorizationCode, authorizationCode.count <= 4_096,
+              let value = String(data: authorizationCode, encoding: .utf8), value.count >= 8
+        else { throw AppleSignInError.invalidAuthorizationCode }
+        code = value
+    }
+    func authorizationCode() -> String { code }
+    var description: String { "AppleAccountDeletionCredentials(redacted)" }
     var debugDescription: String { description }
     var customMirror: Mirror { Mirror(self, children: [:]) }
 }

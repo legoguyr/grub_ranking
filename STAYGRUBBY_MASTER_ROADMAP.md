@@ -1,6 +1,6 @@
 # StayGrubby Master Roadmap
 
-Canonical product roadmap, reconciled October 15, 2026. Future sections are **planning only**, not implemented features or authorization to build them.
+Canonical product roadmap, reconciled October 20, 2026. Future sections are **planning only**, not implemented features or authorization to build them.
 
 **DISCOVER → SAVE → COOK → RANK → REMEMBER → SHARE → INSPIRE**
 
@@ -10,10 +10,10 @@ Personal comparison ranking remains central. Saving something never means it was
 
 - Core V1, Apple account gating, private structured/photo sync, versions, re-ranking, score visibility and native local sharing are implemented. Combined V1 checkpoint: `9968390465658c2a118d2668ee44a0958ea1ec1b`; release configuration: `067c7b69b223ea60067297132a765a0ccd352238`.
 - User-confirmed **StayGrubby 1.0 (1)** archive, validation and **TestFlight Internal Only upload succeeded**. Upload is not outstanding. This build predates the three presentation branches.
-- Completed Onboarding/Profile/Sharing work is integrated and verified as one application through [V1_INTEGRATION_REVIEW.md](V1_INTEGRATION_REVIEW.md). Worker results alone are not combined approval.
-- The integrated build requires new physical-iPhone review before deciding whether another TestFlight build is warranted. No automatic upload, build-number change or tester addition.
+- Completed Onboarding/Profile/Sharing work is integrated and passed physical-iPhone review as one application through [V1_INTEGRATION_REVIEW.md](V1_INTEGRATION_REVIEW.md).
+- The integrated physical approval does not authorize an automatic upload, build-number change or tester addition.
 - Default development is one primary workflow on main, one Simulator lane; see [PARALLEL_DEVELOPMENT.md](PARALLEL_DEVELOPMENT.md). Feature worktrees remain for later cleanup.
-- Coordinated account deletion/Apple revocation, published privacy policy/in-app access and public disclosures remain release/privacy work. Existing account/cloud infrastructure is substantial; do not reimplement it as a future phase.
+- Coordinated account deletion and in-app access to a canonical policy are implemented for the next release. The owner configured the Apple server credential; the ninth migration and authenticated function deployed October 20. Privacy/contact foundations use `staygrubby.com`, `https://staygrubby.com/privacy`, `privacy@staygrubby.com`, `support@staygrubby.com`, and effective date October 20, 2026. A minimal static Cloudflare Pages website is prepared. Remaining external-release gates are owner website publication, disposable-account physical Apple revocation/deletion validation, and final App Store privacy entries. No new app distribution occurred. Existing account/cloud infrastructure is substantial; do not reimplement it as a future phase.
 
 ## Architecture and ranking independence
 
@@ -49,7 +49,7 @@ Historical physical approvals apply to their tested builds; integrated approval 
 
 Already implemented: native Apple/Supabase authentication, protected permanent-account ownership, private structured/photo sync, restore, receipts/revisions/tombstones and account isolation. A minimal private profile table and case-insensitive username constraint also exist; user-facing handle lifecycle and social profiles do not. Build on this.
 
-Remaining: coordinated account deletion/data handling/revocation, truthful published privacy disclosures; usernames, user-facing profiles and public/friends/private concepts; independent content visibility and social ownership/authorization; compatibility with saved recipes, creator attribution and shared cooking. Backend enforcement is mandatory, not merely hidden UI.
+Implemented for the next release: deliberate account deletion UI, fresh Apple verification, a deployed server-only idempotent deletion state machine, private Storage/account/Auth cleanup ordering, exact local cleanup, and signed-in/signed-out access to the canonical policy with a public system link and offline copy. Remaining release work: validate with a disposable physical account, connect/publish the prepared static Cloudflare website, and complete App Store disclosures. The single-source policy is `StayGrubby/Legal/PrivacyPolicy.md`; the app bundles it and the website build renders it. Future product work remains usernames, user-facing profiles and public/friends/private concepts; independent content visibility and social ownership/authorization; compatibility with saved recipes, creator attribution and shared cooking. Backend enforcement is mandatory, not merely hidden UI.
 
 ## 3. Profiles + Friends
 

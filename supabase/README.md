@@ -1,5 +1,13 @@
 # StayGrubby hosted setup — October 11, 2026
 
+## Post-V1 account deletion deployment — October 20, 2026
+
+The ninth migration `20261020141022_account_deletion_foundation.sql` and authenticated `delete-account` version 2 are deployed. Supabase assigned that version at deployment; the earlier unapplied local filename was `20261018202309_account_deletion_foundation.sql`. SQL bytes/hash are unchanged, and all nine local hashes match hosted history. The original eight migrations were not edited. The function has JWT verification enabled and rejects unauthenticated POSTs. All 17 private tables have RLS, with zero anonymous table grants and zero direct authenticated writes. No user/account/data deletion was invoked.
+
+The owner has configured the correct Sign in with Apple server key for Team `5DSB36G7LZ` and client ID `com.guyrettig.StayGrubby` directly in Supabase. The protected Edge Function secret `STAYGRUBBY_APPLE_CREDENTIALS` contains JSON fields `teamID`, `keyID`, `clientID`, and `privateKey`. Only the name's presence was inspected; no secret value or private key was read. Never place those values in Git, app/website assets, shell history, logs or chat. Remaining: validate cancellation, failure, retry and full Apple revocation/deletion on a disposable physical-iPhone account, never the owner's account. The server compares Apple's signed subject to the linked identity's `identity_data.sub`; `identity_id` is a Supabase row UUID and is not valid for that purpose.
+
+The function fails closed before beginning database deletion if Apple configuration/token verification/revocation fails. The current hosted aggregate data counts remain unchanged and no deletion jobs exist. The canonical privacy policy, effective October 20, is prepared for `https://staygrubby.com/privacy`, with `privacy@staygrubby.com` and `support@staygrubby.com`. Cloudflare website publication remains an owner step (`../Website/README.md`). See `../ACCOUNT_DELETION_PRIVACY_REVIEW.md` for final evidence and limitations.
+
 Current native application/Apple Client ID: `com.guyrettig.StayGrubby`. The project/source rename preserves the client-safe plist, pinned SDK and all hosted migrations/account behavior; see `../PROJECT_RENAME.md`. Initial setup/provider limitations below are historical, not instructions to revert the manually configured Apple provider.
 
 ## Target and tooling

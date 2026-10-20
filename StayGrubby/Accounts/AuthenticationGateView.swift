@@ -37,6 +37,7 @@ struct AuthenticationGateView: View {
     @Environment(\.dynamicTypeSize) private var typeSize
     let setupFailed: Bool
     let retrySetup: () -> Void
+    @State private var showingPrivacyPolicy = false
 
     private var presentation: AuthenticationGatePresentation {
         .init(state: session.state, setupFailed: setupFailed, isSigningOut: session.isSigningOut)
@@ -69,6 +70,7 @@ struct AuthenticationGateView: View {
         .tint(SGTheme.ColorToken.accent)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("authentication-gate")
+        .sheet(isPresented: $showingPrivacyPolicy) { PrivacyPolicyView() }
     }
 
     private var introduction: some View {
@@ -164,8 +166,12 @@ struct AuthenticationGateView: View {
                 }
             }
 
-            // Never conditionally replace this control while Apple owns its request.
-            NativeAppleAuthenticationButton()
+            if case .deletionRequired = session.state {
+                AccountDeletionAuthorizationView(canCancel: false, cancel: {})
+            } else {
+                // Never conditionally replace this control while Apple owns its request.
+                NativeAppleAuthenticationButton()
+            }
 
             if let retry = presentation.retry {
                 Button("Try again") {
@@ -188,6 +194,9 @@ struct AuthenticationGateView: View {
                 Text("Signed out on this device. The server couldn’t confirm sign-out.")
                     .font(.footnote).foregroundStyle(.secondary)
             }
+            Button("Privacy Policy") { showingPrivacyPolicy = true }
+                .font(.footnote).frame(minHeight: SGTheme.Size.minimumTap)
+                .accessibilityIdentifier("privacy-policy-open")
         }
     }
 }

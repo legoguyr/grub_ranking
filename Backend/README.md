@@ -1,3 +1,9 @@
+# Post-V1 account deletion foundation
+
+A ninth migration, `20261020141022_account_deletion_foundation.sql`, adds a durable self-only deletion state and authenticated initiation/status RPCs. It and `delete-account` version 2 deployed on October 20 after the owner configured the protected Apple secret. Stage advancement and graph erasure remain service-role-only. The account graph can be erased only after private Storage is confirmed empty; the job survives until the Auth user is deleted. `delete-account` derives the user from the verified session. The local disposable harness covers cancellation/failure seams in iOS plus cross-account denial, stage ordering, Storage gating, idempotency and full cascade cleanup in PostgreSQL. Six Deno tests cover Apple subject mapping and fail-closed fresh authorization on all retry stages. Full Apple exchange/revocation still needs disposable physical-account validation; no real account was deleted by deployment.
+
+All nine local hashes match hosted history; the originally undeployed ninth file was renamed to Supabase's assigned deployment version without changing its SQL. Never reapply the reference `schema.sql` or the ninth migration to hosted. See `../ACCOUNT_DELETION_PRIVACY_REVIEW.md` for evidence and `../Website/README.md` for pending public-policy publication.
+
 # Current Phase 3D Part 2 private cooking-photo API
 
 Eight migrations now include private_cooking_photo_backup. Four exposed API entry points cover provisioning, structured snapshot/apply and owner-derived media manifest lifecycle. Optimized bytes use authenticated private Storage with exact account/media/hash paths; clients retain no privileged credentials or direct application-table write grants. Run npm test for schema/structured/photo policy checks; test:structured:native, test:photos:native and test:concurrency require the disposable Unix-socket cluster. Storage stubs are isolated SQL catalogs, not claims of HTTP/S3 byte testing. MEDIA_SYNC_ARCHITECTURE.md and PHASE_3D_PHOTO_SYNC_REVIEW.md document security, cleanup, hashes and pending physical review; older migration/table/API counts below are historical.
@@ -39,3 +45,14 @@ PostgREST uses the supported authenticator-role schema configuration, retaining 
 For genuine concurrent transactions, install a local PostgreSQL 17 test cluster, start it on a temporary Unix socket with no network listener, set PG_TEST_SOCKET to its `/private/tmp/staygrubby-...` socket directory (and PG_TEST_PORT if needed), then run `npm run test:concurrency` in Backend/tests. The script refuses remote connection settings and creates/drops only a uniquely named fixture database. Its 13 assertions include 20 blocked callers plus the holding transaction, lost-response retry, rollback and revocation while waiting. Test-driver pg 8.23.1 is pinned; temporary binary tooling @embedded-postgres/darwin-arm64 17.10.0-beta.17 was used for this validation but is not an app/repository dependency.
 
 See [account architecture](../ACCOUNT_ARCHITECTURE.md) for the SDK/session/store boundary and remaining Apple-dependent work.
+
+## Edge Function contract tests
+
+With Deno installed, run from the repository root in a clean environment:
+
+```
+env -i PATH="$PATH" deno test --allow-env --config supabase/functions/delete-account/deno.json supabase/functions/delete-account/
+deno check --config supabase/functions/delete-account/deno.json supabase/functions/delete-account/index.ts
+```
+
+The tests use ephemeral in-memory synthetic signing keys and mocked Apple/Storage/Auth calls; no network permission is granted to test code. They reject inherited Apple credentials. The clean environment also lets the SDK's runtime detection inspect ordinary environment names without inheriting user secrets. The test files are not deployed. The production export always retains the authenticated `withSupabase` wrapper. These contract tests do not replace disposable physical Apple revocation/deletion validation.

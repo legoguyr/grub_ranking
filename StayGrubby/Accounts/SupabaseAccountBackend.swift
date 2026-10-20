@@ -43,6 +43,18 @@ nonisolated struct ProvisionedAccount: Codable, Equatable, Sendable {
 }
 nonisolated enum AccountFoundationError: Error { case invalidResolution, accountNotResolved, identityChanged }
 
+nonisolated struct AccountDeletionStatus: Codable, Equatable, Sendable {
+    let pending: Bool
+    let accountID: UUID?
+    let state: String?
+    enum CodingKeys: String, CodingKey { case pending, accountID = "account_id", state }
+}
+
+@MainActor protocol AccountDeletionBackend: AccountBackend {
+    func accountDeletionStatus() async throws -> AccountDeletionStatus
+    func deleteCurrentAccount(authorizationCode: String) async throws
+}
+
 /// Provider credentials are ephemeral; persistent session tokens stay inside SDK Auth storage.
 @MainActor protocol AccountBackend: AnyObject {
     func signInWithApple(_ credentials: AppleSignInCredentials) async throws -> AuthenticatedIdentity
@@ -52,7 +64,7 @@ nonisolated enum AccountFoundationError: Error { case invalidResolution, account
     func signOutLocally() async throws
 }
 
-@MainActor final class SupabaseAccountBackend: AccountLibraryBackend {
+@MainActor final class SupabaseAccountBackend: AccountLibraryBackend, AccountDeletionBackend {
     let client: SupabaseClient
     init(configuration: SupabaseClientConfiguration) {
         // SDK defaults persist sessions in Keychain; no custom preferences or model storage.
@@ -107,5 +119,15 @@ nonisolated enum AccountFoundationError: Error { case invalidResolution, account
         if let user = client.auth.currentSession?.user.id { VerifiedAccountCache.remove(AuthenticatedIdentity(userID: user)) }
         // In this pinned SDK, local session removal precedes the logout network request.
         try await client.auth.signOut(scope: .local)
+    }
+    func accountDeletionStatus() async throws -> AccountDeletionStatus {
+        try await client.schema("api").rpc("account_deletion_state").execute().value
+    }
+    func deleteCurrentAccount(authorizationCode: String) async throws {
+        struct Request: Encodable { let authorizationCode: String }
+        struct Receipt: Decodable { let deleted: Bool }
+        let receipt: Receipt = try await client.functions.invoke("delete-account",
+            options: FunctionInvokeOptions(body: Request(authorizationCode: authorizationCode)))
+        guard receipt.deleted else { throw AccountFoundationError.invalidResolution }
     }
 }
