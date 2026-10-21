@@ -8,7 +8,7 @@ A dedicated private profile-photos bucket, owner-scoped immutable version paths 
 
 Local focused SQL: 29 assertions passed, including draft/upload ownership, unauthorized replacement/removal, discoverability/friends/block visibility, no listing/anonymous access, safe DTOs, immutable replacement, cleanup, deletion guard/cascade and ranking-cache preservation. Synthetic deletion-function tests: 8 passed, including avatar cleanup failure preventing graph/Auth erasure. Native avatar/session tests: 5 passed. Debug build passed. Initial new UI failure identified automatic Form-row button propagation between photo selection/removal; independent borderless controls correct it. Final dark avatar preview/save/remove UI passed 1/1 in `/private/tmp/staygrubby-avatar-ui-final.xcresult`, zero failures/skips. The account/schema checks also passed 82 assertions against the additive migration. Native photo-library selection itself remains for real-device review; the isolated UI test injects synthetic selected bytes into the same preview/save path.
 
-Hosted deployment is pending direct owner approval because automatic approval review rejected attachment-only authorization for the persistent avatar/profile/Storage/deletion migration. No alternate deployment route is used. Later deployment results and exact migration timestamps will be recorded when authorized.
+Hosted deployment completed after the owner supplied direct approval. The initial attachment-only authorization rejection was respected; no alternate route was used. Exact deployed versions and verification are recorded below.
 
 No TestFlight/archive, physical device, real Apple deletion, secret inspection, website publication or App Store Connect work occurred.
 
@@ -16,7 +16,7 @@ No TestFlight/archive, physical device, real Apple deletion, secret inspection, 
 
 `profiles.auto_share_new_cooks` is an account-owned, account-synced boolean with a non-null OFF default. The narrow identity RPC reads/updates it; an old client's omitted field preserves an existing deliberate choice. A separate sharing action requires configured social identity and derives the owner from live Auth. Setup can choose ON/OFF without a photo or automatic sharing being required. Profile → Social settings provides the normal user-facing control. The setting affects future New Dish/New Version defaults only, with no post creation/deletion or cooking mutations in its RPC.
 
-The focused preference SQL harness passed 12 assertions, including legacy OFF, intentional setup ON/OFF, cross-account forgery denial, anonymous denial, old-client preservation and no retroactive publication. Native legacy/unconfigured default unit passed. Settings save/reopen passed 1/1 in `/private/tmp/staygrubby-defaults-setting-ack.xcresult`; light accessibility-size setup with deliberate ON selection passed 1/1 in `/private/tmp/staygrubby-sharing-logic-setup.xcresult`. The first new test tapped the full SwiftUI labeled switch row rather than its nested control; hierarchy evidence identified the selector error. The final harness uses the actual switch and asserts the new value and navigation completion. An earlier large-text text-entry focus miss uses the existing focus-aware helper. No assertion was removed. Hosted deployment remains subject to the direct approval request above.
+The focused preference SQL harness passed 12 assertions, including legacy OFF, intentional setup ON/OFF, cross-account forgery denial, anonymous denial, old-client preservation and no retroactive publication. Native legacy/unconfigured default unit passed. Settings save/reopen passed 1/1 in `/private/tmp/staygrubby-defaults-setting-ack.xcresult`; light accessibility-size setup with deliberate ON selection passed 1/1 in `/private/tmp/staygrubby-sharing-logic-setup.xcresult`. The first new test tapped the full SwiftUI labeled switch row rather than its nested control; hierarchy evidence identified the selector error. The final harness uses the actual switch and asserts the new value and navigation completion. An earlier large-text text-entry focus miss uses the existing focus-aware helper. No assertion was removed. Hosted deployment is complete; the local and hosted SQL hashes match as recorded below.
 
 ## Checkpoint 3 — Per-entry sharing integration
 
@@ -30,7 +30,7 @@ Initial focused new-flow verification passed the existing manual composer and de
 
 ## Checkpoint 4 — Integrated verification and release state
 
-The enhancement is **implemented and verified locally**. Hosted deployment is **not complete**: automatic approval review rejected both migration attempts because it did not accept authorization in the attached task as direct approval for this exact hosted scope. A direct approval question is pending. No alternate deployment path was used. No hosted migration, function, Auth user, cooking record, social record or photo object was changed by this run. The enhanced client must not be uploaded before this gate is resolved and the deployed changes are checked.
+The enhancement is **implemented, locally verified and deployed**. Automatic approval review initially rejected attachment-only authorization; the owner then directly approved this exact hosted scope and a normal push. The approved migration/function tools deployed the tested changes. No Auth user, cooking record, social post or photo object was created, reset or deleted. Physical review and the owner release actions below remain; no upload is authorized by this checkpoint.
 
 ### Final verification evidence
 
@@ -57,20 +57,22 @@ Debug build and Simulator launch succeeded, including the final source build `/p
 
 Retained light/dark screenshots were inspected: large-text minimal profile with initials and long display name; dark Feed author avatar and locked score; light New Version sharing control. Text wraps, identity remains visible beside the avatar, controls remain reachable and cooking stays primary. The new sharing-toggle label uses primary text; explanatory copy stays secondary. The default-setting copy explicitly states that shared new cooks include a food photo when present and only an unlocked score.
 
-### Hosted state and exact pending deployment
+### Hosted deployment and verification
 
-Read-only reconciliation before/after local development found the same **16 deployed migrations**, each with exact version/name/SQL MD5 matching the original local file. All **24/24** application tables retain RLS; zero anonymous API execution and zero direct authenticated private-table write grants. `Backend/schema.sql` equals all **18** ordered local migration files. Exactly these two additive migrations are pending:
+Read-only reconciliation before deployment found **16 aligned migrations**. After deployment, **18/18** local/hosted version/name/SQL MD5 values match, including every unchanged original migration. All **24/24** application tables retain RLS; zero anonymous API execution and zero direct authenticated private-table write grants. `Backend/schema.sql` equals all **18** ordered local migration files. The two additive migrations deployed are:
 
-| Local version/name | Current local SQL MD5 | Hosted status |
+| Final local/hosted version/name | SQL MD5 | Hosted status |
 | --- | --- | --- |
-| `20261021192915_social_profile_photos` | d592b61697087bdc9d8d090d12caf1e2 | Not deployed |
-| `20261021193903_social_sharing_defaults` | cb6fae2acf27abfe8ac8945a66a2df23 | Not deployed |
+| `20261021214310_social_profile_photos` | d592b61697087bdc9d8d090d12caf1e2 | Deployed |
+| `20261021214320_social_sharing_defaults` | cb6fae2acf27abfe8ac8945a66a2df23 | Deployed |
 
-The first migration remains unapplied, so its draft-retention correction was committed as a normal follow-up diff, not a history rewrite or an edit to an applied migration. Supabase-assigned versions must be reconciled after authorized deployment; never redeploy the original 16 migrations.
+The draft-retention correction was committed before deployment as an ordinary follow-up diff. Local filenames were then aligned from `20261021192915`/`20261021193903` to the two Supabase-assigned versions above without changing SQL bytes. The first authorized request expired with Invalid or expired requestState; hosted history confirmed nothing had applied before a successful retry. The original 16 migrations were not redeployed.
 
-The local `delete-account` update adds `profile-photos` to the existing ordered cleanup/verification loop, with the matching SQL erasure guard. Hosted function remains **v3 ACTIVE, JWT verification true**, bundle SHA256 `c7f421418b3b502e861b760c9bfe547964e7d146603db24532e947fff4a429cf`; it has not been replaced in this run. Deploy the tested local update only after approval. Do not invoke real deletion.
+Hosted `delete-account` is now **v4 ACTIVE, JWT verification true**, bundle SHA256 `61be13a0430ab018a0557855e79b4eac05fecc4af456b11f20bd7ac5d7a14f14`. All three deployed files read back exactly equal to the tested local sources. The update adds `profile-photos` to the existing ordered cleanup/verification loop, with the matching SQL erasure guard. Apple proof/revocation remains unchanged. No real deletion was invoked.
 
-Current hosted buckets remain `cooking-photos` private / 44 objects and `social-photos` private / 0 objects. `profile-photos` has **not** been created hosted. Local migration/security validation configures it private, JPEG-only / 2 MiB, with authenticated current-audience reads, actor-owned draft writes, owner-orphan deletes and denied enumeration. No public/signed avatar URLs are generated. Photos never grant access to the private cooking bucket.
+Hosted buckets are `cooking-photos` private / 44 objects, `social-photos` private / 0 objects and the new `profile-photos` private / 0 objects. All retain JPEG-only / 2 MiB constraints. Four deployed avatar policies bind authenticated operations to the caller-derived visibility/ownership helper; UPDATE has both USING and WITH CHECK. The internal arbitrary-viewer avatar helper is unavailable to clients. The sharing column is non-null with default false; all three existing accounts remain OFF, with no avatar/draft paths. No public/signed avatar URLs are generated. Photos never grant access to the private cooking bucket.
+
+The hosted security advisor reports no ERROR findings or new warning category: nine existing intentional closed-table RLS/no-policy INFO findings ([reference](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy)) and the existing disabled leaked-password-protection warning ([reference](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection)); unused password authentication was already disabled. No Auth configuration changed.
 
 ### Data and scope preservation
 
@@ -82,7 +84,7 @@ Final refinements mark the account-owned publication journal excluded from devic
 
 ### Owner release actions and limitations
 
-1. Give direct approval for the two prepared migrations and avatar-aware deletion-function update. Then deploy through the approved migration/function tools and verify exact hashes, closed grants/RLS, all three private buckets and unchanged private fingerprints. Do not upload before this step.
+1. Hosted deployment and focused readback/security/data-preservation checks are complete. Continue with physical review and the privacy/release actions below before any separately approved upload.
 2. Publish the updated canonical policy through the existing website workflow and review App Store Connect privacy answers for optional profile photos/account-linked identity/content and automatic-sharing practices. Apple requires current disclosures for collected functional data; review Photos or Videos, User ID and relevant user content rather than treating optional UI as an automatic disclosure exemption: https://developer.apple.com/app-store/app-privacy-details/. No App Store Connect changes occurred here.
 3. Physically test two controlled signed-in accounts after deployment: native photo selection/cancel/replace/remove; own/friend/search/request/Feed/comment avatars and refresh after block/removal; account switching with no stale avatar; setup/default ON/OFF and cross-device setting retrieval; OFF→individual ON and ON→individual OFF; a New Version; offline/photo-interrupted sharing with intact private cooking, same-device relaunch/retry and no duplicate post; Keep private; edit/re-rank/restore without new publication; locked snapshots and delayed-unlock review; native image sharing independently. Review light/dark and meaningful Dynamic Type. No physical verification is claimed.
 4. Real Apple deletion/revocation remains intentionally deferred; do not turn it into a prerequisite or delete the owner's account. Automated guards/cascades cover avatar storage. Existing human moderation/release responsibilities from Social V1 remain.
@@ -94,4 +96,5 @@ Retirement/blocks are enforced on subsequent requests/refresh, not by push revoc
 - `78e27a601f8e402024603872b02177037f632140` — Add private social profile photo foundation
 - `2df5f94f3c969c1465100f233cc8b5d299c029e5` — Add account sharing defaults and social setup choice
 - `863999035b02045e9c961cb6fd5f2273f948b15c` — Carry per-cook sharing choices through completed ranking
-- The final verified integration/review checkpoint SHA, normal push outcome and final Git state are reported after its creation. No amend/squash/history rewrite or credential/configuration workaround is permitted.
+- `3dd6146e5a1c910eba0fdfd4cc0ac4744daa368e` — Verify social UX enhancements and document release gates
+- A small deployment closeout checkpoint records the two filename alignments and current deployment documentation; its SHA and normal push result are reported after creation. The original four checkpoints are unchanged. No amend/squash/history rewrite or credential/configuration workaround is permitted.

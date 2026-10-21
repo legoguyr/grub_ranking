@@ -1,6 +1,6 @@
 # StayGrubby social architecture
 
-Profile-photo/sharing-default enhancement deployment status is recorded in [SOCIAL_UX_REVIEW.md](SOCIAL_UX_REVIEW.md); the additive hosted changes remain pending direct approval after automatic approval-review rejection.
+Profile-photo/sharing-default enhancements are implemented and deployed: 18 aligned migrations, three private photo buckets and avatar-aware delete-account v4. Verification and remaining physical/privacy release actions are recorded in [SOCIAL_UX_REVIEW.md](SOCIAL_UX_REVIEW.md).
 
 Private cooking history and the social graph are separate. Social APIs never return the CookingGraph, private media paths, Auth identities, email or sync metadata. Social engagement never changes comparisons, strengths, scores, personal ranks or score-unlock eligibility. Existing accounts may keep using private StayGrubby without social setup.
 
