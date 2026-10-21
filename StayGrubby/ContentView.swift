@@ -7,6 +7,9 @@ struct ContentView: View {
 
     var body: some View {
         TabView(selection: $selection) {
+            NavigationStack { SocialFeedView(isSelected: selection == .feed) }
+                .tabItem { Label("Feed", systemImage: "house") }.tag(StayGrubbyTab.feed)
+
             HomeView()
                 .tabItem { Label("Rankings", systemImage: "chart.bar.fill") }
                 .tag(StayGrubbyTab.rankings)
@@ -23,17 +26,7 @@ struct ContentView: View {
 
     }
 
-    // Re-enable in TabView when Profiles, Following, and Friends Feed are available.
-    private var feedDestination: some View {
-        NavigationStack {
-            ContentUnavailableView("Feed comes later", systemImage: "rectangle.stack",
-                description: Text("Your private cooking rankings stay local in this version."))
-                .navigationTitle("Feed").toolbar(.hidden, for: .navigationBar)
-                .safeAreaInset(edge: .top) { StayGrubbyHeader(page: "Feed", searchText: .constant(""), searching: .constant(false)) }
-                .background(SGTheme.ColorToken.background)
-        }
-        .tabItem { Label("Feed", systemImage: "house") }.tag(StayGrubbyTab.feed)
-    }
+
 }
 
 enum StayGrubbyTab: Hashable { case feed, rankings, profile }

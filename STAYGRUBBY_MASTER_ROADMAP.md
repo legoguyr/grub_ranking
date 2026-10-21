@@ -59,7 +59,7 @@ Release-foundation owner closeout: public staygrubby.com HTTPS/routing and App S
 
 ## 3. Profiles + Friends
 
-Social identity is implemented: optional display name, unique editable @username, 30-day old-handle reservation and discoverability off by default. Mutual friendship, blocking, minimal social profile lookup and Friends UI are implemented; no Feed is enabled yet. See [social review](SOCIAL_DEVELOPMENT_REVIEW.md).
+Social identity is implemented: optional display name, unique editable @username, 30-day old-handle reservation and discoverability off by default. Mutual friendship, blocking, minimal social profile lookup and Friends UI are implemented; the bounded chronological Friends Feed is enabled. See [social review](SOCIAL_DEVELOPMENT_REVIEW.md).
 
 Dedicated Friends experience/navigation. Prioritize **mutual friendship**, not followers: username search, requests, accept/decline, friends list/removal, friend profiles and permitted cooking activity/rankings. A profile does not publish private history. One-way following comes later for creators/chefs.
 
@@ -71,7 +71,7 @@ Published-image moderation; text moderation for captions/comments/bios/display n
 
 ## 5. Friends Feed + Social Part 1
 
-Chronological friends feed, newest first; permitted cooking activity, likes/comments, distinct profile/post privacy and blocking/reporting/moderation. No TikTok/Reels-style personalized feed. Safety/privacy dependencies precede public social release.
+Chronological friends feed and explicit cooking snapshots are implemented, newest first, with pagination, friend-only social photos, private/profile boundaries and blocking/reporting/moderation. Basic likes/comments are the remaining next checkpoint. No TikTok/Reels-style personalized feed. Safety/privacy dependencies precede public social release.
 
 ## 6. Shared Cooking + Social Part 2 + In-App Notifications
 

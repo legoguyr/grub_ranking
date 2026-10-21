@@ -152,6 +152,7 @@ struct FriendProfileView: View {
         defer { busy = false }
         do {
             _ = try await request("social_people", action, .init(peerID: person.id))
+            NotificationCenter.default.post(name: .socialContentChanged, object: nil)
             onChange()
             if ["block", "unblock", "remove", "decline", "cancel"].contains(action) { dismiss() }
             else { await refresh() }

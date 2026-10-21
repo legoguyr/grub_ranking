@@ -15,10 +15,21 @@ import SwiftUI
     init() {
         if ProcessInfo.processInfo.arguments.contains("--social-review-ready") { identity = .init(displayName: "Review Cook", username: "review_cook", discoverable: false) }
     }
+    private var feedFailures = ProcessInfo.processInfo.arguments.contains("--social-review-feed-error") ? 1 : 0
+    private var feedSeeded = false
     func request(_ endpoint: String, _ action: String, _ payload: SocialPayload) async throws -> Data {
         if endpoint == "social_identity" {
             if action == "save" { identity = SocialIdentity(displayName: payload.displayName ?? "", username: payload.username, discoverable: payload.discoverable ?? false) }
             return try JSONEncoder().encode(identity)
+        }
+        if endpoint == "social_feed" {
+            if feedFailures > 0 { feedFailures -= 1; throw URLError(.notConnectedToInternet) }
+            if !feedSeeded && ProcessInfo.processInfo.arguments.contains("--social-review-feed") {
+                feedSeeded = true
+                posts.append(SocialPost(id: UUID(uuidString: "20000000-0000-0000-0000-000000000001")!, author: people[0], title: "Harissa Chicken with Roasted Peppers", versionTitle: "Grilled with lemon", scoreText: "8.6", achievement: nil, createdAt: Date().timeIntervalSince1970, photoPath: nil, published: true, isAuthor: false, moderationState: "active"))
+            }
+            let visible = posts.filter { post in post.isAuthor || people.contains(where: { $0.id == post.author.id && $0.relationship == .friends }) }
+            return try JSONEncoder().encode(SocialPostsPage(posts: visible))
         }
         if endpoint == "social_content" {
             if action == "cleanup" { return Data(#"{"paths":[]}"#.utf8) }
@@ -31,7 +42,7 @@ import SwiftUI
             else if action == "publish", let index = posts.firstIndex(where: { $0.id == payload.postID }) {
                 let p = posts[index]; posts[index] = SocialPost(id: p.id, author: p.author, title: p.title, versionTitle: p.versionTitle, scoreText: p.scoreText, achievement: p.achievement, createdAt: p.createdAt, photoPath: p.photoPath, published: true, isAuthor: p.isAuthor, moderationState: p.moderationState)
             }
-            return try JSONEncoder().encode(SocialPostsPage(posts: payload.postID == nil ? posts : posts.filter { $0.id == payload.postID }))
+            return try JSONEncoder().encode(SocialPostsPage(posts: payload.postID == nil ? posts.filter(\.isAuthor) : posts.filter { $0.id == payload.postID }))
         }
         if endpoint == "social_report" { return Data(#"{"reported":true}"#.utf8) }
         guard endpoint == "social_people" else { throw URLError(.unsupportedURL) }

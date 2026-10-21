@@ -16,16 +16,28 @@ final class AccountEntryUITests: StayGrubbyUITestCase {
         let app=XCUIApplication()
         app.launchArguments=["--ui-test-store",UUID().uuidString];app.launchWithReviewOptions()
         XCTAssertTrue(app.rankingHeader.waitForExistence(timeout:15))
-        XCTAssertTrue(app.staticTexts["Your cooking, ranked"].exists)
-        XCTAssertEqual(app.tabBars.buttons.count,2)
+        XCTAssertTrue(app.staticTexts["Your cooking, ranked"].waitForExistence(timeout: 10), app.debugDescription)
+        XCTAssertTrue(app.tabBars.buttons["Rankings"].isSelected, app.debugDescription)
+        XCTAssertEqual(app.tabBars.buttons.count,3)
         XCTAssertTrue(app.tabBars.buttons["Rankings"].exists)
         XCTAssertTrue(app.tabBars.buttons["Profile"].exists)
-        XCTAssertFalse(app.tabBars.buttons["Feed"].exists)
-        app.tabBars.buttons["Profile"].tap()
+        XCTAssertTrue(app.tabBars.buttons["Feed"].exists)
+        let profile = app.tabBars.buttons["Profile"]
+        for _ in 0..<3 {
+            profile.tap()
+            let selected = XCTNSPredicateExpectation(predicate: NSPredicate(format: "isSelected == true"), object: profile)
+            if XCTWaiter.wait(for: [selected], timeout: 3) == .completed { break }
+        }
+        XCTAssertTrue(profile.isSelected, app.debugDescription)
         XCTAssertTrue(app.buttons["development-exit"].waitForExistence(timeout:10))
         XCTAssertFalse(app.buttons["account-sign-in-apple"].exists)
-        app.buttons["development-exit"].tap()
-        XCTAssertTrue(app.buttons["account-sign-in-apple"].waitForExistence(timeout:10))
+        let exit = app.buttons["development-exit"]
+        for _ in 0..<3 {
+            if !exit.isHittable { app.swipeUp() }
+            if exit.exists { exit.tap() }
+            if app.buttons["account-sign-in-apple"].waitForExistence(timeout: 3) { break }
+        }
+        XCTAssertTrue(app.buttons["account-sign-in-apple"].waitForExistence(timeout:10), app.debugDescription)
         XCTAssertFalse(app.rankingHeader.exists)
     }
 }

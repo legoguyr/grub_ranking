@@ -108,3 +108,25 @@ Checkpoint 5 file inventory:
 - `supabase/migrations/20261021094853_social_cooking_posts.sql`
 - `SOCIAL_ARCHITECTURE.md`
 - `SOCIAL_DEVELOPMENT_REVIEW.md`
+
+## Checkpoint 6 — Chronological Friends Feed
+
+15/15 disposable feed SQL assertions passed: exact keyset/tie ordering, bounded pages, author/friend visibility, discovery-off behavior, block/removal, retired/hidden/deleting accounts, anonymous denial and minimal DTOs. Deployed `20261021105037_social_chronological_feed`; all 15 hashes match and private fingerprints remain unchanged. The first UI bundle passed light accessibility layout but failed the transient-error assertion. Feed loading is now explicitly gated on its selected tab, preventing hidden-tab loads from consuming requests. The retry assertion remains strict, with hierarchy capture on failure. Account-entry expectations were updated from two tabs/no Feed to the now-intended three-tab navigation; authentication/exit assertions remain intact. Final UI results follow below.
+
+Final Feed UI: 2/2 passed in `/private/tmp/staygrubby-social-feed-retry.xcresult`; logged-out gate also passed in that run. The isolated development navigation/exit test initially had simulator tab and scroll-to-tap misses. Explicit selection/visible-button acknowledgement preserves every assertion and passed 1/1 in `/private/tmp/staygrubby-social-navigation-retry.xcresult`, including default Rankings selection and return to the Apple gate. No account application behavior was modified for these test issues. A prior run (`social-feed-final`) executed no tests because Accessibility initialization timed out; a non-erasing simulator restart recovered the runner. Earlier failed bundles remain recorded rather than counted as successes. Debug compiled successfully.
+
+Checkpoint 6 file inventory:
+
+- `Backend/schema.sql`
+- `Backend/tests/social-feed.test.mjs`
+- `SOCIAL_ARCHITECTURE.md`
+- `SOCIAL_DEVELOPMENT_REVIEW.md`
+- `STAYGRUBBY_MASTER_ROADMAP.md`
+- `StayGrubby/ContentView.swift`
+- `StayGrubby/Social/FriendsView.swift`
+- `StayGrubby/Social/SocialFeedView.swift`
+- `StayGrubby/Social/SocialReview.swift`
+- `StayGrubby/Social/SocialTransport.swift`
+- `StayGrubbyUITests/AccountEntryUITests.swift`
+- `StayGrubbyUITests/SocialFeedUITests.swift`
+- `supabase/migrations/20261021105037_social_chronological_feed.sql`
