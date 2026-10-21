@@ -22,6 +22,7 @@ struct SocialPostComposer: View {
     @Environment(\.cookingSyncCoordinator) private var sync
     @Environment(\.socialRequest) private var request
     @Environment(\.socialMedia) private var media
+    @Environment(\.socialPublication) private var publication
     @State private var identity: SocialIdentity?
     @State private var editingIdentity = false
     @State private var includePhoto = false
@@ -33,7 +34,7 @@ struct SocialPostComposer: View {
     @State private var didPublish = false
     private var model: ShareCardModel { .make(for: attempt) }
     private var ready: Bool {
-        (try? SyncJournal.pending(context).isEmpty) == true && !context.hasChanges && (sync == nil || sync?.status == .current)
+        SocialPostPublisher.ready(context: context, sync: sync)
     }
     var body: some View {
         NavigationStack {
@@ -91,17 +92,13 @@ struct SocialPostComposer: View {
         do {
             attemptedShare = true
             let revision = try SyncJournal.binding(context)?.acceptedRevision ?? 0
-            let data = try await request("social_content", "prepare", .init(postID: postID, attemptID: attempt.id, expectedRevision: revision, confirmed: true, includePhoto: includePhoto))
-            guard let post = try JSONDecoder().decode(SocialPostsPage.self, from: data).posts.first else { failed = true; return }
-            savedPost = post; postID = post.id
-            if !post.published {
-                if let path = post.photoPath {
-                    guard includePhoto, let photo = attempt.primaryImage, let bytes = LocalPhotoStore.data(for: photo, thumbnail: false, rootURL: mediaRoot), let media else { failed = true; return }
-                    _ = try await media(.upload(path: path, bytes: bytes))
-                }
-                _ = try await request("social_content", "publish", .init(postID: post.id))
-            }
+            let bytes = includePhoto ? attempt.primaryImage.flatMap { LocalPhotoStore.data(for: $0, thumbnail: false, rootURL: mediaRoot) } : nil
+            _ = try await SocialPostPublisher.publish(attemptID: attempt.id, postID: postID, revision: revision,
+                includePhoto: includePhoto, photo: bytes, request: request, media: media, prepared: { post in
+                    savedPost = post; postID = post.id
+                })
             didPublish = true
+            publication?.sharedManually(attempt.rankedItemID)
             NotificationCenter.default.post(name: .socialContentChanged, object: nil)
         } catch is CancellationError { } catch { failed = true }
     }

@@ -20,6 +20,7 @@ struct ContentView: View {
             .tabItem { Label("Profile", systemImage: "person") }.tag(StayGrubbyTab.profile)
         }
         .tint(SGTheme.ColorToken.accent)
+        .modifier(SocialPublicationHost())
         #if DEBUG
         .modifier(SocialReviewModifier())
         #endif

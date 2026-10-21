@@ -13,6 +13,7 @@ struct CookingRankingResultView: View {
     #endif
     @Environment(\.sgReduceMotion) private var reduceMotion
     @Environment(\.cookingMediaRoot) private var mediaRoot
+    @Environment(\.socialPublication) private var publication
     @Environment(\.scoreMilestoneScope) private var milestoneScope
     @State private var card: RenderedDishShareCard?
     @State private var previewError: String?
@@ -38,6 +39,7 @@ struct CookingRankingResultView: View {
     var body: some View {
         if milestone, scores.isUnlocked, let list = attempt.rankedItem?.list {
             ScoreUnlockMilestoneView(list: list, onClose: onClose)
+                .safeAreaInset(edge: .top) { SocialPublicationStatus(itemID: attempt.rankedItemID) }
         } else {
         ScrollView {
             VStack(spacing: SGTheme.Space.large) {
@@ -105,7 +107,8 @@ struct CookingRankingResultView: View {
         .accessibilityIdentifier("ranking-result")
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: SGTheme.Space.small) {
-                SocialShareAction(attempt: attempt)
+                SocialPublicationStatus(itemID: attempt.rankedItemID)
+                if publication?.status(attempt.rankedItemID) == nil { SocialShareAction(attempt: attempt) }
                 DishShareAction(model: model, prominent: true, identifier: "result-share-dish", currentModel: { self.model })
                 if scores.isUnlocked, model.achievement == .newNumberOne {
                     TopThreeShareAction(list: attempt.rankedItem?.list, title: "Share Updated Top 3", identifier: "result-share-updated-top-three")

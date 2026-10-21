@@ -5,11 +5,16 @@ struct AddCookingView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
     @Environment(\.cookingMediaRoot) private var mediaRoot
+    @Environment(\.socialRequest) private var socialRequest
+    @Environment(\.socialPublication) private var publication
     @Query private var attempts: [CookingAttempt]
     let list: RankingList
     let dish: Dish?
     let onResultClose: () -> Void
     @State private var draft: CookingDraft
+    @State private var sharing = CookingSharingSelection()
+    @State private var sharingChoice: Bool?
+    @State private var sharingUnavailable = false
     @State private var choosingReaction = false
     @State private var session: RankingEngine?
     @State private var error: String?
@@ -31,6 +36,9 @@ struct AddCookingView: View {
                 if let savedAttempt {
                     CookingRankingResultView(attempt: savedAttempt, event: completionSnapshot,
                                              onClose: { onResultClose(); dismiss() })
+                        .safeAreaInset(edge: .top) {
+                            if sharingUnavailable { Text("Your cook is saved privately. Sharing couldn’t be queued; use Share with Friends below to retry.").font(.footnote).padding() }
+                        }
                 } else if let session {
                     if let opponent = list.items.first(where: { $0.id == session.nextOpponent }) {
                         let opponentAttempt = attempts.first { $0.rankedItemID == opponent.id }
@@ -56,7 +64,7 @@ struct AddCookingView: View {
                         session = RankingEngine(itemID: UUID(), orderedIDs: list.orderedItems.map(\.id), reaction: reaction)
                     }
                 } else {
-                    CookingFormScroll(draft: $draft, existingDish: dish != nil)
+                    CookingFormScroll(draft: $draft, existingDish: dish != nil, sharingSelection: socialRequest == nil ? nil : $sharing)
                 }
             }
             .navigationTitle(savedAttempt != nil ? "Ranking Result" : session == nil ? (dish == nil ? "New Dish" : "New Version") : "Rank this cook")
@@ -65,12 +73,12 @@ struct AddCookingView: View {
             .toolbar {
                 if savedAttempt == nil { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
                 if choosingReaction && session == nil {
-                    ToolbarItem(placement: .confirmationAction) { Button("Edit Details") { choosingReaction = false } }
+                    ToolbarItem(placement: .confirmationAction) { Button("Edit Details") { choosingReaction = false; sharingChoice = nil } }
                 }
             }
             .safeAreaInset(edge: .bottom) {
                 if savedAttempt == nil && !choosingReaction && session == nil {
-                    Button { choosingReaction = true } label: {
+                    Button { sharingChoice = sharing.selected; choosingReaction = true } label: {
                         Text("Continue").frame(maxWidth: .infinity)
                     }
                     .buttonStyle(SGButtonStyle(prominent: true)).disabled(draft.cleanDishName.isEmpty)
@@ -85,6 +93,13 @@ struct AddCookingView: View {
             } message: { Text(error ?? "") }
         }
         .deferRemoteCookingUpdates()
+        .task {
+            guard let socialRequest else { return }
+            do {
+                let identity = try JSONDecoder().decode(SocialIdentity.self, from: await socialRequest("social_identity", "get", .init()))
+                try Task.checkCancellation(); sharing.receive(identity)
+            } catch is CancellationError { } catch { sharing.unavailable() }
+        }
     }
     private func save() {
         guard let session, session.isComplete, savedAttempt == nil, !saving else { return }
@@ -92,8 +107,13 @@ struct AddCookingView: View {
         defer { saving = false }
         do {
             let before = RankingCompletionSnapshot.capture(from: list)
+            if sharingChoice == true {
+                sharingUnavailable = publication?.record(itemID: session.itemID, includePhoto: draft.hasPhoto) != true
+            }
             savedAttempt = try CookingStore.create(draft: draft, existingDish: dish, session: session, context: context, mediaDirectory: mediaRoot)
             completionSnapshot = before
+            if let savedAttempt { publication?.privateSaveFinished(savedAttempt) }
+            publication?.retry()
         }
         catch { saveFailed = true; self.error = error.localizedDescription }
     }

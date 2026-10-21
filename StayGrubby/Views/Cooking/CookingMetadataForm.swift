@@ -5,6 +5,7 @@ struct CookingMetadataForm: View {
     @Binding var draft: CookingDraft
     var existingDish = false
     var editing = false
+    var sharingSelection: Binding<CookingSharingSelection>? = nil
     @Environment(\.dynamicTypeSize) private var textSize
     @State private var newTag = ""
     @State private var selection: CookingMetadataSelection?
@@ -46,6 +47,7 @@ struct CookingMetadataForm: View {
                         .accessibilityIdentifier("dish-source-type")
                 }
             }
+            if let sharingSelection { CookingSharingChoice(selection: sharingSelection) }
             SGFormSection(title: "This cook / version") {
                 if textSize.isAccessibilitySize {
                     VStack(alignment: .leading, spacing: SGTheme.Space.xSmall) {
@@ -161,12 +163,13 @@ struct CookingFormScroll: View {
     @Binding var draft: CookingDraft
     var existingDish = false
     var editing = false
+    var sharingSelection: Binding<CookingSharingSelection>? = nil
     var body: some View {
         ScrollView {
-            CookingMetadataForm(draft: $draft, existingDish: existingDish, editing: editing)
+            CookingMetadataForm(draft: $draft, existingDish: existingDish, editing: editing, sharingSelection: sharingSelection)
                 .frame(maxWidth: SGTheme.Size.contentMaximum)
                 .padding(SGTheme.Space.medium).frame(maxWidth: .infinity)
-        }.scrollDismissesKeyboard(.interactively).background(SGTheme.ColorToken.background)
+        }.accessibilityIdentifier("cooking-form").scrollDismissesKeyboard(.interactively).background(SGTheme.ColorToken.background)
     }
 }
 
