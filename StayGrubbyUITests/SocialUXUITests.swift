@@ -8,12 +8,12 @@ final class SocialUXUITests: StayGrubbyUITestCase {
         app.launchWithReviewOptions(); XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 15))
         app.tabBars.buttons["Profile"].tap()
         let edit = app.buttons["social-identity-edit"]
-        XCTAssertTrue(edit.waitForExistence(timeout: 8)); edit.tap()
+        XCTAssertTrue(edit.waitForExistence(timeout: 8)); openIdentity(app, link: edit)
         let preview = app.descendants(matching: .any).matching(identifier: "avatar-preview").firstMatch
-        XCTAssertTrue(preview.waitForExistence(timeout: 5)); XCTAssertEqual(preview.label, "Selected profile photo preview")
+        XCTAssertTrue(preview.waitForExistence(timeout: 5), app.debugDescription); XCTAssertEqual(preview.label, "Selected profile photo preview")
         app.buttons["social-identity-save"].tap()
         XCTAssertTrue(app.navigationBars["Social identity"].waitForNonExistence(timeout: 8))
-        edit.tap(); XCTAssertTrue(app.buttons["avatar-remove"].waitForExistence(timeout: 5)); app.buttons["avatar-remove"].tap()
+        openIdentity(app, link: edit); XCTAssertTrue(app.buttons["avatar-remove"].waitForExistence(timeout: 5)); app.buttons["avatar-remove"].tap()
         XCTAssertEqual(preview.label, "Profile photo initials fallback")
         XCTAssertTrue(app.buttons["social-identity-save"].isHittable, app.debugDescription)
         app.buttons["social-identity-save"].tap()
@@ -46,7 +46,7 @@ final class SocialUXUITests: StayGrubbyUITestCase {
         app.launchArguments = ["--ui-test-store", UUID().uuidString, "--social-review", "--test-light", "--test-large-type"]
         app.launchWithReviewOptions(); XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 15))
         app.tabBars.buttons["Profile"].tap(); let edit = app.buttons["social-identity-edit"]
-        XCTAssertTrue(edit.waitForExistence(timeout: 8)); edit.tap()
+        XCTAssertTrue(edit.waitForExistence(timeout: 8)); openIdentity(app, link: edit)
         let name = app.textFields["social-display-name"]
         for _ in 0..<4 { if name.isHittable { break }; app.swipeUp() }
         XCTAssertTrue(name.waitForExistence(timeout: 5)); fill(name, "Social Cook")
@@ -161,5 +161,13 @@ final class SocialUXUITests: StayGrubbyUITestCase {
             if app.navigationBars["Social settings"].waitForExistence(timeout: 3) { return }
         }
         XCTFail("Social settings navigation did not complete: \(app.debugDescription)")
+    }
+    @MainActor private func openIdentity(_ app: XCUIApplication, link: XCUIElement) {
+        for _ in 0..<3 {
+            link.tap()
+            if app.navigationBars["Social identity"].waitForExistence(timeout: 3) { return }
+            XCTAssertTrue(link.exists, app.debugDescription)
+        }
+        XCTFail("Social identity presentation did not complete: \(app.debugDescription)")
     }
 }

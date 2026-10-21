@@ -15,6 +15,7 @@ import UIKit
         #expect(SocialMediaRules.validJPEG(bytes))
         let decoded = try #require(UIImage(data: bytes))
         #expect(decoded.size.width == 360 && decoded.size.height == 180)
+        #expect(SocialAvatarRules.thumbnail(bytes)?.width == 360)
         #expect(SocialMediaAction.avatarDownload(path: "test").bucket == "profile-photos")
         #expect(SocialMediaAction.download(path: "test").bucket == "social-photos")
     }

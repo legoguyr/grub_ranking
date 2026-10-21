@@ -5,7 +5,7 @@ try {
  await rejects(()=>rpc('social_identity','sharing',{automaticallyShareNewDishes:true}));
  await rpc('social_identity','save',{displayName:'Private Cook',username:'private_cook',discoverable:false,automaticallyShareNewDishes:false});
  check((await rpc('social_identity','get')).automaticallyShareNewDishes===false,'Social setup may keep OFF');
- await cooking(0,1);await actor(0);
+ const source=await cooking(0,1);await actor(0);
  await rpc('social_identity','sharing',{automaticallyShareNewDishes:true,peerID:users[1].id});
  check((await rpc('social_identity','get')).automaticallyShareNewDishes===true,'Account owner setting persisted');
  await actor(1);check((await rpc('social_identity','get')).automaticallyShareNewDishes===false,'Forged owner cannot change another account preference');
@@ -19,5 +19,14 @@ try {
  await db.exec('reset role');
  check((await db.query('select count(*)::int n from staygrubby.social_posts')).rows[0].n===0,'Neither setup nor changing preference publishes existing history');
  check((await db.query('select count(*)::int n from staygrubby.cooking_attempts')).rows[0].n===1,'Preference changes preserve private cooking');
- await db.exec('set role anon');await rejects(()=>rpc('social_identity','sharing',{automaticallyShareNewDishes:true}));
+ await actor(0);await rpc('social_identity','sharing',{automaticallyShareNewDishes:true});
+ const post=(await rpc('social_content','prepare',{postID:source.attempts[0],attemptID:source.attempts[0],confirmed:true,expectedRevision:0})).posts[0];
+ await actor(2);await rpc('social_identity','save',{displayName:'Stranger',username:'stranger',discoverable:true,automaticallyShareNewDishes:true});
+ check((await rpc('social_feed','page')).posts.length===0,'Sharing default cannot grant nonfriend access');
+ await rejects(()=>rpc('social_content','prepare',{postID:users[2].id,attemptID:source.attempts[0],confirmed:true,expectedRevision:0}));
+ await actor(0);await rpc('social_people','request',{peerID:users[1].id});await actor(1);await rpc('social_people','accept',{peerID:users[0].id});
+ check((await rpc('social_feed','page')).posts[0].id===post.id,'Only eligible friendship grants access');
+ await actor(0);await rpc('social_people','block',{peerID:users[1].id});await actor(1);
+ check((await rpc('social_feed','page')).posts.length===0,'Auto-share preference cannot bypass blocking');
+ await db.exec('reset role;set role anon');await rejects(()=>rpc('social_identity','sharing',{automaticallyShareNewDishes:true}));
 } finally {await finish();}

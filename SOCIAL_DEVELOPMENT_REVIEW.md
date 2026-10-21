@@ -269,3 +269,8 @@ The final checkpoint includes exactly these 18 files:
 - `Website/test_site.py`
 
 Final read-only demo audit again matched the complete original manifest and all 190 retained media files. Ranking engine, models, assets, client configuration and Xcode project are unchanged from the original run baseline. Privileged-secret/local-artifact scan passed across 262 text files with zero findings. No backups, dependencies, result bundles, generated site/build output, credentials or signing material are included. Final whitespace and staged-inventory checks are required before the single Checkpoint 8 commit. Commit/push outcome is reported with the final Git state after creating that commit; no history rewrite is authorized.
+
+
+## Subsequent Social UX enhancement
+
+The following approved run adds optional profile photos, account sharing defaults/social setup and per-new-cook sharing, documented separately in [SOCIAL_UX_REVIEW.md](SOCIAL_UX_REVIEW.md). Its local implementation does not change the historical verification/checkpoints above. The new hosted avatar/default migrations and avatar-cleanup function update remain pending direct approval because automatic approval review rejected attachment-only authorization. Shared Cooking and all later phases remain unimplemented.

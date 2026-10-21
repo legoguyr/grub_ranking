@@ -73,6 +73,12 @@ Published-image moderation; text moderation for captions/comments/bios/display n
 
 Chronological friends feed and explicit cooking snapshots are implemented, newest first, with pagination, friend-only social photos, private/profile boundaries and blocking/reporting/moderation. Basic likes/comments are implemented with server authorization, bounded comment pages and visible counts. No TikTok/Reels-style personalized feed. Safety/privacy dependencies precede public social release.
 
+## 5A. Social UX enhancement — local implementation verified; deployment pending
+
+Optional profile photos/initials, normal Social settings, account-synced sharing defaults, social setup choice and per-entry New Dish/New Version sharing are implemented locally. Legacy/unset defaults OFF; each new entry can override. The completed-cook outbox reuses explicit social snapshots, preserves private ranking on failure, supports retry and pauses for review if scores unlock while a formerly locked share remains pending. Edit/re-rank/restore do not create sharing intent. Native image sharing remains separate.
+
+Two additive migrations and the avatar-aware account-deletion function update await direct hosted-deployment approval after automatic approval review rejected attachment-only authorization. The current hosted Social V1 remains unchanged. Do not upload this enhanced client before the pending deployment and focused hosted checks. See [Social UX implementation/review](SOCIAL_UX_REVIEW.md). Publish the updated canonical policy and review App Privacy for profile photos before broader distribution. No next-phase functionality is included.
+
 ## 6. Shared Cooking + Social Part 2 + In-App Notifications
 
 Tagging friends needs permission, notification, removal, approval where applicable and who-may-tag controls. No automatic unwanted publication on the tagged user's profile.

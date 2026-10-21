@@ -18,6 +18,7 @@ struct CookingSharingChoice: View {
     var body: some View {
         SGFormSection(title: "Sharing") {
             Toggle("Share with Friends", isOn: Binding(get: { selection.selected }, set: { selection.override = $0 }))
+                .foregroundStyle(SGTheme.ColorToken.primaryText)
                 .disabled(selection.loading || selection.configured == false).accessibilityIdentifier("cook-share-with-friends")
             if selection.loading { ProgressView("Loading sharing default") }
             else if selection.configured == false {

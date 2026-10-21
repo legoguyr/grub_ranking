@@ -12,6 +12,10 @@ try {
  check(path===users[0].id+'/'+assetID+'.jpg','Actor-derived immutable version path ignores forged owner');
  await rejects(()=>rpc('social_avatar','publish',{avatarPath:path}),'55000');
  await op('object.upload');await db.query("insert into storage.objects(bucket_id,name,metadata) values('profile-photos',$1,'{\"mimetype\":\"image/jpeg\",\"size\":120}')",[path]);
+ await db.exec('reset role;set role anon');await op('object.get_authenticated');
+ check(await counts(path)===0,'Anonymous cannot read an existing uploaded avatar');
+ await op('object.upload');await rejects(()=>db.query("insert into storage.objects(bucket_id,name) values('profile-photos',$1)",[users[0].id+'/'+randomUUID()+'.jpg']));
+ await op('object.delete');check((await db.query("delete from storage.objects where bucket_id='profile-photos' and name=$1 returning id",[path])).rows.length===0,'Anonymous cannot delete an existing avatar');
  await actor(1);await op('object.get_authenticated');check(await counts(path)===0,'Pending avatar unreadable to peers');
  await op('object.upload_update');check((await db.query("update storage.objects set metadata=metadata where bucket_id='profile-photos' and name=$1 returning id",[path])).rows.length===0,'Cannot overwrite another avatar');
  await op('object.delete');check((await db.query("delete from storage.objects where bucket_id='profile-photos' and name=$1 returning id",[path])).rows.length===0,'Cannot delete another avatar');
@@ -37,14 +41,23 @@ try {
  await actor(0);check((await rpc('social_avatar','cleanup')).paths.includes(path),'Old path queued for owner cleanup');
  await op('object.delete');await db.query("delete from storage.objects where bucket_id='profile-photos' and name=$1",[path]);
  await rpc('social_people','block',{peerID:users[1].id});await actor(1);await op('object.get_authenticated');check(await counts(path2)===0,'Block revokes avatar read');
- await actor(0);await rejects(()=>rpc('social_avatar','remove',{avatarPath:path}),'40001');
+ await actor(0);const abandoned=(await rpc('social_avatar','prepare',{assetID:randomUUID()})).path;
+ await op('object.upload');await db.query("insert into storage.objects(bucket_id,name,metadata) values('profile-photos',$1,'{\"mimetype\":\"image/jpeg\",\"size\":120}')",[abandoned]);
+ // Disposable fixture clock control only; client RLS stays enabled throughout.
+ await db.exec('reset role;alter table staygrubby.profiles disable trigger user');
+ await db.query("update staygrubby.profiles set server_updated_at=now()-interval '2 days' where account_id=$1",[users[0].id]);
+ await db.exec('alter table staygrubby.profiles enable trigger user');await actor(0);
+ const retired=(await rpc('social_avatar','cleanup')).paths;
+ check(retired.includes(abandoned)&&!retired.includes(path2),'Expired draft cleanup preserves the active avatar');
+ await op('object.get_authenticated');check(await counts(abandoned)===0&&await counts(path2)===1,'Expired draft loses reads; active version remains readable');
+ await op('object.delete');await db.query("delete from storage.objects where bucket_id='profile-photos' and name=$1",[abandoned]);
+ await rejects(()=>rpc('social_avatar','remove',{avatarPath:path}),'40001');
  await rpc('social_avatar','remove',{avatarPath:path2});check((await rpc('social_identity','get')).avatarPath===null,'Remove clears active reference');
  await op('object.get_authenticated');check(await counts(path2)===0,'Removed avatar unreadable even owner download');
  await op('object.delete');await db.query("delete from storage.objects where bucket_id='profile-photos' and name=$1",[path2]);
  await db.exec('reset role');check((await db.query("select md5(jsonb_agg(to_jsonb(i) order by id)::text) hash from staygrubby.ranked_items i")).rows[0].hash===before,'Avatar operations preserve ranking evidence/cache');
  check((await db.query("select bool_and(not public) ok from storage.buckets")).rows[0].ok,'Every bucket private');
  await db.exec('set role anon');await rejects(()=>rpc('social_avatar','prepare',{assetID:randomUUID()}));
- await op('object.get_authenticated');check(await counts(path2)===0,'Anonymous avatar reads denied');
  await db.exec('reset role');check(!(await db.query("select has_function_privilege('authenticated','staygrubby.social_avatar_visible(uuid,uuid)','execute') ok")).rows[0].ok,'Viewer helper inaccessible');
  await actor(0);const draft=(await rpc('social_avatar','prepare',{assetID:randomUUID()})).path;
  await op('object.upload');await db.query("insert into storage.objects(bucket_id,name,metadata) values('profile-photos',$1,'{\"mimetype\":\"image/jpeg\",\"size\":120}')",[draft]);

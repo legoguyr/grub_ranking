@@ -1,4 +1,5 @@
 import PhotosUI
+import ImageIO
 import SwiftUI
 
 nonisolated enum SocialAvatarRules {
@@ -8,6 +9,11 @@ nonisolated enum SocialAvatarRules {
     }
     /// Reuse the pure metadata-stripping/downsampling encoder; no cooking-media files or graph writes.
     static func prepare(_ data: Data) throws -> Data { try LocalPhotoStore.prepare(data: data).thumbnailData }
+    static func thumbnail(_ data: Data) -> CGImage? {
+        guard SocialMediaRules.validJPEG(data), let source = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
+        return CGImageSourceCreateThumbnailAtIndex(source, 0, [kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceThumbnailMaxPixelSize: 360, kCGImageSourceCreateThumbnailWithTransform: true] as CFDictionary)
+    }
 }
 
 struct SocialAvatar: View {
@@ -36,8 +42,8 @@ struct SocialAvatar: View {
                 guard let path, let media else { return }
                 do {
                     let bytes = try await media(.avatarDownload(path: path))
-                    guard !Task.isCancelled, SocialMediaRules.validJPEG(bytes) else { return }
-                    loaded = UIImage(data: bytes); loadedPath = path
+                    guard !Task.isCancelled, let thumbnail = SocialAvatarRules.thumbnail(bytes) else { return }
+                    loaded = UIImage(cgImage: thumbnail); loadedPath = path
                 } catch { }
             }
     }
@@ -49,7 +55,8 @@ struct SocialAvatarPicker: View {
     @Binding var photo: Data?
     @Binding var removePhoto: Bool
     @State private var selection: PhotosPickerItem?
-    @State private var loading = false
+    @Binding var loading: Bool
+    @State private var loadGeneration = UUID()
     @State private var failed = false
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -71,7 +78,9 @@ struct SocialAvatarPicker: View {
         .buttonStyle(.borderless)
         .task(id: selection) {
             guard let selection else { return }
-            loading = true; failed = false; defer { loading = false }
+            let token = UUID(); loadGeneration = token
+            loading = true; failed = false
+            defer { if loadGeneration == token { loading = false } }
             do {
                 guard let data = try await selection.loadTransferable(type: Data.self) else { throw URLError(.cannotDecodeContentData) }
                 let prepared = try await Task.detached { try SocialAvatarRules.prepare(data) }.value

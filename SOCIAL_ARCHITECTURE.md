@@ -1,12 +1,14 @@
 # StayGrubby social architecture
 
+Profile-photo/sharing-default enhancement deployment status is recorded in [SOCIAL_UX_REVIEW.md](SOCIAL_UX_REVIEW.md); the additive hosted changes remain pending direct approval after automatic approval-review rejection.
+
 Private cooking history and the social graph are separate. Social APIs never return the CookingGraph, private media paths, Auth identities, email or sync metadata. Social engagement never changes comparisons, strengths, scores, personal ranks or score-unlock eligibility. Existing accounts may keep using private StayGrubby without social setup.
 
 ## Identity
 
 Reuse the permanent account and existing profiles table. Display names collapse whitespace, allow nicknames and have a 50-character limit. Usernames trim whitespace/one optional leading @, lowercase, and require 3–24 ASCII letters/numbers with single internal underscores. The existing case-insensitive unique index is authoritative. A small deterministic platform/system-name set is reserved, including underscore variants. Old handles are reserved to their account for 30 days after rename; the same account may reclaim them. Account deletion cascades reservations. No redirects or marketplace.
 
-Discoverability defaults false. Setup is optional; identity edits use an authenticated owner-derived RPC, with no direct client writes. Discoverability controls normal search, not existing friendship identity or private cooking. No avatar/bio system is introduced. Social responses are held in the account-mounted UI, never hydrated into private cooking stores. Account-generation checks discard stale replies after switching/sign-out.
+Discoverability defaults false. Setup is optional; identity edits use an authenticated owner-derived RPC, with no direct client writes. Discoverability controls normal search, not existing friendship identity or private cooking. Optional profile photos are implemented below; bios are not implemented. Social responses are held in the account-mounted UI, never hydrated into private cooking stores. Account-generation checks discard stale replies after switching/sign-out.
 
 ## Verification policy
 
@@ -58,7 +60,7 @@ Public StayGrubby profile links, `staygrubby.com/@username`, Universal Links and
 
 Social identity photos use the separate private `profile-photos` bucket, never `cooking-photos` or `social-photos`. Version paths are `<permanent-account UUID>/<asset UUID>.jpg`. Native PhotosPicker passes only the selected image to an in-memory ImageIO downsample/re-encode (maximum 360px, stripped metadata); the UI crops to a circle without cropping the stored image. Bucket limits are JPEG/2 MiB; the client validates complete JPEG bytes/dimensions. No public/signed avatar URLs or disk avatar cache are created.
 
-An owner-derived avatar RPC reserves a draft, validates uploaded object metadata before publishing and retires the former version. Upload/upsert is allowed only to that account's registered draft. Reads require live authentication, an active social identity and permitted social visibility (self, discoverability, friendship/request or visible post/comment participation), with authoritative blocks. Arbitrary bucket listing is denied. A removed/replaced path immediately loses read access; bounded owner-only cleanup retries on profile changes/visits, and coordinated account deletion clears/verifies all three buckets before graph/Auth erasure. The screen and account-session generation discard stale/cancelled photo replies. Initials (or a restrained fork/knife mark) provide the fallback; visible names/handles remain the identity.
+An owner-derived avatar RPC reserves a draft, validates uploaded object metadata before publishing and retires the former version. Upload/upsert is allowed only to that account's registered draft. Reads require live authentication, an active social identity and permitted social visibility (self, discoverability, friendship/request or visible post/comment participation), with authoritative blocks. Arbitrary bucket listing is denied. A removed/replaced path immediately loses read access; an unfinished draft expires during profile cleanup after a day of profile inactivity; bounded owner-only cleanup retries on profile changes/visits, and coordinated account deletion clears/verifies all three buckets before graph/Auth erasure. The screen and account-session generation discard stale/cancelled photo replies. Initials (or a restrained fork/knife mark) provide the fallback; visible names/handles remain the identity.
 
 ## Sharing defaults
 

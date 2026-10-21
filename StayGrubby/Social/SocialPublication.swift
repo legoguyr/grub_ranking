@@ -52,7 +52,10 @@ nonisolated struct SocialPublicationJournal: Codable, Sendable {
     }
     func save(root: URL) throws {
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
-        try JSONEncoder().encode(self).write(to: Self.url(root), options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+        var file = Self.url(root)
+        try JSONEncoder().encode(self).write(to: file, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+        var values = URLResourceValues(); values.isExcludedFromBackup = true
+        try file.setResourceValues(values)
     }
 }
 

@@ -41,6 +41,7 @@ struct SocialIdentityEditor: View {
     @Environment(\.socialRequest) private var request
     @Environment(\.socialMedia) private var media
     @State private var photo: Data?
+    @State private var preparingPhoto = false
     @State private var removePhoto = false
     @State private var assetID = UUID()
     @State private var currentPath: String?
@@ -62,7 +63,7 @@ struct SocialIdentityEditor: View {
         NavigationStack {
             Form {
                 Section("Profile photo") {
-                    SocialAvatarPicker(name: name, path: currentPath, photo: $photo, removePhoto: $removePhoto)
+                    SocialAvatarPicker(name: name, path: currentPath, photo: $photo, removePhoto: $removePhoto, loading: $preparingPhoto)
                 }.disabled(saving)
                 Section("Social identity") {
                     TextField("Display name", text: $name).textContentType(.nickname).accessibilityIdentifier("social-display-name")
@@ -80,27 +81,29 @@ struct SocialIdentityEditor: View {
                     Toggle("Automatically Share New Dishes", isOn: $automaticallyShare).accessibilityIdentifier("social-sharing-default")
                     Text(SocialSharingCopy.explanation)
                 }
-                if error { Text(profileSaved ? "Your identity was saved. The photo couldn’t finish uploading. Retry Save, choose another photo, or remove the selection." : "Couldn’t save. Check your connection or try a different username.").foregroundStyle(.secondary).accessibilityIdentifier("social-identity-error") }
+                if error { Text(profileSaved ? "Your identity was saved. The profile photo change couldn’t finish. Retry Save, choose another photo, or remove the selection." : "Couldn’t save. Check your connection or try a different username.").foregroundStyle(.secondary).accessibilityIdentifier("social-identity-error") }
             }
+            .disabled(saving)
             .scrollDismissesKeyboard(.interactively)
             .navigationTitle("Social identity").navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.disabled(saving) }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(saving ? "Saving…" : "Save") { Task { await save() } }
-                        .disabled(saving || !SocialIdentityRules.valid(name: name, username: username))
+                        .disabled(saving || preparingPhoto || !SocialIdentityRules.valid(name: name, username: username))
                         .accessibilityIdentifier("social-identity-save")
                 }
             }.interactiveDismissDisabled(saving)
+                .onChange(of: photo) { _, _ in assetID = UUID() }
         }
     }
     private func save() async {
-        guard let request else { return }; saving = true; error = false
+        guard let request else { return }; saving = true; error = false; profileSaved = false
         defer { saving = false }
         do {
             let result = try await request("social_identity", "save", .init(displayName: SocialIdentityRules.name(name), username: SocialIdentityRules.username(username), discoverable: discoverable, automaticallyShareNewDishes: automaticallyShare))
             let saved = try JSONDecoder().decode(SocialIdentity.self, from: result)
-            profileSaved = true; onSave(saved)
+            profileSaved = true; currentPath = saved.avatarPath; onSave(saved)
             try await SocialAvatarService.save(photo: photo, remove: removePhoto, currentPath: currentPath, assetID: assetID, request: request, media: media)
             let latest = try JSONDecoder().decode(SocialIdentity.self, from: await request("social_identity", "get", .init()))
             onSave(latest); dismiss()

@@ -2122,6 +2122,12 @@ begin
   if (payload->>'avatarPath') is distinct from profile.avatar_path then raise exception 'Profile changed; refresh' using errcode='40001'; end if;
   update staygrubby.profiles set avatar_path=null,avatar_draft_path=null where account_id=owner;
  elsif action='cleanup' then
+  -- Incomplete/cancelled uploads stay private and expire after a day of profile inactivity.
+  -- A fresh prepare/profile save refreshes the existing profile timestamp before upload.
+  if profile.avatar_draft_path is not null and profile.server_updated_at<now()-interval '1 day' then
+   update staygrubby.profiles set avatar_draft_path=null where account_id=owner;
+   profile.avatar_draft_path:=null;
+  end if;
   select coalesce(jsonb_agg(name),'[]'::jsonb) into result from (
    select name from storage.objects where bucket_id='profile-photos' and name like owner::text||'/%'
     and name is distinct from profile.avatar_path and name is distinct from profile.avatar_draft_path order by name limit 25) objects;

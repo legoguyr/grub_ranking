@@ -28,21 +28,23 @@ import Testing
         response.resume(returning: Data(#"{"people":[]}"#.utf8)); backend.response = nil
         await #expect(throws: AccountFoundationError.identityChanged) { try await request.value }
     }
-    @Test func signedOutAccountCannotReceivePriorSocialPhoto() async throws {
+    @Test(arguments: [false, true]) func signedOutAccountCannotReceivePriorSocialPhoto(avatar: Bool) async throws {
         let backend = DelayedSocialBackend(), session = AccountSessionCoordinator(backendFactory: { backend })
         await session.restoreSession()
-        let request = Task { try await session.performSocialMedia(.download(path: UUID().uuidString + "/" + UUID().uuidString + ".jpg")) }
+        let path = UUID().uuidString + "/" + UUID().uuidString + ".jpg"
+        let request = Task { try await session.performSocialMedia(avatar ? .avatarDownload(path: path) : .download(path: path)) }
         for _ in 0..<100 where backend.response == nil { await Task.yield() }
         let response = try #require(backend.response)
         await session.signOut()
         response.resume(returning: Data([1, 2, 3])); backend.response = nil
         await #expect(throws: AccountFoundationError.identityChanged) { try await request.value }
     }
-    @Test func socialPhotoWritesCannotUseAnotherAccountPrefix() async throws {
+    @Test(arguments: [false, true]) func socialPhotoWritesCannotUseAnotherAccountPrefix(avatar: Bool) async throws {
         let backend = DelayedSocialBackend(), session = AccountSessionCoordinator(backendFactory: { backend })
         await session.restoreSession()
         await #expect(throws: AccountFoundationError.invalidResolution) {
-            try await session.performSocialMedia(.remove(paths: [UUID().uuidString.lowercased() + "/" + UUID().uuidString.lowercased() + ".jpg"]))
+            let paths = [UUID().uuidString.lowercased() + "/" + UUID().uuidString.lowercased() + ".jpg"]
+            try await session.performSocialMedia(avatar ? .avatarRemove(paths: paths) : .remove(paths: paths))
         }
         #expect(backend.response == nil)
     }

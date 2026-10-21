@@ -33,6 +33,7 @@ import Testing
         defer { try? FileManager.default.removeItem(at: root) }
         let journal = SocialPublicationJournal(version: 1, accountID: owner, intents: [.init(id: item, postID: item, includePhoto: false, createdAt: .now)])
         try journal.save(root: root)
+        #expect(try SocialPublicationJournal.url(root).resourceValues(forKeys: [.isExcludedFromBackupKey]).isExcludedFromBackup == true)
         #expect(try SocialPublicationJournal.load(root: root, accountID: owner).intents == journal.intents)
         #expect(throws: SyncFoundationError.self) { try SocialPublicationJournal.load(root: root, accountID: UUID()) }
     }

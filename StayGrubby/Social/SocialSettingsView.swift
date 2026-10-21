@@ -1,7 +1,7 @@
 import SwiftUI
 
 nonisolated enum SocialSharingCopy {
-    static let explanation = "Choose the default for future New Dishes and New Versions. You can change Share with Friends for each cook. Shared posts can include the food photo and unlocked score. Existing cooking and posts stay unchanged."
+    static let explanation = "Choose the default for future New Dishes and New Versions. You can change Share with Friends for each cook. Shared new cooks include their food photo when present and their score when unlocked. Existing cooking and posts stay unchanged."
 }
 
 struct SocialSettingsView: View {
