@@ -57,4 +57,15 @@ final class FriendsUITests: StayGrubbyUITestCase {
         XCTAssertTrue(app.buttons["friend-action-cancel"].waitForExistence(timeout: 5))
         let shot = XCTAttachment(screenshot: app.screenshot()); shot.name = "Friends light accessibility size"; shot.lifetime = .keepAlways; add(shot)
     }
+    @MainActor func testPrivateProfileReportFlow() throws {
+        let app = launch(["--test-dark"])
+        let friend = app.buttons["friend-person-friend_cook"]
+        XCTAssertTrue(friend.waitForExistence(timeout: 5)); friend.tap()
+        let report = app.buttons["social-report-profile"]
+        XCTAssertTrue(report.waitForExistence(timeout: 5)); report.tap()
+        XCTAssertTrue(app.buttons["social-report-send"].waitForExistence(timeout: 5))
+        app.buttons["social-report-send"].tap()
+        XCTAssertTrue(app.alerts["Report sent"].waitForExistence(timeout: 5)); app.alerts.buttons["Done"].tap()
+    }
+
 }

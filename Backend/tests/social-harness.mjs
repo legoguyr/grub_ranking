@@ -27,5 +27,18 @@ export async function fixture() {
  async function rpc(name,action,payload={}){return (await db.query(`select api.${name}($1,$2::jsonb) value`,[action,JSON.stringify(payload)])).rows[0].value;}
  function check(value,message){assert.ok(value,message);checks++;}
  async function rejects(fn,code='42501'){try{await fn();assert.fail('Expected rejection')}catch(e){assert.equal(e.code,code);checks++;}}
- return {db,users,actor,rpc,check,rejects,finish:async()=>{console.log(`PASS ${checks} social assertions (${new URL(import.meta.url).pathname});`);await db.close();}};
+ async function cooking(n,count=1) {
+  await db.exec('reset role');const owner=users[n].id,ranking=randomUUID(),attempts=[];
+  await db.query("insert into staygrubby.rankings(account_id,id,name,created_at_ref,role) values($1,$2,'Fixture cooking',1000,'global')",[owner,ranking]);
+  await db.query("insert into staygrubby.account_libraries(account_id,library_key,global_ranking_id,bridge_version) values($1,'local',$2,1)",[owner,ranking]);
+  for(let i=0;i<count;i++){
+   const dish=randomUUID(),item=randomUUID(),attempt=randomUUID();
+   await db.query("insert into staygrubby.dishes(account_id,id,name,default_course_code,created_at_ref) values($1,$2,'Private fixture soup','soup',1000)",[owner,dish]);
+   await db.query("insert into staygrubby.ranked_items(account_id,id,ranking_id,name,created_at_ref,strength,uncertainty) values($1,$2,$3,'Fixture version',1000,$4,1)",[owner,item,ranking,i/10]);
+   await db.query("insert into staygrubby.cooking_attempts(account_id,id,dish_id,ranked_item_id,course_code,sequence_number,created_at_ref,updated_at_ref,is_legacy_import) values($1,$2,$3,$4,'soup',1,1000,1000,false)",[owner,attempt,dish,item]);
+   attempts.push(attempt);
+  }
+  return {ranking,attempts};
+ }
+ return {db,users,actor,rpc,cooking,check,rejects,finish:async()=>{console.log(`PASS ${checks} social assertions (${new URL(import.meta.url).pathname});`);await db.close();}};
 }

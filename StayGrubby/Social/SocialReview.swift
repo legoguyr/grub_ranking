@@ -19,6 +19,7 @@ import SwiftUI
             if action == "save" { identity = SocialIdentity(displayName: payload.displayName ?? "", username: payload.username, discoverable: payload.discoverable ?? false) }
             return try JSONEncoder().encode(identity)
         }
+        if endpoint == "social_report" { return Data(#"{"reported":true}"#.utf8) }
         guard endpoint == "social_people" else { throw URLError(.unsupportedURL) }
         if let id = payload.peerID, let index = people.firstIndex(where: { $0.id == id }) {
             switch action {

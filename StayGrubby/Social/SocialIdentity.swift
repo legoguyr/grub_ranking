@@ -32,4 +32,8 @@ nonisolated struct SocialPayload: Codable, Sendable {
     var peerID: UUID?
     var query: String?
     var afterUsername: String?
+    var targetType: String?
+    var targetID: UUID?
+    var reason: String?
+    var context: String?
 }

@@ -60,3 +60,23 @@ Checkpoint 3 file inventory:
 - `StayGrubby/Social/SocialTransport.swift`
 - `StayGrubbyTests/SocialSessionTests.swift`
 - `StayGrubbyUITests/FriendsUITests.swift`
+
+## Checkpoint 4 — Social Safety + Content Privacy Foundation
+
+Deployed `20261021035049_social_content_safety`; all 13 local/hosted SQL hashes match, 24/24 private tables have RLS, zero anonymous RPC access/direct client writes. Full private hosted fingerprints are unchanged. 25 safety/privacy/reporting/moderation/cascade assertions and the 27 directly affected friendship assertions passed. This includes hidden social identities retaining private cooking access. Debug compile and the new report UI passed 1/1 in `/private/tmp/staygrubby-social-report-ui.xcresult`. A local SQL CASE syntax error was corrected before deployment. No real content/users/reports were created in hosted tests. New closed social tables produce expected RLS/no-policy INFO advisories; the prior disabled-password warning remains. No private photo bucket permission changed. Posting/feed remain gated on this passing security foundation.
+
+Checkpoint 4 file inventory:
+
+- `Backend/schema.sql`
+- `Backend/tests/social-harness.mjs`
+- `Backend/tests/social-safety.test.mjs`
+- `SOCIAL_ARCHITECTURE.md`
+- `SOCIAL_DEVELOPMENT_REVIEW.md`
+- `STAYGRUBBY_MASTER_ROADMAP.md`
+- `StayGrubby/Social/FriendsView.swift`
+- `StayGrubby/Social/SocialIdentity.swift`
+- `StayGrubby/Social/SocialReportView.swift`
+- `StayGrubby/Social/SocialReview.swift`
+- `StayGrubby/Social/SocialTransport.swift`
+- `StayGrubbyUITests/FriendsUITests.swift`
+- `supabase/migrations/20261021035049_social_content_safety.sql`

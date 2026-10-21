@@ -125,6 +125,7 @@ struct FriendProfileView: View {
                     }
                     if person.relationship != .blocked { Button("Block", role: .destructive) { confirmation = "block" } }
                 }.disabled(busy)
+                if person.relationship != .blocked { Section { SocialReportButton(kind: "profile", targetID: person.id) } }
             }
             if error { Text("This action couldn’t complete. Refresh to check the latest relationship.").accessibilityIdentifier("friend-action-error"); Button("Refresh profile") { Task { await refresh() } } }
         }

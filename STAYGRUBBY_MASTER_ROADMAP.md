@@ -65,6 +65,8 @@ Dedicated Friends experience/navigation. Prioritize **mutual friendship**, not f
 
 ## 4. Online Safety / Moderation — before public social release
 
+Minimum technical foundation implemented: authoritative blocks, private profile/post/comment reporting, moderation states and service-only hiding, friends-only content visibility and account-deletion cascades. Operator review/response procedures remain a distribution responsibility; no AI/vendor/admin dashboard is claimed.
+
 Published-image moderation; text moderation for captions/comments/bios/display names/usernames; reporting, blocking, moderation states/hooks and enforcement. Build these with social authorization/lifecycles. Private local photos are not automatically public social content.
 
 ## 5. Friends Feed + Social Part 1
