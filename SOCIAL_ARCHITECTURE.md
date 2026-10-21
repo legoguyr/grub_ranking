@@ -11,3 +11,9 @@ Discoverability defaults false. Setup is optional; identity edits use an authent
 ## Verification policy
 
 Compile and focused feature tests at each checkpoint, one Simulator lane. SQL tests use disposable PGlite Auth/session stubs, not real Apple authorization. Hosted checks compare version/name/hash, grants, RLS and non-sensitive private-data fingerprints before/after each migration. Real Apple deletion, physical device tests, full historical ranking/photo/sharing/Cuisine suites and release builds are excluded unless a concrete dependency demands them.
+
+## Mutual friendship and blocks
+
+One canonical unordered UUID pair row holds requester and pending/friends/declined/cancelled/removed state. Pair-scoped transaction locks serialize transitions; live Auth/account checks repeat after lock waits. Same-direction requests are idempotent; crossed eligible requests become friends. Only recipients accept/decline, only senders cancel, either friend removes. A declined sender waits 24 hours before retry; the recipient may initiate a new request. Stale transitions fail with refreshable conflict status.
+
+Directed blocks are a separate private security primitive. Either-direction block suppresses normal social lookup/requests and retires pending/friend state. Only the blocker can remove their block; unblock restores nothing. The blocker's own blocked list may identify users they deliberately blocked. Friendships/blocks/reservations cascade with permanent account deletion. Clients have no direct table writes or raw social-table reads; narrow owner-derived RPCs return minimal social DTOs. Search is username-only, requires 2–50 characters, excludes self, respects discoverability and blocks, and uses 50-row username cursors. Existing friends/requests retain identity access when discoverability is off. Internal peer IDs are opaque action references and are never displayed as profile content.

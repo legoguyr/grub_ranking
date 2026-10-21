@@ -28,3 +28,17 @@ Checkpoint 1 file inventory:
 - `StayGrubbyTests/SocialIdentityTests.swift`
 - `StayGrubbyUITests/SocialIdentityUITests.swift`
 - `supabase/migrations/20261021032654_social_profile_identity.sql`
+
+## Checkpoint 2 — Friendship + Blocking Backend
+
+Deployed `20261021033357_social_friendship_blocking`; all 12 migration hashes align, 20/20 tables have RLS, zero anonymous RPC access and zero direct client writes. Private hosted fingerprints remain identical. 27 focused friendship/state/privacy/ownership/deletion assertions passed. The identity RPC now rechecks the live Auth session after handle-lock waits; its 24 focused assertions were rerun and passed. No app/UI code or private cooking record changed in this checkpoint. Search, minimal profile DTOs, requests/friends/blocked lists and safe transitions are provided through `api.social_people`; internal helpers remain inaccessible. Expected internal-table no-policy INFO advisories do not imply anonymous/client access.
+
+The normal push of Checkpoint 1 failed because HTTPS credentials are unavailable. Credentials/configuration were not modified; later verified checkpoints continue locally for the owner to push with GitHub Desktop.
+
+Checkpoint 2 file inventory:
+
+- `Backend/schema.sql`
+- `Backend/tests/social-friends.test.mjs`
+- `SOCIAL_ARCHITECTURE.md`
+- `SOCIAL_DEVELOPMENT_REVIEW.md`
+- `supabase/migrations/20261021033357_social_friendship_blocking.sql`

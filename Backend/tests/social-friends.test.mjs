@@ -1,0 +1,42 @@
+import {fixture} from './social-harness.mjs';
+const {db,users,actor,rpc,check,rejects,finish}=await fixture();
+const peer=n=>({peerID:users[n].id});
+try{
+ for(let n=0;n<4;n++){await actor(n);await rpc('social_identity','save',{displayName:'Cook '+n,username:'cook_'+n,discoverable:n<3});}
+ await actor(0);
+ check((await rpc('social_people','search',{query:'cook'})).people.length===2,'Search excludes self and undiscoverable');
+ check((await rpc('social_people','search',{query:'c'})).people.length===0,'Bounded minimum query');
+ await rejects(()=>rpc('social_people','profile',peer(3)));
+ await rejects(()=>rpc('social_people','request',peer(0)),'22023');
+ await rejects(()=>rpc('social_people','request',peer(3)));
+ await rpc('social_people','request',peer(1));await rpc('social_people','request',peer(1));
+ check((await rpc('social_people','outgoing')).people.length===1,'Duplicate request idempotent');
+ await rejects(()=>rpc('social_people','accept',peer(1)),'40001');
+ await actor(2);await rejects(()=>rpc('social_people','accept',peer(1)),'40001');
+ await actor(1);check((await rpc('social_people','incoming')).people[0].id===users[0].id,'Recipient inbox');
+ await rpc('social_people','request',peer(0));
+ check((await rpc('social_people','friends')).people.length===1,'Crossed requests become mutual friendship');
+ await rpc('social_identity','save',{displayName:'Cook 1',username:'cook_1',discoverable:false});
+ await actor(0);check((await rpc('social_people','friends')).people.length===1,'Undiscoverable friend remains identifiable');
+ check(!(await rpc('social_people','search',{query:'cook_1'})).people.length,'Undiscoverable friend hidden in normal search');
+ const person=(await rpc('social_people','profile',peer(1))).people[0];
+ check(Object.keys(person).sort().join(',')==='displayName,id,relationship,username','Minimal social-safe DTO');
+ await rpc('social_people','block',peer(1));
+ check((await rpc('social_people','friends')).people.length===0,'Block removes friendship');
+ await rejects(()=>rpc('social_people','request',peer(1)));
+ await actor(1);await rejects(()=>rpc('social_people','profile',peer(0)));await rejects(()=>rpc('social_people','request',peer(0)));
+ await rpc('social_people','unblock',peer(0));await rejects(()=>rpc('social_people','request',peer(0)));
+ await actor(0);check((await rpc('social_people','blocked')).people.length===1,'Only blocker sees own blocked list');
+ await rpc('social_people','unblock',peer(1));check(!(await rpc('social_people','friends')).people.length,'Unblock never restores friendship');
+ await rpc('social_people','request',peer(2));await actor(2);await rpc('social_people','decline',peer(0));
+ await actor(0);await rejects(()=>rpc('social_people','request',peer(2)),'40001');
+ await actor(2);await rpc('social_people','request',peer(0));await rpc('social_people','cancel',peer(0));
+ await rpc('social_people','request',peer(0));await actor(0);await rpc('social_people','accept',peer(2));await rpc('social_people','remove',peer(2));
+ check(!(await rpc('social_people','friends')).people.length,'Accept/remove works without cooking changes');
+ await rejects(()=>db.query("insert into staygrubby.friendships values($1,$2,$1,'friends',now())",[...users.slice(0,2).map(u=>u.id).sort()]));
+ await rejects(()=>db.query('delete from staygrubby.social_blocks'));
+ await db.exec('reset role;set role anon');await rejects(()=>rpc('social_people','search',{query:'cook'}));
+ await db.exec('reset role');await db.query('delete from staygrubby.accounts where id=$1',[users[2].id]);
+ check((await db.query('select count(*)::int n from staygrubby.friendships where low_id=$1 or high_id=$1',[users[2].id])).rows[0].n===0,'Account deletion cascades friendships');
+ check((await db.query('select count(*)::int n from staygrubby.comparisons')).rows[0].n===0,'Social never creates evidence');
+}finally{await finish();}
