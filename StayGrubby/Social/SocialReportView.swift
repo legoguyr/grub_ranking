@@ -13,14 +13,14 @@ struct SocialReportButton: View {
     @State private var showing = false
     var body: some View {
         Button("Report \(kind)") { showing = true }.accessibilityIdentifier("social-report-\(kind)")
-            .sheet(isPresented: $showing) { SocialReportEditor(kind: kind, targetID: targetID) }
+            .sheet(isPresented: $showing) { SocialReportEditor(kind: kind, targetID: targetID, close: { showing = false }) }
     }
 }
 struct SocialReportEditor: View {
     let kind: String
     let targetID: UUID
     @Environment(\.socialRequest) private var request
-    @Environment(\.dismiss) private var dismiss
+    let close: () -> Void
     @State private var reason = SocialReportReason.other
     @State private var context = ""
     @State private var busy = false
@@ -39,9 +39,9 @@ struct SocialReportEditor: View {
                     .disabled(busy || context.unicodeScalars.count > 500).accessibilityIdentifier("social-report-send")
             }
             .navigationTitle("Report \(kind)").navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.disabled(busy) } }
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { close() }.disabled(busy) } }
             .interactiveDismissDisabled(busy)
-            .alert("Report sent", isPresented: $sent) { Button("Done") { dismiss() } } message: { Text("Thank you. Your report is available for review.") }
+            .alert("Report sent", isPresented: $sent) { Button("Done") { close() } } message: { Text("Thank you. Your report is available for review.") }
         }
     }
     private func send() async {

@@ -1,6 +1,6 @@
 # StayGrubby Master Roadmap
 
-Canonical product roadmap, reconciled October 20, 2026. Future sections are **planning only**, not implemented features or authorization to build them.
+Canonical product roadmap, reconciled October 21, 2026. Future sections are **planning only**, not implemented features or authorization to build them.
 
 **DISCOVER → SAVE → COOK → RANK → REMEMBER → SHARE → INSPIRE**
 
@@ -13,7 +13,7 @@ Personal comparison ranking remains central. Saving something never means it was
 - Completed Onboarding/Profile/Sharing work is integrated and passed physical-iPhone review as one application through [V1_INTEGRATION_REVIEW.md](V1_INTEGRATION_REVIEW.md).
 - The integrated physical approval does not authorize an automatic upload, build-number change or tester addition.
 - Default development is one primary workflow on main, one Simulator lane; see [PARALLEL_DEVELOPMENT.md](PARALLEL_DEVELOPMENT.md). Feature worktrees remain for later cleanup.
-- Coordinated account deletion and in-app access to a canonical policy are implemented for the next release. The owner configured the Apple server credential; the ninth migration and authenticated function deployed October 20. Privacy/contact foundations use `staygrubby.com`, `https://staygrubby.com/privacy`, `privacy@staygrubby.com`, `support@staygrubby.com`, and effective date October 20, 2026. A minimal static Cloudflare Pages website is prepared. Remaining external-release gates are owner website publication, disposable-account physical Apple revocation/deletion validation, and final App Store privacy entries. No new app distribution occurred. Existing account/cloud infrastructure is substantial; do not reimplement it as a future phase.
+- Coordinated account deletion and canonical in-app/public policy foundations are implemented. The owner configured the Apple server credential, published the minimal Cloudflare website and completed the prior App Store privacy entries. Contact foundations remain `staygrubby.com`, `https://staygrubby.com/privacy`, `privacy@staygrubby.com` and `support@staygrubby.com`. The new optional-social policy is effective October 21, 2026 locally; publication and App Privacy review for social practices remain owner release actions. Physical Apple revocation/deletion verification is intentionally deferred, not a development blocker. No new app distribution occurred; do not reimplement existing account/cloud systems.
 
 ## Architecture and ranking independence
 
@@ -41,27 +41,27 @@ Implemented contracts to preserve:
 - Approved image-only sharing: photo card 1080 × 1350; universal no-photo fallback 1080 × 1080; Top 3 1080 × 1350. Private global rank/movement never exports.
 - Evidence-backed achievements. NEW #1 and optional Updated Top 3 require a genuine new global leader; individual sharing stays primary. Reusable Profile Top 3 omits SCORES UNLOCKED; the genuine milestone includes it.
 - Private structured/photo backup/restore, durable retry, exact identities/evidence, tombstones/account isolation and no resurrection. Existing conflict rejection remains; no silent overwrite.
-- Integrated presentation: branded onboarding/loading/recovery, cooking-focused Profile/current Top 3, result identity/privacy hierarchy, preview retry and truthful native Save Image feedback. No social feed is active.
+- Integrated presentation: branded onboarding/loading/recovery, cooking-focused Profile/current Top 3, result identity/privacy hierarchy, preview retry and truthful native Save Image feedback. The subsequent friends-only Feed is implemented separately in section 5.
 
 Historical physical approvals apply to their tested builds; integrated approval is separate. See integration review and [V1_FINAL_REVISIONS_REVIEW.md](V1_FINAL_REVISIONS_REVIEW.md).
 
 ## 2. Accounts + Cloud / Privacy Foundation
 
-Already implemented: native Apple/Supabase authentication, protected permanent-account ownership, private structured/photo sync, restore, receipts/revisions/tombstones and account isolation. A minimal private profile table and case-insensitive username constraint also exist; optional social display names/usernames and discoverability are implemented; friendship/public-facing profile access remains future work. Build on this.
+Already implemented: native Apple/Supabase authentication, protected permanent-account ownership, private structured/photo sync, restore, receipts/revisions/tombstones and account isolation. A minimal private profile table and case-insensitive username constraint also exist; optional social display names/usernames and discoverability are implemented; mutual friendship and minimal friend-profile access are implemented; public web profiles remain future work. Build on this.
 
-Implemented for the next release: deliberate account deletion UI, fresh Apple verification, a deployed server-only idempotent deletion state machine, private Storage/account/Auth cleanup ordering, exact local cleanup, and signed-in/signed-out access to the canonical policy with a public system link and offline copy. Owner-completed release closeout: the static Cloudflare website is publicly deployed with operational HTTPS/routing and App Store Connect App Privacy answers are complete. Real physical Apple credential revocation/deletion testing is intentionally deferred and remains unverified; it does not block continued core development. The single-source policy is `StayGrubby/Legal/PrivacyPolicy.md`; the app bundles it and the website build renders it. Future product work remains usernames, user-facing profiles and public/friends/private concepts; independent content visibility and social ownership/authorization; compatibility with saved recipes, creator attribution and shared cooking. Backend enforcement is mandatory, not merely hidden UI.
+Implemented for the next release: deliberate account deletion UI, fresh Apple verification, a deployed server-only idempotent deletion state machine, private Storage/account/Auth cleanup ordering, exact local cleanup, and signed-in/signed-out access to the canonical policy with a public system link and offline copy. Owner-completed release closeout: the static Cloudflare website is publicly deployed with operational HTTPS/routing and App Store Connect App Privacy answers are complete. Real physical Apple credential revocation/deletion testing is intentionally deferred and remains unverified; it does not block continued core development. The single-source policy is `StayGrubby/Legal/PrivacyPolicy.md`; the app bundles it and the website build renders it. Optional identity, minimal friend profiles, explicit friends-only posts and server-enforced social ownership/visibility are now implemented. Future work includes public web profiles and compatibility with saved recipes, creator attribution and shared cooking. Backend enforcement is mandatory, not merely hidden UI.
 
 ## 2A. Cuisine Selection — Post-TestFlight Core Enhancement
 
-Approved for this implementation: one optional primary Cuisine per Dish, stable predefined identifiers and account-owned custom values, searchable Add/Edit selection and display-only Rankings filtering that preserves global ranks. No inference, ranking change or recommendation system. See [Cuisine architecture and verification](CUISINE_REVIEW.md).
+Implemented and deployed: one optional primary Cuisine per Dish, stable predefined identifiers and account-owned custom values, searchable Add/Edit selection and display-only Rankings filtering that preserves global ranks. No inference, ranking change or recommendation system. See [Cuisine architecture and verification](CUISINE_REVIEW.md).
 
-Release-foundation owner closeout: public staygrubby.com HTTPS/routing and App Store Connect App Privacy questionnaire are complete; ninth deletion migration and delete-account v2 are deployed. Implemented and automated/security verified; real Apple credential revocation remains physically unverified and intentionally deferred by the owner. No physical Apple revocation/deletion test is claimed.
+Release-foundation owner closeout: public staygrubby.com HTTPS/routing and App Store Connect App Privacy questionnaire are complete; account-deletion foundation and delete-account v3 (private and social photos) are deployed. Implemented and automated/security verified; real Apple credential revocation remains physically unverified and intentionally deferred by the owner. No physical Apple revocation/deletion test is claimed. The new social policy is prepared locally; its public publication and App Privacy review remain owner actions before broader social distribution.
 
 ## 3. Profiles + Friends
 
 Social identity is implemented: optional display name, unique editable @username, 30-day old-handle reservation and discoverability off by default. Mutual friendship, blocking, minimal social profile lookup and Friends UI are implemented; the bounded chronological Friends Feed is enabled. See [social review](SOCIAL_DEVELOPMENT_REVIEW.md).
 
-Dedicated Friends experience/navigation. Prioritize **mutual friendship**, not followers: username search, requests, accept/decline, friends list/removal, friend profiles and permitted cooking activity/rankings. A profile does not publish private history. One-way following comes later for creators/chefs.
+Dedicated Friends experience/navigation. Prioritize **mutual friendship**, not followers: username search, requests, accept/decline, friends list/removal, minimal friend profiles and explicitly shared cooking posts. A profile does not publish private history. One-way following comes later for creators/chefs.
 
 ## 4. Online Safety / Moderation — before public social release
 
@@ -100,6 +100,8 @@ Source types remain My Own, Online, Cookbook, Restaurant, Friend/Family and Othe
 Preserve original StayGrubby creator, website, cookbook/publisher or external social-post attribution. Recreation/sharing never falsely transfers authorship.
 
 Eventually show distinct eligible users who saved/made and friends who made, rather than raw attempt counts. Private/deleted/ineligible activity must not leak. Counters are informational and never affect personal ranking.
+
+Public profile links (`staygrubby.com/@username`), Universal Links and QR profile sharing remain intentionally deferred; usernames and minimal friend profiles do not implement these systems.
 
 ## 9. Public Web Sharing
 

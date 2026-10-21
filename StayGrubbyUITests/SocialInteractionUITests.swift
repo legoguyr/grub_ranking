@@ -14,6 +14,7 @@ final class SocialInteractionUITests: StayGrubbyUITestCase {
         like.tap()
         let unliked = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == 'Like post' AND value == '0 likes'"), object: like)
         XCTAssertEqual(XCTWaiter.wait(for: [unliked], timeout: 5), .completed)
+        let shot = XCTAttachment(screenshot: app.screenshot()); shot.name = "Friends Feed dark"; shot.lifetime = .keepAlways; add(shot)
         app.buttons["social-comments-20000000-0000-0000-0000-000000000001"].tap()
         let body = app.textFields["comment-body"]
         XCTAssertTrue(body.waitForExistence(timeout: 5)); body.tap(); body.typeText("Looks delicious!")
@@ -22,10 +23,21 @@ final class SocialInteractionUITests: StayGrubbyUITestCase {
         if !send.isHittable { app.swipeUp() }; send.tap()
         XCTAssertTrue(deletion.waitForExistence(timeout: 5), app.debugDescription)
         XCTAssertTrue(app.staticTexts["Looks delicious!"].exists)
-        deletion.tap(); app.sheets["Delete this comment?"].buttons["Delete comment"].tap()
-        app.swipeDown()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
+        deletion.tap()
+        let confirm = app.sheets["Delete this comment?"].buttons["Delete comment"]
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5))
+        confirm.press(forDuration: 0.2)
         XCTAssertTrue(app.staticTexts["No comments yet. Start a conversation."].waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertTrue(deletion.waitForNonExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Looks delicious!"].exists)
         app.navigationBars["Comments"].buttons["Done"].tap()
         XCTAssertTrue(like.waitForExistence(timeout: 5))
+        let comments = app.buttons["social-comments-20000000-0000-0000-0000-000000000001"]
+        let emptyCount = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == '0 comments'"), object: comments)
+        XCTAssertEqual(XCTWaiter.wait(for: [emptyCount], timeout: 5), .completed)
+        comments.tap()
+        XCTAssertTrue(app.staticTexts["No comments yet. Start a conversation."].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Looks delicious!"].exists)
     }
 }

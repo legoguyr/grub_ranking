@@ -50,7 +50,7 @@ class SiteTests(unittest.TestCase):
         expected = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", canonical)
         expected = expected.replace("**", "").replace("#", "")
         self.assertEqual(" ".join("".join(doc.article_text).split()), " ".join(expected.split()))
-        self.assertIn("October 20, 2026", " ".join(doc.article_text))
+        self.assertIn("October 21, 2026", " ".join(doc.article_text))
 
     def test_build_refuses_unexpected_files_in_publish_directory(self):
         (self.output / "internal-notes.md").write_text("Synthetic internal fixture")

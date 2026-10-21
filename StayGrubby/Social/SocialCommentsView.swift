@@ -52,6 +52,7 @@ struct SocialCommentsView: View {
     @State private var comments: [SocialComment] = []
     @State private var post: SocialPost?
     @State private var text = ""
+    @FocusState private var writingComment: Bool
     @State private var commentID = UUID()
     @State private var loading = false
     @State private var busy = false
@@ -61,6 +62,7 @@ struct SocialCommentsView: View {
     @State private var person: SocialPerson?
     @State private var deleting: SocialComment?
     @State private var confirmingDelete = false
+    @State private var deletionRequest: SocialComment?
     var body: some View {
         NavigationStack {
             List {
@@ -85,7 +87,7 @@ struct SocialCommentsView: View {
                 if hasMore { Button("Load more comments") { Task { await load(more: true) } }.disabled(loading || busy) }
                 if post != nil && !failed {
                     Section("Add a comment") {
-                        TextField("Write a comment", text: $text, axis: .vertical).lineLimit(2...6).accessibilityIdentifier("comment-body")
+                        TextField("Write a comment", text: $text, axis: .vertical).lineLimit(2...6).focused($writingComment).accessibilityIdentifier("comment-body")
                             .onChange(of: text) { _, _ in if !busy { commentID = UUID() } }
                         Text("\(text.unicodeScalars.count) / 1000").font(.caption).foregroundStyle(.secondary)
                         Button(busy ? "Sending…" : "Send comment") { Task { await send() } }
@@ -95,14 +97,20 @@ struct SocialCommentsView: View {
                 }
             }.navigationTitle("Comments").navigationBarTitleDisplayMode(.inline)
                 .scrollDismissesKeyboard(.interactively)
-                .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
+                    ToolbarItemGroup(placement: .keyboard) {
+                        Spacer()
+                        Button("Done") { writingComment = false }.accessibilityIdentifier("comment-keyboard-done")
+                    }
+                }
                 .refreshable { await load() }.task { await load() }
                 .onChange(of: scenePhase) { _, phase in
                     generation = UUID(); comments = []; post = nil
                     if phase == .active { Task { await load() } }
                 }
                 .onReceive(NotificationCenter.default.publisher(for: .socialContentChanged)) { _ in Task { await load() } }
-                .onDisappear { generation = UUID(); comments = []; post = nil }
+                .onDisappear { generation = UUID() }
                 .sheet(item: $person, onDismiss: { Task { await load() } }) { person in
                     NavigationStack {
                         FriendProfileView(person: person) { Task { await load() } }
@@ -110,8 +118,16 @@ struct SocialCommentsView: View {
                     }
                 }
                 .confirmationDialog("Delete this comment?", isPresented: $confirmingDelete, titleVisibility: .visible, presenting: deleting) { comment in
-                    Button("Delete comment", role: .destructive) { Task { await remove(comment) } }
+                    Button("Delete comment", role: .destructive) {
+                        deletionRequest = comment
+                    }
                 }
+        }
+        // Keep async deletion on the mounted screen, rather than the dismissing dialog's captured view.
+        .task(id: deletionRequest?.id) {
+            guard let comment = deletionRequest else { return }
+            await remove(comment)
+            deletionRequest = nil
         }
     }
     private func load(more: Bool = false) async {
@@ -134,7 +150,7 @@ struct SocialCommentsView: View {
         defer { busy = false }
         do {
             _ = try await request("social_interactions", "comment", .init(postID: postID, commentID: commentID, body: text))
-            guard !Task.isCancelled else { return }; text = ""; commentID = UUID(); await load()
+            guard !Task.isCancelled else { return }; writingComment = false; text = ""; commentID = UUID(); await load()
         } catch is CancellationError { } catch { failed = true }
     }
     private func remove(_ comment: SocialComment) async {

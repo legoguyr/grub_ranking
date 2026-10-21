@@ -1,8 +1,8 @@
 # StayGrubby Privacy Policy
 
-**Effective date: October 20, 2026**
+**Effective date: October 21, 2026**
 
-StayGrubby is a private cooking journal and personal ranking app. This policy describes the current Version 1 app. It does not describe planned social, recipe-discovery, advertising, or public-profile features because those features are not in the app.
+StayGrubby is a private cooking journal and personal ranking app with optional friends-only social sharing. This policy describes the implemented app, including social identity, friendships, explicit cooking posts, likes, comments, blocking and reporting. It does not describe planned recipe-discovery, advertising or public-web cooking profiles.
 
 ## Information StayGrubby handles
 
@@ -20,11 +20,21 @@ StayGrubby does not currently include a conventional analytics SDK or advertisin
 
 StayGrubby does not automatically publish your cooking data. When you choose Share, the app renders a branded image on your device and opens the native iOS share sheet. You choose the destination. The exported image intentionally omits account identifiers, notes, source details, tags, and comparison history.
 
+## Optional social identity and friends-only posts
+
+You can keep using your private cooking library without setting up a social identity. If you choose one, StayGrubby stores your display name (a nickname is welcome), unique username and discovery preference. Discovery is off by default. When enabled, other signed-in users can search for your username and see your display name and relationship state. Existing friends can identify you even when discovery is off. After a username change, the old handle is reserved to your account for 30 days. StayGrubby stores mutual friend requests, friendships and blocks to enforce these choices.
+
+Share with Friends is a separate, explicit action from native image export. It creates a social snapshot of your dish title, version, timestamp, social identity and numerical score only when unlocked. A photo is copied to separate private social storage only when you choose to include it. Posts never give friends access to your private library, notes, tags, allergens, Sources, comparisons or sync records. Posts are available only to you and current eligible friends, subject to blocks and moderation. Turning discovery off does not remove friends. Removing a friendship or blocking someone removes normal access to each other's posts. Already viewed, copied or exported information cannot be remotely recalled; screens reflect other people's access changes on their next request/refresh, without real-time revocation.
+
+Likes and flat comments are optional social participation. Eligible post viewers can see visible participation counts, comment text, timestamp and the commenter's display name/username; participation can reveal this minimal identity to other eligible viewers even if the commenter is not discoverable. Blocked or no-longer-eligible participants are filtered. Social engagement never changes anyone's personal ranking. Private reports identify a profile, post or comment, reason and optional limited context for StayGrubby review. The reported person cannot read raw reports or reporter details. Reporting does not automatically hide content; StayGrubby can restrict social identities or hide posts/comments during review.
+
 ## Retention and deletion
 
 StayGrubby keeps account data while your account is active so the library can synchronize and restore. Individual cooking deletions use synchronization tombstones and receipts to prevent deleted records from returning. These synchronization records may remain while the account is active.
 
-To permanently delete your account, open Profile → Account & sync → Delete account, confirm the request, and verify the Apple identity linked to your account. The deletion flow revokes Apple authorization, removes private cooking-photo objects, deletes your account-owned database records and synchronization history, deletes the Supabase Auth user, removes the local account library on the device completing deletion, and returns the app to sign-in. An incomplete deletion is not presented as successful and can be retried. Sign out alone does not delete your account. Locally cached copies on other devices are not remotely erased by this flow.
+You can delete your shared posts without deleting private cooks. Existing snapshots do not change when you edit or re-rank a private cook; delete and share again to replace one. Deleting the source cook retires the shared post. Retired social photos lose normal access immediately; byte cleanup retries when you use the social screens or during account deletion. A comment's author or the post owner may remove it. Deleted comment text is cleared; an identifier tombstone prevents a delayed retry from recreating it. Block/removal can hide retained interactions; renewed friendship can make still-retained interactions visible again. Post/account erasure removes associated likes, comments and reports. Account deletion also removes social identity, username reservations, friendship/block references and reports involving that account. No separate moderation archive is introduced.
+
+To permanently delete your account, open Profile → Account & sync → Delete account, confirm the request, and verify the Apple identity linked to your account. The deletion flow revokes Apple authorization, removes private cooking-photo and social-photo objects, deletes your account-owned database records and synchronization history, deletes the Supabase Auth user, removes the local account library on the device completing deletion, and returns the app to sign-in. An incomplete deletion is not presented as successful and can be retried. Sign out alone does not delete your account. Locally cached copies on other devices are not remotely erased by this flow.
 
 Infrastructure providers may retain limited security logs or backup copies for their documented retention periods and legal obligations. StayGrubby does not claim control over those provider-operated retention systems.
 

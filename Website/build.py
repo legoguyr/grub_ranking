@@ -65,7 +65,7 @@ def build(output):
         raise ValueError("Refusing to publish unexpected files: " + ", ".join(sorted(unexpected)))
     (output / "assets").mkdir(exist_ok=True)
     text = POLICY.read_text(encoding="utf-8")
-    assert "Effective date: October 20, 2026" in text
+    assert "Effective date: October 21, 2026" in text
     landing = '''<section class="hero">
       <p class="eyebrow">Your cooking. Your taste.</p>
       <h1>Remember what<br>you loved cooking.</h1>

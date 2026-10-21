@@ -10,13 +10,13 @@ struct SocialShareAction: View {
             Button { showing = true } label: { Label("Share with Friends", systemImage: "person.2").frame(maxWidth: .infinity) }
                 .buttonStyle(SGButtonStyle()).accessibilityIdentifier("share-with-friends")
                 .accessibilityHint("Review and explicitly publish a separate friends-only cooking post.")
-                .sheet(isPresented: $showing) { SocialPostComposer(attempt: attempt) }
+                .sheet(isPresented: $showing) { SocialPostComposer(attempt: attempt, close: { showing = false }) }
         }
     }
 }
 struct SocialPostComposer: View {
     let attempt: CookingAttempt
-    @Environment(\.dismiss) private var dismiss
+    let close: () -> Void
     @Environment(\.modelContext) private var context
     @Environment(\.cookingMediaRoot) private var mediaRoot
     @Environment(\.cookingSyncCoordinator) private var sync
@@ -29,7 +29,6 @@ struct SocialPostComposer: View {
     @State private var savedPost: SocialPost?
     @State private var busy = false
     @State private var failed = false
-    @State private var shared = false
     @State private var attemptedShare = false
     @State private var didPublish = false
     private var model: ShareCardModel { .make(for: attempt) }
@@ -39,6 +38,13 @@ struct SocialPostComposer: View {
     var body: some View {
         NavigationStack {
             Form {
+                if didPublish {
+                    Section {
+                        Label("Shared with Friends", systemImage: "checkmark.circle.fill").accessibilityIdentifier("social-share-success")
+                        Text("Your separate cooking post is available to eligible friends. Your private cooking and ranking are unchanged.")
+                        Button("Done", action: close).accessibilityIdentifier("social-share-done")
+                    }
+                } else {
                 Section("Share with Friends") {
                     Text("Your cooking stays private unless you publish here. This creates a separate post for your current eligible friends.")
                     Text(model.title).font(SGTheme.TypeRole.headline)
@@ -64,14 +70,14 @@ struct SocialPostComposer: View {
                 }
                 if failed { Text("Couldn’t share. Check your connection and cooking sync, then retry. You can cancel a pending draft and try again.").accessibilityIdentifier("social-share-error") }
                 Text("The separate Share action opens the native image share sheet; it does not publish to Friends.").font(.footnote).foregroundStyle(.secondary)
+                }
             }
             .navigationTitle("Share with Friends").navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { Task { await cancel() } }.disabled(busy) } }
+            .toolbar { ToolbarItem(placement: .cancellationAction) { if !didPublish { Button("Cancel") { Task { await cancel() } }.disabled(busy) } } }
             .interactiveDismissDisabled(busy).task { await load() }
             .sheet(isPresented: $editingIdentity) {
                 if let identity { SocialIdentityEditor(identity: identity) { self.identity = $0 } }
             }
-            .alert("Shared with Friends", isPresented: $shared) { Button("Done") { dismiss() } } message: { Text("Your separate cooking post is available to eligible friends. Your private cooking and ranking are unchanged.") }
         }
     }
     private func load() async {
@@ -95,7 +101,7 @@ struct SocialPostComposer: View {
                 }
                 _ = try await request("social_content", "publish", .init(postID: post.id))
             }
-            didPublish = true; shared = true
+            didPublish = true
             NotificationCenter.default.post(name: .socialContentChanged, object: nil)
         } catch is CancellationError { } catch { failed = true }
     }
@@ -104,7 +110,7 @@ struct SocialPostComposer: View {
             _ = try? await request("social_content", "delete", .init(postID: postID))
             await SocialPhotoCleanup.run(request: request, media: media)
         }
-        dismiss()
+        close()
     }
 }
 extension Notification.Name { static let socialContentChanged = Notification.Name("StayGrubby.socialContentChanged") }

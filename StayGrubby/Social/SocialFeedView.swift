@@ -59,7 +59,7 @@ struct SocialFeedView: View {
             if phase == .active && isSelected { revision += 1 }
             else { generation = UUID(); posts = [] }
         }
-        .onDisappear { generation = UUID(); posts = [] }
+        .onDisappear { generation = UUID() }
         .sheet(item: $person, onDismiss: { revision += 1 }) { person in
             NavigationStack {
                 FriendProfileView(person: person) { revision += 1 }

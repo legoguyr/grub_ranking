@@ -12,7 +12,7 @@ final class SocialPostUITests: StayGrubbyUITestCase {
         app.buttons["Continue"].tap(); app.buttons["Liked it"].tap()
         let share = app.buttons["share-with-friends"]
         XCTAssertTrue(share.waitForExistence(timeout: 15))
-        XCTAssertFalse(app.alerts["Shared with Friends"].exists)
+        XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "social-share-success").firstMatch.exists)
         share.tap()
         XCTAssertTrue(app.staticTexts["social-share-score-locked"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["social-share-publish"].exists)
@@ -20,7 +20,7 @@ final class SocialPostUITests: StayGrubbyUITestCase {
         XCTAssertTrue(share.waitForExistence(timeout: 5)); share.tap()
         let publish = app.buttons["social-share-publish"]
         XCTAssertTrue(publish.waitForExistence(timeout: 5)); publish.tap()
-        XCTAssertTrue(app.alerts["Shared with Friends"].waitForExistence(timeout: 10)); app.alerts.buttons["Done"].tap()
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "social-share-success").firstMatch.waitForExistence(timeout: 10)); app.buttons["social-share-done"].tap()
         XCTAssertTrue(app.buttons["ranking-result-close"].waitForExistence(timeout: 5)); app.buttons["ranking-result-close"].tap()
         let row = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'cook-row-' AND label CONTAINS 'Private Social Soup'")).firstMatch
         XCTAssertTrue(row.waitForExistence(timeout: 5)); XCTAssertTrue(row.label.contains("score locked"))

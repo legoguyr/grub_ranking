@@ -20,7 +20,7 @@ import SwiftUI
     private var feedSeeded = false
     func request(_ endpoint: String, _ action: String, _ payload: SocialPayload) async throws -> Data {
         // Opt-in diagnostics for isolated fixtures only; never log payloads/identities.
-        if ProcessInfo.processInfo.arguments.contains("--social-review-trace") { print("SOCIAL_REVIEW \(endpoint) \(action)") }
+        if ProcessInfo.processInfo.arguments.contains("--social-review-trace") { NSLog("SOCIAL_REVIEW %@ %@", endpoint, action) }
         if endpoint == "social_identity" {
             if action == "save" { identity = SocialIdentity(displayName: payload.displayName ?? "", username: payload.username, discoverable: payload.discoverable ?? false) }
             return try JSONEncoder().encode(identity)
@@ -42,6 +42,10 @@ import SwiftUI
             if !feedSeeded && ProcessInfo.processInfo.arguments.contains("--social-review-feed") {
                 feedSeeded = true
                 posts.append(SocialPost(id: UUID(uuidString: "20000000-0000-0000-0000-000000000001")!, author: people[0], title: "Harissa Chicken with Roasted Peppers", versionTitle: "Grilled with lemon", scoreText: "8.6", achievement: nil, createdAt: Date().timeIntervalSince1970, photoPath: nil, published: true, isAuthor: false, moderationState: "active"))
+            }
+            if ProcessInfo.processInfo.arguments.contains("--social-review-comment"), let seed = posts.first, comments[seed.id] == nil {
+                if let index = posts.firstIndex(where: { $0.id == seed.id }) { posts[index].commentCount = 1 }
+                comments[seed.id] = [SocialComment(id: UUID(uuidString: "30000000-0000-0000-0000-000000000001")!, author: people[0], body: "A friendly cooking comment", createdAt: Date().timeIntervalSince1970, canDelete: false, isAuthor: false)]
             }
             if action == "post" { return try JSONEncoder().encode(SocialPostsPage(posts: posts.filter { $0.id == payload.postID })) }
             let visible = posts.filter { post in post.isAuthor || people.contains(where: { $0.id == post.author.id && $0.relationship == .friends }) }
