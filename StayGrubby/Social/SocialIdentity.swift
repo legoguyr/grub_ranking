@@ -29,4 +29,7 @@ nonisolated struct SocialPayload: Codable, Sendable {
     var displayName: String?
     var username: String?
     var discoverable: Bool?
+    var peerID: UUID?
+    var query: String?
+    var afterUsername: String?
 }

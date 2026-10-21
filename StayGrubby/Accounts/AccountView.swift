@@ -34,6 +34,7 @@ struct AccountView: View {
             VStack(alignment: .leading, spacing: SGTheme.Space.large) {
                 identity
                 SocialIdentitySection()
+                SocialFriendsLink()
                 ProfileCookingContent(snapshot: snapshot, ranking: ranking)
                 #if DEBUG
                 if let endDevelopmentReview {

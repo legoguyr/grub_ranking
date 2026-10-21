@@ -6,7 +6,7 @@ import Supabase
 }
 extension SupabaseAccountBackend: SocialBackend {
     func socialRequest(endpoint: String, action: String, payload: SocialPayload) async throws -> Data {
-        guard ["social_identity"].contains(endpoint), let user = client.auth.currentSession?.user.id else { throw AccountFoundationError.accountNotResolved }
+        guard ["social_identity", "social_people"].contains(endpoint), let user = client.auth.currentSession?.user.id else { throw AccountFoundationError.accountNotResolved }
         struct Parameters: Encodable { let action: String; let payload: SocialPayload }
         let response = try await client.schema("api").rpc(endpoint, params: Parameters(action: action, payload: payload)).execute()
         try Task.checkCancellation()

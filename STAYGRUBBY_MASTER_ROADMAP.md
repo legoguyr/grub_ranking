@@ -59,7 +59,7 @@ Release-foundation owner closeout: public staygrubby.com HTTPS/routing and App S
 
 ## 3. Profiles + Friends
 
-Social identity is implemented: optional display name, unique editable @username, 30-day old-handle reservation and discoverability off by default. Friendship and social profile lookup are the next checkpoint. See [social review](SOCIAL_DEVELOPMENT_REVIEW.md).
+Social identity is implemented: optional display name, unique editable @username, 30-day old-handle reservation and discoverability off by default. Mutual friendship, blocking, minimal social profile lookup and Friends UI are implemented; no Feed is enabled yet. See [social review](SOCIAL_DEVELOPMENT_REVIEW.md).
 
 Dedicated Friends experience/navigation. Prioritize **mutual friendship**, not followers: username search, requests, accept/decline, friends list/removal, friend profiles and permitted cooking activity/rankings. A profile does not publish private history. One-way following comes later for creators/chefs.
 

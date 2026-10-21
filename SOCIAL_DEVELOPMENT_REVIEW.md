@@ -42,3 +42,21 @@ Checkpoint 2 file inventory:
 - `SOCIAL_ARCHITECTURE.md`
 - `SOCIAL_DEVELOPMENT_REVIEW.md`
 - `supabase/migrations/20261021033357_social_friendship_blocking.sql`
+
+## Checkpoint 3 — Friends UI
+
+Friends is added within Profile. The initial new UI tests exposed unstable value-driven destination state; an item-driven person sheet keeps the list independent. A second test found a real fast-response race: a section-change observer cleared results after a synchronous fixture response. Clearing now occurs before the load, not in a competing observer. Meaningful transition/search assertions were retained. A focused account-generation test proves a signed-out account cannot receive a late social reply. No hosted changes or private-store mutations are needed for this UI checkpoint. Debug compilation passed. Final `/private/tmp/staygrubby-friends-final.xcresult`: 1/1 social session unit test and 2/2 Friends UI tests passed, zero failures/skips. Dark testing covers minimal profile, remove, incoming accept, block/unblock and outgoing cancellation; light accessibility-size testing covers search, request/cancel state and long name layout. Earlier failed bundles are retained and not represented as green runs. The existing identity and 27 relationship SQL assertions cover normalization/decline/discoverability/authorization independently of the in-memory UI fixtures.
+
+Checkpoint 3 file inventory:
+
+- `SOCIAL_ARCHITECTURE.md`
+- `SOCIAL_DEVELOPMENT_REVIEW.md`
+- `STAYGRUBBY_MASTER_ROADMAP.md`
+- `StayGrubby/Accounts/AccountView.swift`
+- `StayGrubby/Social/FriendsView.swift`
+- `StayGrubby/Social/SocialIdentity.swift`
+- `StayGrubby/Social/SocialPeople.swift`
+- `StayGrubby/Social/SocialReview.swift`
+- `StayGrubby/Social/SocialTransport.swift`
+- `StayGrubbyTests/SocialSessionTests.swift`
+- `StayGrubbyUITests/FriendsUITests.swift`
