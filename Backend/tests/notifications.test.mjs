@@ -1,0 +1,40 @@
+import {fixture} from './social-harness.mjs';
+import {randomUUID} from 'node:crypto';
+const f=await fixture(),{db,users,actor,rpc,cooking,check,rejects}=f;
+try{
+ for(let n=0;n<3;n++){await actor(n);await rpc('social_identity','save',{displayName:'Notice Cook '+n,username:'notice_'+n,discoverable:true});}
+ const source=await cooking(0,1);
+ await actor(1);await rpc('social_people','request',{peerID:users[0].id});await rpc('social_people','request',{peerID:users[0].id});
+ await actor(0);let page=await rpc('social_notifications','page');
+ check(page.notifications.length===1&&page.notifications[0].kind==='request','Request transition creates one notification');
+ const notice=page.notifications[0].id;
+ await actor(2);await rejects(()=>rpc('social_notifications','read',{targetID:notice}));
+ await rejects(()=>rpc('social_notifications','create',{peerID:users[0].id,targetID:randomUUID()}),'22023');
+ check((await rpc('social_notifications','page')).unread===0,'Other account sees no notices/count');
+ await actor(0);check((await rpc('social_notifications','read',{targetID:notice})).unread===0,'Opening marks read');
+ await rpc('social_people','accept',{peerID:users[1].id});
+ check(!(await rpc('social_notifications','page')).notifications.some(n=>n.kind==='request'),'Invalid request target disappears');
+ await actor(1);check((await rpc('social_notifications','page')).notifications[0].kind==='accepted','Requester gets accepted notification');
+ await actor(0);const postID=randomUUID();await rpc('social_content','prepare',{postID,attemptID:source.attempts[0],confirmed:true,expectedRevision:0});
+ await rpc('social_interactions','like',{postID});check((await rpc('social_notifications','page')).unread===0,'No self-like notice');
+ await actor(1);await rpc('social_interactions','like',{postID});await rpc('social_interactions','like',{postID});
+ const commentID=randomUUID();await rpc('social_interactions','comment',{postID,commentID,body:'A thoughtful comment'});
+ await actor(0);page=await rpc('social_notifications','page');
+ check(page.notifications.filter(n=>n.kind==='like').length===1,'Repeated like coalesces');
+ check(page.notifications.find(n=>n.kind==='comment').postID===postID,'Comment routes to canonical post');
+ check(!JSON.stringify(page).match(/score|body|strength|notes|comparison|email/),'No private or text snapshots in notifications');
+ await rpc('social_notifications','readAll');check((await rpc('social_notifications','page')).unread===0,'Mark all read is account-scoped');
+ await actor(1);check((await rpc('social_notifications','page')).unread===1,'Other recipient read state unaffected');
+ for(let n=0;n<27;n++)await rpc('social_interactions','comment',{postID,commentID:randomUUID(),body:'Comment '+n});
+ await actor(0);page=await rpc('social_notifications','page');check(page.notifications.length===25,'Page bounded to25');
+ const last=page.notifications.at(-1),next=await rpc('social_notifications','page',{beforeTime:last.createdAt,beforeID:last.id});
+ check(next.notifications.length>0&&!next.notifications.some(n=>page.notifications.some(p=>p.id===n.id)),'Exclusive time/UUID pagination');
+ check(page.unread===27,'Unread counts all eligible pages');
+ await rpc('social_people','remove',{peerID:users[1].id});
+ check((await rpc('social_notifications','page')).unread===0,'Removed friendship removes inaccessible unread count');
+ await rejects(()=>rpc('social_notifications','read',{targetID:page.notifications[0].id}));
+ await db.exec('reset role');check((await db.query('select count(*)::int n from staygrubby.social_notifications where actor_id=recipient_id')).rows[0].n===0,'Database forbids self-notifications');
+ await db.exec('set role authenticated');await rejects(()=>db.query('update staygrubby.social_notifications set read_at=now()'));
+ await db.exec('reset role');await db.query('delete from staygrubby.accounts where id=$1',[users[0].id]);
+ check((await db.query('select count(*)::int n from staygrubby.social_notifications')).rows[0].n===0,'Actor/recipient account deletion cleans notices');
+}finally{await f.finish();}
