@@ -50,6 +50,7 @@ struct AccountApplicationRoot: View {
             ContentView().modelContainer(store.container).environment(\.cookingMediaRoot,store.mediaRoot)
                 .environment(\.scoreMilestoneScope, "account.\(account.accountID.uuidString.lowercased())")
                 .id(account.accountID)
+                .environment(\.socialMedia, { action in try await session.performSocialMedia(action) })
                 .environment(\.socialRequest, { endpoint, action, payload in
                     try await session.performSocialRequest(endpoint: endpoint, action: action, payload: payload)
                 })

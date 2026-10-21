@@ -18,7 +18,7 @@ function check(value: boolean, message: string): asserts value {
   if (!value) throw new Error(message);
 }
 
-async function exercise(state: string | undefined, validCode: boolean) {
+async function exercise(state: string | undefined, validCode: boolean, failSocialStorage = false) {
   check(!Deno.env.has(secretName), "Refusing to run with inherited Apple credentials");
   Deno.env.set(secretName, JSON.stringify({ teamID: "synthetic-team", keyID: "synthetic-key",
     clientID: "com.guyrettig.StayGrubby", privateKey }));
@@ -36,7 +36,7 @@ async function exercise(state: string | undefined, validCode: boolean) {
     throw new Error("Unexpected network destination in isolated test");
   };
   const accountID = "11111111-1111-4111-8111-111111111111";
-  let objectsRemain = true;
+  const objectsRemain = new Set(["cooking-photos", "social-photos"]);
   const context = {
     userClaims: { id: "synthetic-auth-user" },
     supabase: { schema: () => ({ rpc: async (name: string) => {
@@ -50,9 +50,9 @@ async function exercise(state: string | undefined, validCode: boolean) {
           identity_id: "22222222-2222-4222-8222-222222222222", identity_data: { sub: "synthetic-apple-subject" } }] } } }),
         deleteUser: async () => { events.push("auth_delete"); return {}; },
       } },
-      storage: { from: () => ({
-        list: async () => ({ data: objectsRemain ? [{ id: "synthetic-object", name: "display.jpg" }] : [] }),
-        remove: async () => { events.push("storage_remove"); objectsRemain = false; return {}; },
+      storage: { from: (bucketName: string) => ({
+        list: async () => ({ data: objectsRemain.has(bucketName) ? [{ id: "synthetic-object", name: "display.jpg" }] : [] }),
+        remove: async () => { events.push("storage_remove:" + bucketName); if (bucketName === "social-photos" && failSocialStorage) return { error: new Error("synthetic storage failure") }; objectsRemain.delete(bucketName); return {}; },
       }) },
       schema: () => ({ rpc: async (name: string, args: { target_state?: string }) => {
         events.push(name);
@@ -80,7 +80,7 @@ Deno.test("Retry after Apple revocation rejects an invalid fresh code before any
 Deno.test("Verified retry revokes the new grant before Storage, graph and Auth cleanup", async () => {
   const result = await exercise("apple_revoked", true);
   check(result.status === 200, "Verified retry did not complete");
-  check(JSON.stringify(result.events) === JSON.stringify(["apple_exchange", "apple_revoke", "storage_remove",
+  check(JSON.stringify(result.events) === JSON.stringify(["apple_exchange", "apple_revoke", "storage_remove:cooking-photos", "storage_remove:social-photos",
     "advance_account_deletion", "erase_account_data", "auth_delete"]), "Cleanup/revocation order is incorrect");
 });
 
@@ -94,4 +94,10 @@ Deno.test("Initial invalid Apple authorization never creates a deletion job", as
   const result = await exercise(undefined, false);
   check(result.status === 401, "Invalid initial authorization accepted");
   check(JSON.stringify(result.events) === JSON.stringify(["apple_exchange"]), "Deletion job created before Apple verification");
+});
+
+Deno.test("Social-photo failure cannot advance to graph or Auth erasure", async () => {
+  const result = await exercise("apple_revoked", true, true);
+  check(result.status === 503, "Storage failure must retain account/retry state");
+  check(!result.events.includes("erase_account_data") && !result.events.includes("auth_delete"), "Social photos bypassed erasure guard");
 });

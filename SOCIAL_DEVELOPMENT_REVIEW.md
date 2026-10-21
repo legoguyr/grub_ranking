@@ -80,3 +80,31 @@ Checkpoint 4 file inventory:
 - `StayGrubby/Social/SocialTransport.swift`
 - `StayGrubbyUITests/FriendsUITests.swift`
 - `supabase/migrations/20261021035049_social_content_safety.sql`
+
+## Checkpoint 5 — Friends-Only Cooking Posts
+
+25/25 focused disposable SQL assertions passed, including explicit consent, revision/ownership, score locks, separate photo RLS, block revocation, source deletion, cleanup and unchanged private ranking/attempt fingerprints. Delete-account synthetic Deno tests passed 7/7, including independent social-photo cleanup failure preventing graph/Auth erasure. Debug compile and 2 media/DTO unit tests plus 1 explicit-sharing UI test passed, zero failures/skips (`/private/tmp/staygrubby-social-posts-focused.xcresult`). No real media bytes were uploaded during validation.
+
+Deployed `20261021094853_social_cooking_posts`; 14/14 hosted/local migration hashes match. All 24 private tables retain RLS, zero anonymous RPCs and zero direct private client writes. Private hosted fingerprints are unchanged. `delete-account` v3 is ACTIVE, JWT verification enabled; source readback matches the three local deployment files. Bundle SHA256: c7f421418b3b502e861b760c9bfe547964e7d146603db24532e947fff4a429cf. Existing Apple behavior is preserved; no real deletion invoked. Initial deployment request expired; history inspection and fresh idempotent deployment completed safely.
+
+Checkpoint 5 file inventory:
+
+- `Backend/schema.sql`
+- `Backend/tests/social-posts.test.mjs`
+- `StayGrubby/Accounts/AccountApplicationRoot.swift`
+- `StayGrubby/Accounts/AccountSessionCoordinator.swift`
+- `StayGrubby/Social/SocialIdentity.swift`
+- `StayGrubby/Social/SocialReview.swift`
+- `StayGrubby/Social/SocialTransport.swift`
+- `StayGrubby/Social/SocialMedia.swift`
+- `StayGrubby/Social/SocialPost.swift`
+- `StayGrubby/Social/SocialShareView.swift`
+- `StayGrubby/Views/Cooking/AttemptDetailView.swift`
+- `StayGrubby/Views/Cooking/CookingRankingResultView.swift`
+- `StayGrubbyTests/SocialMediaTests.swift`
+- `StayGrubbyUITests/SocialPostUITests.swift`
+- `supabase/functions/delete-account/delete-account.test.ts`
+- `supabase/functions/delete-account/index.ts`
+- `supabase/migrations/20261021094853_social_cooking_posts.sql`
+- `SOCIAL_ARCHITECTURE.md`
+- `SOCIAL_DEVELOPMENT_REVIEW.md`

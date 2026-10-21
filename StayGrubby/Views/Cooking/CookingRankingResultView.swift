@@ -105,6 +105,7 @@ struct CookingRankingResultView: View {
         .accessibilityIdentifier("ranking-result")
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: SGTheme.Space.small) {
+                SocialShareAction(attempt: attempt)
                 DishShareAction(model: model, prominent: true, identifier: "result-share-dish", currentModel: { self.model })
                 if scores.isUnlocked, model.achievement == .newNumberOne {
                     TopThreeShareAction(list: attempt.rankedItem?.list, title: "Share Updated Top 3", identifier: "result-share-updated-top-three")

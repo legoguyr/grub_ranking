@@ -22,6 +22,7 @@ struct AttemptDetailView: View {
                 SGHeroMedia(media: attempt.primaryImage, name: attempt.dish?.name ?? attempt.displayName)
                 header
                 actionButtons
+                SocialShareAction(attempt: attempt)
                 metadata
                 if let source = attempt.dish?.source {
                     VStack(alignment: .leading, spacing: SGTheme.Space.small) {

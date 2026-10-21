@@ -58,8 +58,8 @@ async function revokeAppleAuthorization(code: string, expectedSubject: string, c
   if (!revokeResponse.ok) throw new Error("apple_revocation_failed");
 }
 
-async function storagePaths(admin: any, prefix: string): Promise<string[]> {
-  const bucket = admin.storage.from(PHOTO_BUCKET), paths: string[] = [];
+async function storagePaths(admin: any, prefix: string, bucketName = PHOTO_BUCKET): Promise<string[]> {
+  const bucket = admin.storage.from(bucketName), paths: string[] = [];
   const visit = async (folder: string) => {
     for (let offset = 0;; offset += 100) {
       const { data, error } = await bucket.list(folder,
@@ -78,12 +78,14 @@ async function storagePaths(admin: any, prefix: string): Promise<string[]> {
 }
 
 async function removeStorage(admin: any, accountID: string, known: string[]) {
-  const paths = [...new Set([...known, ...await storagePaths(admin, accountID)])];
-  for (let start = 0; start < paths.length; start += 1000) {
-    const { error } = await admin.storage.from(PHOTO_BUCKET).remove(paths.slice(start, start + 1000));
-    if (error) throw new Error("storage_cleanup_failed");
+  for (const bucketName of [PHOTO_BUCKET, "social-photos"]) {
+    const paths = [...new Set([...(bucketName === PHOTO_BUCKET ? known : []), ...await storagePaths(admin, accountID, bucketName)])];
+    for (let start = 0; start < paths.length; start += 1000) {
+      const { error } = await admin.storage.from(bucketName).remove(paths.slice(start, start + 1000));
+      if (error) throw new Error("storage_cleanup_failed");
+    }
+    if ((await storagePaths(admin, accountID, bucketName)).length !== 0) throw new Error("storage_cleanup_failed");
   }
-  if ((await storagePaths(admin, accountID)).length !== 0) throw new Error("storage_cleanup_failed");
 }
 
 export async function deleteAuthenticatedAccount(req: Request, ctx: SupabaseContext): Promise<Response> {
