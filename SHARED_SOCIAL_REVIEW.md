@@ -8,7 +8,7 @@ Hosted baseline: 18 aligned migrations, delete-account v4 ACTIVE/JWT verificatio
 
 ## Checkpoint 1 — backend/domain foundation
 
-Implementation in progress; deployment and app integration are not yet claimed complete.
+Backend foundation deployed as 20261021224851_shared_cooking_notifications (SQL MD5 3e527a744c0420b41b4d6c44270d748b). All 19 local/hosted migration hashes matched after filename alignment. All 28 tables retain RLS, no anonymous API execute/direct client writes, three buckets remain private (cooking44/social1/profile0). All 12 starting private/storage fingerprint groups are unchanged. App integration remains in progress.
 
 Four purpose-specific closed/RLS tables: shared_cooks, shared_participants, cooking_origins and social_notifications. Every object has a stable UUID independent of display names/usernames. An event belongs to the creator's independently completed cook and snapshots only deliberately disclosed title/course/cuisine/public source attribution. One event per owner/cook, up to eight current friends. Participants independently transition pending → joining → joined, or declined/removed. Joining reserves a durable server-owned personal item ID; only the recipient's own later synced cook can complete it. A repeated claim returns the same identity, including across devices. Neither a claim nor an abandoned form creates private cooking or ranking evidence. Existing CookingStore and ranking engine remain authoritative.
 
@@ -21,3 +21,7 @@ Relationship removal retires pending/joining invitations; completed private cook
 Future public StayGrubby web links are routing/deep-link surfaces into the native app, not a public recipe/content website. UUID/provenance contracts support that future layer; no public route, Universal Link, Associated Domain, QR, web profile/feed/recipe page is implemented here.
 
 Local foundation checks: 35 Shared Cooking/provenance, 21 notification, 82 complete schema/RLS/grants, 25 directly affected post and 31 interaction assertions passed (194 total) in disposable PGlite/Auth/Storage-catalog fixtures. These do not claim live Auth/Storage byte tests. App/integration/deployment evidence will be appended as completed. Secret/local-artifact scan passed; whitespace checks passed. No full historical/Release/physical suite is required by default.
+
+## Explicit metadata consent and cancellation follow-up
+
+A separate additive migration requires includeAttribution=true for safe Course/Cuisine/public recipe-source metadata in a newly created social snapshot. Older clients continue sharing only the original fields; neither a retry nor the new client backfills old snapshots. The app explains this disclosure in the new-entry choice, settings and manual composer. Cooked With invitations disclose the same safe metadata explicitly; no photo is copied. The original creator can see their own identity in Recreated provenance. Owner-derived cancellation retires pending/joining invitations idempotently, including after a lost response, while preserving joined private cooking. Local shared/provenance/security tests now pass 44 assertions, including full recreation completion, locked recipient score, notification deduplication and source-creator provenance. Schema82, posts25 and notifications21 also pass against the consent migration.
