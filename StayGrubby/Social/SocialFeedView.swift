@@ -110,12 +110,15 @@ struct SocialFeedCard: View {
     var delete: () -> Void
     var body: some View {
         VStack(alignment: .leading, spacing: SGTheme.Space.small) {
+            HStack(alignment: .top, spacing: 12) {
+            SocialAvatar(name: post.author.displayName, path: post.author.avatarPath)
             if post.isAuthor {
                 Text("You · \(post.author.handle)").font(.headline)
             } else {
                 Button(action: profile) {
                     VStack(alignment: .leading) { Text(post.author.displayName).font(.headline); Text(post.author.handle).font(.subheadline).foregroundStyle(.secondary) }
                 }.buttonStyle(.plain).accessibilityLabel("View \(post.author.displayName)’s profile")
+            }
             }
             Text(post.date, style: .relative).font(.caption).foregroundStyle(.secondary)
             SocialPhoto(path: post.photoPath).frame(maxWidth: .infinity).frame(height: 240).clipped().clipShape(RoundedRectangle(cornerRadius: 16))

@@ -20,7 +20,7 @@ await db.exec(`create role authenticated; create role anon; create role service_
 await db.exec(storageStubSQL);
 const migrationDirectory = new URL('../../supabase/migrations/', import.meta.url);
 const migrations = (await readdir(migrationDirectory)).filter(name => name.endsWith('.sql')).sort();
-check(migrations.length === 16 && migrations.some(name => name.endsWith('_social_interactions.sql')), 'Approved migration chain includes social interactions');
+check(migrations.length === 17 && migrations.some(name => name.endsWith('_social_profile_photos.sql')), 'Approved migration chain includes profile photos');
 const initial = (await Promise.all(migrations.map(name => readFile(new URL(name, migrationDirectory), 'utf8')))).join('');
 check(initial === await readFile(new URL('../schema.sql', import.meta.url), 'utf8'), 'Reference and complete migration chain agree');
 for (const name of migrations) await db.exec(await readFile(new URL(name, migrationDirectory), 'utf8'));
@@ -143,7 +143,7 @@ await rejects('select api.provision_account()','Supabase anonymous Auth user rej
 await actor(ub); await db.exec(`select set_config('request.jwt.claims','{"session_id":"${sid}"}',false)`);
 await rejects('select api.provision_account()','Session belonging to a different user rejected','42501');
 await db.exec('reset role');
-check((await db.query(`select count(*)::int n from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='api'`)).rows[0].n===15,'Approved API includes seven narrow social functions and the existing eight account/sync functions');
+check((await db.query(`select count(*)::int n from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='api'`)).rows[0].n===16,'Approved API includes eight narrow social functions and the existing eight account/sync functions');
 check(!(await db.query(`select has_function_privilege('anon','api.provision_account()','EXECUTE') as access`)).rows[0].access,'Anonymous function execution denied');
 check(!(await db.query(`select has_function_privilege('authenticated','api.erase_account_data(uuid)','EXECUTE') as access`)).rows[0].access,'Client cannot invoke privileged account erasure');
 // Library bootstrap is authenticated, empty, idempotent, owner-derived and non-destructive.

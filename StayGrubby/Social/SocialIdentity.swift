@@ -4,6 +4,7 @@ nonisolated struct SocialIdentity: Codable, Equatable, Sendable {
     var displayName: String
     var username: String?
     var discoverable: Bool
+    var avatarPath: String? = nil
     var isConfigured: Bool { username != nil }
     var handle: String { username.map { "@" + $0 } ?? "Choose a username" }
 }
@@ -45,4 +46,6 @@ nonisolated struct SocialPayload: Codable, Sendable {
     var beforeID: UUID?
     var commentID: UUID?
     var body: String?
+    var assetID: UUID?
+    var avatarPath: String?
 }

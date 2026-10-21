@@ -49,11 +49,13 @@ struct FriendsView: View {
                 }
                 ForEach(page.people) { person in
                     Button { selectedPerson = person } label: {
+                        HStack(alignment: .top, spacing: 12) {
+                        SocialAvatar(name: person.displayName, path: person.avatarPath)
                         VStack(alignment: .leading, spacing: SGTheme.Space.xSmall) {
                             Text(person.displayName).font(SGTheme.TypeRole.headline)
                             Text(person.handle).foregroundStyle(.secondary)
                             Text(person.relationship.label).font(SGTheme.TypeRole.secondary)
-                        }.padding(.vertical, SGTheme.Space.xSmall).fixedSize(horizontal: false, vertical: true)
+                        } }.padding(.vertical, SGTheme.Space.xSmall).fixedSize(horizontal: false, vertical: true)
                     }.accessibilityIdentifier("friend-person-\(person.username)")
                 }
                 if page.nextCursor != nil { Button("Load more people") { Task { await load(more: true) } }.disabled(loading) }
@@ -111,6 +113,7 @@ struct FriendProfileView: View {
             if unavailable { ContentUnavailableView("Person unavailable", systemImage: "person.crop.circle.badge.xmark", description: Text("Their privacy or relationship may have changed.")) }
             else {
                 Section {
+                    SocialAvatar(name: person.displayName, path: person.avatarPath, size: 88)
                     Text(person.displayName).font(SGTheme.TypeRole.title).fixedSize(horizontal: false, vertical: true)
                     Text(person.handle).foregroundStyle(.secondary)
                     Text(person.relationship.label)

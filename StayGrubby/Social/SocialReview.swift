@@ -4,6 +4,11 @@ import SwiftUI
 /// Explicit isolated UI review only. No Auth, Supabase client or normal-store writes.
 @MainActor @Observable final class SocialReview {
     var identity = SocialIdentity(displayName: "", username: nil, discoverable: false)
+    static var avatarFixture: Data {
+        UIGraphicsImageRenderer(size: CGSize(width: 24, height: 24)).image { c in UIColor.systemOrange.setFill(); c.fill(CGRect(x: 0, y: 0, width: 24, height: 24)) }.jpegData(compressionQuality: 0.8)!
+    }
+    var avatars: [String: Data] = [:]
+    private var avatarDraft: String?
     var posts: [SocialPost] = []
     var comments: [UUID: [SocialComment]] = [:]
     var people: [SocialPerson] = [
@@ -21,8 +26,15 @@ import SwiftUI
     func request(_ endpoint: String, _ action: String, _ payload: SocialPayload) async throws -> Data {
         // Opt-in diagnostics for isolated fixtures only; never log payloads/identities.
         if ProcessInfo.processInfo.arguments.contains("--social-review-trace") { NSLog("SOCIAL_REVIEW %@ %@", endpoint, action) }
+        if endpoint == "social_avatar" {
+            if action == "prepare" { let path = "10000000-0000-0000-0000-000000000099/" + (payload.assetID ?? UUID()).uuidString.lowercased() + ".jpg"; avatarDraft = path; return try JSONEncoder().encode(["path": path]) }
+            if action == "publish" { identity.avatarPath = payload.avatarPath }
+            if action == "remove" { identity.avatarPath = nil }
+            if action == "cleanup" { return Data(#"{"paths":[]}"#.utf8) }
+            return try JSONEncoder().encode(identity)
+        }
         if endpoint == "social_identity" {
-            if action == "save" { identity = SocialIdentity(displayName: payload.displayName ?? "", username: payload.username, discoverable: payload.discoverable ?? false) }
+            if action == "save" { identity = SocialIdentity(displayName: payload.displayName ?? "", username: payload.username, discoverable: payload.discoverable ?? false, avatarPath: identity.avatarPath) }
             return try JSONEncoder().encode(identity)
         }
         if endpoint == "social_interactions", let pid = payload.postID, let index = posts.firstIndex(where: { $0.id == pid }) {
@@ -94,7 +106,9 @@ struct SocialReviewModifier: ViewModifier {
     func body(content: Content) -> some View {
         if DebugReviewConfiguration.current.storeID != nil && ProcessInfo.processInfo.arguments.contains("--social-review") {
             content.environment(\.socialMedia, { action in
-                if case .download = action { throw URLError(.fileDoesNotExist) }
+                if action.isDownload { if let data = review.avatars[action.paths[0]] { return data }; throw URLError(.fileDoesNotExist) }
+                if case .avatarUpload(let path, let bytes) = action { review.avatars[path] = bytes }
+                if case .avatarRemove(let paths) = action { for path in paths { review.avatars[path] = nil } }
                 return Data()
             }).environment(\.socialRequest, { endpoint, action, payload in try await review.request(endpoint, action, payload) })
         } else { content }

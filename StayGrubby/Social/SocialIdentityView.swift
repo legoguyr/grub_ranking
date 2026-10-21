@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SocialIdentitySection: View {
     @Environment(\.socialRequest) private var request
+    @Environment(\.socialMedia) private var media
     @State private var identity: SocialIdentity?
     @State private var error = false
     @State private var editing = false
@@ -10,7 +11,7 @@ struct SocialIdentitySection: View {
             VStack(alignment: .leading, spacing: SGTheme.Space.small) {
                 Text("Your StayGrubby identity").font(SGTheme.TypeRole.headline)
                 if let identity {
-                    Text(identity.isConfigured ? identity.displayName : "Cooking stays private. Social setup is optional.")
+                    HStack { SocialAvatar(name: identity.displayName, path: identity.avatarPath, size: 64); Text(identity.isConfigured ? identity.displayName : "Cooking stays private. Social setup is optional.") }
                     if identity.isConfigured { Text(identity.handle).foregroundStyle(.secondary) }
                     Button(identity.isConfigured ? "Edit social identity" : "Set up social identity") { editing = true }
                         .buttonStyle(SGButtonStyle()).accessibilityIdentifier("social-identity-edit")
@@ -19,14 +20,14 @@ struct SocialIdentitySection: View {
                     Button("Retry identity") { Task { await load() } }
                 } else { ProgressView("Loading identity") }
             }.sgCard().task { await load() }
-                .sheet(isPresented: $editing) {
+                .sheet(isPresented: $editing, onDismiss: { Task { await load() } }) {
                     if let identity { SocialIdentityEditor(identity: identity) { self.identity = $0 } }
                 }
         }
     }
     private func load() async {
         guard let request else { return }; error = false
-        do { identity = try JSONDecoder().decode(SocialIdentity.self, from: await request("social_identity", "get", .init())) }
+        do { identity = try JSONDecoder().decode(SocialIdentity.self, from: await request("social_identity", "get", .init())); await SocialAvatarService.cleanup(request: request, media: media) }
         catch is CancellationError { }
         catch { self.error = true }
     }
@@ -35,6 +36,12 @@ struct SocialIdentitySection: View {
 struct SocialIdentityEditor: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.socialRequest) private var request
+    @Environment(\.socialMedia) private var media
+    @State private var photo: Data?
+    @State private var removePhoto = false
+    @State private var assetID = UUID()
+    @State private var currentPath: String?
+    @State private var profileSaved = false
     @State private var name: String
     @State private var username: String
     @State private var discoverable: Bool
@@ -42,12 +49,16 @@ struct SocialIdentityEditor: View {
     @State private var error = false
     let onSave: (SocialIdentity) -> Void
     init(identity: SocialIdentity, onSave: @escaping (SocialIdentity) -> Void) {
+        _currentPath = State(initialValue: identity.avatarPath)
         _name = State(initialValue: identity.displayName); _username = State(initialValue: identity.username ?? "")
         _discoverable = State(initialValue: identity.discoverable); self.onSave = onSave
     }
     var body: some View {
         NavigationStack {
             Form {
+                Section("Profile photo") {
+                    SocialAvatarPicker(name: name, path: currentPath, photo: $photo, removePhoto: $removePhoto)
+                }.disabled(saving)
                 Section("Social identity") {
                     TextField("Display name", text: $name).textContentType(.nickname).accessibilityIdentifier("social-display-name")
                     TextField("Username", text: $username).textInputAutocapitalization(.never).autocorrectionDisabled()
@@ -60,7 +71,7 @@ struct SocialIdentityEditor: View {
                     Text("Off by default. Turning this off does not remove existing friends or change your cooking library.")
                     Text("When you change your username, the old name is reserved for you for 30 days.")
                 }
-                if error { Text("Couldn’t save. Check your connection or try a different username.").foregroundStyle(.secondary).accessibilityIdentifier("social-identity-error") }
+                if error { Text(profileSaved ? "Your identity was saved. The photo couldn’t finish uploading. Retry Save, choose another photo, or remove the selection." : "Couldn’t save. Check your connection or try a different username.").foregroundStyle(.secondary).accessibilityIdentifier("social-identity-error") }
             }
             .scrollDismissesKeyboard(.interactively)
             .navigationTitle("Social identity").navigationBarTitleDisplayMode(.inline)
@@ -79,7 +90,11 @@ struct SocialIdentityEditor: View {
         defer { saving = false }
         do {
             let result = try await request("social_identity", "save", .init(displayName: SocialIdentityRules.name(name), username: SocialIdentityRules.username(username), discoverable: discoverable))
-            onSave(try JSONDecoder().decode(SocialIdentity.self, from: result)); dismiss()
+            let saved = try JSONDecoder().decode(SocialIdentity.self, from: result)
+            profileSaved = true; onSave(saved)
+            try await SocialAvatarService.save(photo: photo, remove: removePhoto, currentPath: currentPath, assetID: assetID, request: request, media: media)
+            let latest = try JSONDecoder().decode(SocialIdentity.self, from: await request("social_identity", "get", .init()))
+            onSave(latest); dismiss()
         } catch is CancellationError { } catch { self.error = true }
     }
 }

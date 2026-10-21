@@ -74,9 +74,12 @@ struct SocialCommentsView: View {
                 } else if !loading && comments.isEmpty { Text("No comments yet. Start a conversation.") }
                 ForEach(comments) { comment in
                     VStack(alignment: .leading, spacing: 8) {
+                        HStack(alignment: .top, spacing: 10) {
+                        SocialAvatar(name: comment.author.displayName, path: comment.author.avatarPath, size: 36)
                         if comment.isAuthor { Text("You · \(comment.author.handle)").font(.headline) }
                         else {
                             Button { person = comment.author } label: { Text("\(comment.author.displayName) · \(comment.author.handle)").font(.headline) }
+                        }
                         }
                         Text(comment.date, style: .relative).font(.caption).foregroundStyle(.secondary)
                         Text(comment.body).fixedSize(horizontal: false, vertical: true)

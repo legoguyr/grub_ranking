@@ -78,7 +78,7 @@ async function storagePaths(admin: any, prefix: string, bucketName = PHOTO_BUCKE
 }
 
 async function removeStorage(admin: any, accountID: string, known: string[]) {
-  for (const bucketName of [PHOTO_BUCKET, "social-photos"]) {
+  for (const bucketName of [PHOTO_BUCKET, "social-photos", "profile-photos"]) {
     const paths = [...new Set([...(bucketName === PHOTO_BUCKET ? known : []), ...await storagePaths(admin, accountID, bucketName)])];
     for (let start = 0; start < paths.length; start += 1000) {
       const { error } = await admin.storage.from(bucketName).remove(paths.slice(start, start + 1000));

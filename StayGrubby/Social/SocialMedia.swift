@@ -4,8 +4,11 @@ import ImageIO
 
 nonisolated enum SocialMediaAction: Sendable {
     case upload(path: String, bytes: Data), download(path: String), remove(paths: [String])
+    case avatarUpload(path: String, bytes: Data), avatarDownload(path: String), avatarRemove(paths: [String])
+    var isDownload: Bool { switch self { case .download, .avatarDownload: true; default: false } }
+    var bucket: String { switch self { case .avatarUpload, .avatarDownload, .avatarRemove: "profile-photos"; default: "social-photos" } }
     var paths: [String] {
-        switch self { case .upload(let path, _), .download(let path): [path]; case .remove(let paths): paths }
+        switch self { case .upload(let path, _), .download(let path), .avatarUpload(let path, _), .avatarDownload(let path): [path]; case .remove(let paths), .avatarRemove(let paths): paths }
     }
 }
 nonisolated enum SocialMediaRules {
@@ -32,14 +35,14 @@ extension SupabaseAccountBackend: SocialMediaBackend {
     func socialMedia(_ action: SocialMediaAction) async throws -> Data {
         guard let user = client.auth.currentSession?.user.id, action.paths.count <= 25,
               action.paths.allSatisfy(SocialMediaRules.validPath) else { throw AccountFoundationError.invalidResolution }
-        let bucket = client.storage.from("social-photos")
+        let bucket = client.storage.from(action.bucket)
         let result: Data
         switch action {
-        case .upload(let path, let bytes):
+        case .upload(let path, let bytes), .avatarUpload(let path, let bytes):
             guard SocialMediaRules.validJPEG(bytes) else { throw AccountFoundationError.invalidResolution }
             _ = try await bucket.upload(path, data: bytes, options: FileOptions(cacheControl: "0", contentType: "image/jpeg", upsert: true)); result = Data()
-        case .download(let path): result = try await bucket.download(path: path, cacheNonce: UUID().uuidString)
-        case .remove(let paths): _ = try await bucket.remove(paths: paths); result = Data()
+        case .download(let path), .avatarDownload(let path): result = try await bucket.download(path: path, cacheNonce: UUID().uuidString)
+        case .remove(let paths), .avatarRemove(let paths): _ = try await bucket.remove(paths: paths); result = Data()
         }
         try Task.checkCancellation()
         guard client.auth.currentSession?.user.id == user else { throw AccountFoundationError.identityChanged }

@@ -11,6 +11,7 @@ nonisolated struct SocialPerson: Codable, Hashable, Identifiable, Sendable {
     let displayName: String
     let username: String
     var relationship: SocialRelationship
+    var avatarPath: String? = nil
     var handle: String { "@" + username }
 }
 nonisolated struct SocialPeoplePage: Codable, Sendable {

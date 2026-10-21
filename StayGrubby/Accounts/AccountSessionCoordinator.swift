@@ -185,7 +185,7 @@ nonisolated enum AccountDeletionProgress: Equatable {
     func performSocialMedia(_ action: SocialMediaAction) async throws -> Data {
         try Task.checkCancellation()
         guard case .resolved(let account) = state, let service = backend as? any SocialMediaBackend else { throw AccountFoundationError.accountNotResolved }
-        if case .download = action {} else {
+        if !action.isDownload {
             guard action.paths.allSatisfy({ $0.hasPrefix(account.accountID.uuidString.lowercased() + "/") }) else { throw AccountFoundationError.invalidResolution }
         }
         let current = generation, data = try await service.socialMedia(action)
