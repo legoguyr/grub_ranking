@@ -5,6 +5,7 @@ import SwiftUI
 @MainActor @Observable final class SocialReview {
     var identity = SocialIdentity(displayName: "", username: nil, discoverable: false)
     var posts: [SocialPost] = []
+    var comments: [UUID: [SocialComment]] = [:]
     var people: [SocialPerson] = [
         SocialPerson(id: UUID(uuidString: "10000000-0000-0000-0000-000000000001")!, displayName: "Friendly Cook", username: "friend_cook", relationship: .friends),
         SocialPerson(id: UUID(uuidString: "10000000-0000-0000-0000-000000000002")!, displayName: "Incoming Cook", username: "incoming_cook", relationship: .incoming),
@@ -18,9 +19,23 @@ import SwiftUI
     private var feedFailures = ProcessInfo.processInfo.arguments.contains("--social-review-feed-error") ? 1 : 0
     private var feedSeeded = false
     func request(_ endpoint: String, _ action: String, _ payload: SocialPayload) async throws -> Data {
+        // Opt-in diagnostics for isolated fixtures only; never log payloads/identities.
+        if ProcessInfo.processInfo.arguments.contains("--social-review-trace") { print("SOCIAL_REVIEW \(endpoint) \(action)") }
         if endpoint == "social_identity" {
             if action == "save" { identity = SocialIdentity(displayName: payload.displayName ?? "", username: payload.username, discoverable: payload.discoverable ?? false) }
             return try JSONEncoder().encode(identity)
+        }
+        if endpoint == "social_interactions", let pid = payload.postID, let index = posts.firstIndex(where: { $0.id == pid }) {
+            if action == "comments" { return try JSONEncoder().encode(SocialCommentsPage(comments: comments[pid] ?? [])) }
+            if action == "like" { posts[index].liked = true; posts[index].likeCount = 1 }
+            if action == "unlike" { posts[index].liked = false; posts[index].likeCount = 0 }
+            if action == "comment", let cid = payload.commentID, !(comments[pid] ?? []).contains(where: { $0.id == cid }) {
+                let author = SocialPerson(id: UUID(uuidString: "10000000-0000-0000-0000-000000000099")!, displayName: identity.displayName, username: identity.username ?? "review_cook", relationship: .none)
+                comments[pid, default: []].insert(SocialComment(id: cid, author: author, body: payload.body ?? "", createdAt: Date().timeIntervalSince1970, canDelete: true, isAuthor: true), at: 0)
+            }
+            if action == "deleteComment" { comments[pid]?.removeAll { $0.id == payload.commentID } }
+            posts[index].commentCount = comments[pid]?.count ?? 0
+            return try JSONEncoder().encode(SocialPostsPage(posts: [posts[index]]))
         }
         if endpoint == "social_feed" {
             if feedFailures > 0 { feedFailures -= 1; throw URLError(.notConnectedToInternet) }
@@ -28,6 +43,7 @@ import SwiftUI
                 feedSeeded = true
                 posts.append(SocialPost(id: UUID(uuidString: "20000000-0000-0000-0000-000000000001")!, author: people[0], title: "Harissa Chicken with Roasted Peppers", versionTitle: "Grilled with lemon", scoreText: "8.6", achievement: nil, createdAt: Date().timeIntervalSince1970, photoPath: nil, published: true, isAuthor: false, moderationState: "active"))
             }
+            if action == "post" { return try JSONEncoder().encode(SocialPostsPage(posts: posts.filter { $0.id == payload.postID })) }
             let visible = posts.filter { post in post.isAuthor || people.contains(where: { $0.id == post.author.id && $0.relationship == .friends }) }
             return try JSONEncoder().encode(SocialPostsPage(posts: visible))
         }

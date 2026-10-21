@@ -71,7 +71,7 @@ Published-image moderation; text moderation for captions/comments/bios/display n
 
 ## 5. Friends Feed + Social Part 1
 
-Chronological friends feed and explicit cooking snapshots are implemented, newest first, with pagination, friend-only social photos, private/profile boundaries and blocking/reporting/moderation. Basic likes/comments are the remaining next checkpoint. No TikTok/Reels-style personalized feed. Safety/privacy dependencies precede public social release.
+Chronological friends feed and explicit cooking snapshots are implemented, newest first, with pagination, friend-only social photos, private/profile boundaries and blocking/reporting/moderation. Basic likes/comments are implemented with server authorization, bounded comment pages and visible counts. No TikTok/Reels-style personalized feed. Safety/privacy dependencies precede public social release.
 
 ## 6. Shared Cooking + Social Part 2 + In-App Notifications
 

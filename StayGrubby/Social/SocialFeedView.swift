@@ -17,6 +17,7 @@ struct SocialFeedView: View {
     @State private var editingIdentity = false
     @State private var person: SocialPerson?
     @State private var deleting: SocialPost?
+    @State private var confirmingDelete = false
     var body: some View {
         List {
             Picker("Posts", selection: $own) {
@@ -40,7 +41,7 @@ struct SocialFeedView: View {
                     NavigationLink("Find Friends") { FriendsView() }.accessibilityIdentifier("feed-find-friends")
                 }
                 ForEach(posts) { post in
-                    SocialFeedCard(post: post) { person = post.author } delete: { deleting = post }
+                    SocialFeedCard(post: post) { person = post.author } delete: { deleting = post; confirmingDelete = true }
                 }.listRowSeparator(.hidden).listRowBackground(SGTheme.ColorToken.background)
                 if hasMore { Button("Load more posts") { Task { await load(more: true) } }.disabled(loading).accessibilityIdentifier("feed-more") }
             }
@@ -68,11 +69,9 @@ struct SocialFeedView: View {
         .sheet(isPresented: $editingIdentity, onDismiss: { revision += 1 }) {
             if let identity { SocialIdentityEditor(identity: identity) { self.identity = $0; revision += 1 } }
         }
-        .confirmationDialog("Delete this shared post?", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }), titleVisibility: .visible) {
-            Button("Delete shared post", role: .destructive) {
-                if let post = deleting { deleting = nil; Task { await delete(post) } }
-            }
-        } message: { Text("Your private cook, photo and ranking stay intact.") }
+        .confirmationDialog("Delete this shared post?", isPresented: $confirmingDelete, titleVisibility: .visible, presenting: deleting) { post in
+            Button("Delete shared post", role: .destructive) { Task { await delete(post) } }
+        } message: { _ in Text("Your private cook, photo and ranking stay intact.") }
     }
     private func load(more: Bool = false) async {
         guard let request else { return }
@@ -128,6 +127,7 @@ struct SocialFeedCard: View {
             if let achievement = post.achievement { Text(achievement).font(.subheadline) }
             if !post.published { Text("Unpublished photo draft").foregroundStyle(.secondary) }
             if post.moderationState != "active" { Text("Hidden by moderation").foregroundStyle(.secondary) }
+            if post.published && post.moderationState == "active" { SocialEngagementView(post: post) }
             if post.isAuthor { Button("Delete post", role: .destructive, action: delete).accessibilityIdentifier("feed-delete-\(post.id)") }
             else { SocialReportButton(kind: "post", targetID: post.id) }
         }

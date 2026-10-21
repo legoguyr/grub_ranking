@@ -130,3 +130,27 @@ Checkpoint 6 file inventory:
 - `StayGrubbyUITests/AccountEntryUITests.swift`
 - `StayGrubbyUITests/SocialFeedUITests.swift`
 - `supabase/migrations/20261021105037_social_chronological_feed.sql`
+
+## Checkpoint 7 — Likes + Comments
+
+31/31 disposable interaction assertions passed, including idempotent likes/comments, ownership, blocked participants in third-party posts, removal, comment tombstones, reporting, bounded/tied pagination, anonymous denial and unchanged private fingerprints. Deployed `20261021142943_social_interactions`; all 16 hashes match, 24/24 private tables have RLS, zero anonymous RPCs/direct client writes and unchanged private hosted data. The initial deploy request expired without a migration; hosted-history inspection preceded the successful retry.
+
+2/2 affected media/DTO unit tests and Debug compilation passed in the first focused bundle. UI failure evidence proved submission worked but a row identifier propagated to all children, overwriting the Delete button identifier. An explicit accessibility container fixes this. Subsequent failures identified an unscoped duplicate confirmation label and a target/scroll issue; the test now scopes the confirmation sheet, dialog actions capture their target before dismissal clears selection, and the strict empty-state assertion scrolls to the list top. Results of the final run follow below. No ranking/private persistence behavior was changed.
+
+Final interaction UI passed 1/1, zero failures/skips in `/private/tmp/staygrubby-social-interactions-state.xcresult`. The final correction separates confirmation visibility from the selected target and uses SwiftUI's presenting-data confirmation API, so dismissal cannot clear the action's target. Both comment and shared-post confirmation use this pattern. Strict like/unlike counts, rendered comment creation, confirmed deletion and empty-state assertions all remain. The earlier failed bundles are retained; they are not counted as successful executions.
+
+Checkpoint 7 file inventory:
+
+- `Backend/schema.sql`
+- `Backend/tests/social-interactions.test.mjs`
+- `SOCIAL_ARCHITECTURE.md`
+- `SOCIAL_DEVELOPMENT_REVIEW.md`
+- `STAYGRUBBY_MASTER_ROADMAP.md`
+- `StayGrubby/Social/SocialCommentsView.swift`
+- `StayGrubby/Social/SocialFeedView.swift`
+- `StayGrubby/Social/SocialIdentity.swift`
+- `StayGrubby/Social/SocialPost.swift`
+- `StayGrubby/Social/SocialReview.swift`
+- `StayGrubby/Social/SocialTransport.swift`
+- `StayGrubbyUITests/SocialInteractionUITests.swift`
+- `supabase/migrations/20261021142943_social_interactions.sql`

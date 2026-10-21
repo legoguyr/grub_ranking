@@ -12,6 +12,9 @@ nonisolated struct SocialPost: Codable, Identifiable, Sendable {
     let published: Bool
     let isAuthor: Bool
     let moderationState: String
+    var likeCount: Int? = nil
+    var commentCount: Int? = nil
+    var liked: Bool? = nil
     var date: Date { Date(timeIntervalSince1970: createdAt) }
 }
 nonisolated struct SocialPostsPage: Codable, Sendable { var posts: [SocialPost] }
