@@ -20,7 +20,7 @@ await db.exec(`create role authenticated; create role anon; create role service_
 await db.exec(storageStubSQL);
 const migrationDirectory = new URL('../../supabase/migrations/', import.meta.url);
 const migrations = (await readdir(migrationDirectory)).filter(name => name.endsWith('.sql')).sort();
-check(migrations.length === 17 && migrations.some(name => name.endsWith('_social_profile_photos.sql')), 'Approved migration chain includes profile photos');
+check(migrations.length === 18 && migrations.some(name => name.endsWith('_social_sharing_defaults.sql')), 'Approved migration chain includes sharing defaults');
 const initial = (await Promise.all(migrations.map(name => readFile(new URL(name, migrationDirectory), 'utf8')))).join('');
 check(initial === await readFile(new URL('../schema.sql', import.meta.url), 'utf8'), 'Reference and complete migration chain agree');
 for (const name of migrations) await db.exec(await readFile(new URL(name, migrationDirectory), 'utf8'));

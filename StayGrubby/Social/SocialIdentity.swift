@@ -5,6 +5,8 @@ nonisolated struct SocialIdentity: Codable, Equatable, Sendable {
     var username: String?
     var discoverable: Bool
     var avatarPath: String? = nil
+    var automaticallyShareNewDishes: Bool? = nil
+    var sharingDefault: Bool { isConfigured && automaticallyShareNewDishes == true }
     var isConfigured: Bool { username != nil }
     var handle: String { username.map { "@" + $0 } ?? "Choose a username" }
 }
@@ -48,4 +50,5 @@ nonisolated struct SocialPayload: Codable, Sendable {
     var body: String?
     var assetID: UUID?
     var avatarPath: String?
+    var automaticallyShareNewDishes: Bool?
 }

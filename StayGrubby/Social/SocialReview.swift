@@ -19,7 +19,7 @@ import SwiftUI
         SocialPerson(id: UUID(uuidString: "10000000-0000-0000-0000-000000000005")!, displayName: "A cook with a long friendly display name", username: "new_cook", relationship: .none)
     ]
     init() {
-        if ProcessInfo.processInfo.arguments.contains("--social-review-ready") { identity = .init(displayName: "Review Cook", username: "review_cook", discoverable: false) }
+        if ProcessInfo.processInfo.arguments.contains("--social-review-ready") { identity = .init(displayName: "Review Cook", username: "review_cook", discoverable: false, automaticallyShareNewDishes: ProcessInfo.processInfo.arguments.contains("--social-review-share-default")) }
     }
     private var feedFailures = ProcessInfo.processInfo.arguments.contains("--social-review-feed-error") ? 1 : 0
     private var feedSeeded = false
@@ -34,7 +34,8 @@ import SwiftUI
             return try JSONEncoder().encode(identity)
         }
         if endpoint == "social_identity" {
-            if action == "save" { identity = SocialIdentity(displayName: payload.displayName ?? "", username: payload.username, discoverable: payload.discoverable ?? false, avatarPath: identity.avatarPath) }
+            if action == "sharing" { identity.automaticallyShareNewDishes = payload.automaticallyShareNewDishes ?? false }
+            if action == "save" { identity = SocialIdentity(displayName: payload.displayName ?? "", username: payload.username, discoverable: payload.discoverable ?? false, avatarPath: identity.avatarPath, automaticallyShareNewDishes: payload.automaticallyShareNewDishes ?? identity.automaticallyShareNewDishes) }
             return try JSONEncoder().encode(identity)
         }
         if endpoint == "social_interactions", let pid = payload.postID, let index = posts.firstIndex(where: { $0.id == pid }) {

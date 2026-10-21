@@ -13,6 +13,9 @@ struct SocialIdentitySection: View {
                 if let identity {
                     HStack { SocialAvatar(name: identity.displayName, path: identity.avatarPath, size: 64); Text(identity.isConfigured ? identity.displayName : "Cooking stays private. Social setup is optional.") }
                     if identity.isConfigured { Text(identity.handle).foregroundStyle(.secondary) }
+                    if identity.isConfigured {
+                        NavigationLink("Social settings") { SocialSettingsView() }.accessibilityIdentifier("social-settings-open")
+                    }
                     Button(identity.isConfigured ? "Edit social identity" : "Set up social identity") { editing = true }
                         .buttonStyle(SGButtonStyle()).accessibilityIdentifier("social-identity-edit")
                 } else if error {
@@ -45,12 +48,14 @@ struct SocialIdentityEditor: View {
     @State private var name: String
     @State private var username: String
     @State private var discoverable: Bool
+    @State private var automaticallyShare: Bool
     @State private var saving = false
     @State private var error = false
     let onSave: (SocialIdentity) -> Void
     init(identity: SocialIdentity, onSave: @escaping (SocialIdentity) -> Void) {
         _currentPath = State(initialValue: identity.avatarPath)
         _name = State(initialValue: identity.displayName); _username = State(initialValue: identity.username ?? "")
+        _automaticallyShare = State(initialValue: identity.sharingDefault)
         _discoverable = State(initialValue: identity.discoverable); self.onSave = onSave
     }
     var body: some View {
@@ -71,6 +76,10 @@ struct SocialIdentityEditor: View {
                     Text("Off by default. Turning this off does not remove existing friends or change your cooking library.")
                     Text("When you change your username, the old name is reserved for you for 30 days.")
                 }
+                Section("Share your cooking?") {
+                    Toggle("Automatically Share New Dishes", isOn: $automaticallyShare).accessibilityIdentifier("social-sharing-default")
+                    Text(SocialSharingCopy.explanation)
+                }
                 if error { Text(profileSaved ? "Your identity was saved. The photo couldn’t finish uploading. Retry Save, choose another photo, or remove the selection." : "Couldn’t save. Check your connection or try a different username.").foregroundStyle(.secondary).accessibilityIdentifier("social-identity-error") }
             }
             .scrollDismissesKeyboard(.interactively)
@@ -89,7 +98,7 @@ struct SocialIdentityEditor: View {
         guard let request else { return }; saving = true; error = false
         defer { saving = false }
         do {
-            let result = try await request("social_identity", "save", .init(displayName: SocialIdentityRules.name(name), username: SocialIdentityRules.username(username), discoverable: discoverable))
+            let result = try await request("social_identity", "save", .init(displayName: SocialIdentityRules.name(name), username: SocialIdentityRules.username(username), discoverable: discoverable, automaticallyShareNewDishes: automaticallyShare))
             let saved = try JSONDecoder().decode(SocialIdentity.self, from: result)
             profileSaved = true; onSave(saved)
             try await SocialAvatarService.save(photo: photo, remove: removePhoto, currentPath: currentPath, assetID: assetID, request: request, media: media)
