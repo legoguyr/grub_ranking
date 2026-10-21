@@ -33,6 +33,7 @@ struct AccountView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: SGTheme.Space.large) {
                 identity
+                SocialIdentitySection()
                 ProfileCookingContent(snapshot: snapshot, ranking: ranking)
                 #if DEBUG
                 if let endDevelopmentReview {

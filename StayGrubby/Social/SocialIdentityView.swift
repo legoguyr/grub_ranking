@@ -1,0 +1,85 @@
+import SwiftUI
+
+struct SocialIdentitySection: View {
+    @Environment(\.socialRequest) private var request
+    @State private var identity: SocialIdentity?
+    @State private var error = false
+    @State private var editing = false
+    var body: some View {
+        if request != nil {
+            VStack(alignment: .leading, spacing: SGTheme.Space.small) {
+                Text("Your StayGrubby identity").font(SGTheme.TypeRole.headline)
+                if let identity {
+                    Text(identity.isConfigured ? identity.displayName : "Cooking stays private. Social setup is optional.")
+                    if identity.isConfigured { Text(identity.handle).foregroundStyle(.secondary) }
+                    Button(identity.isConfigured ? "Edit social identity" : "Set up social identity") { editing = true }
+                        .buttonStyle(SGButtonStyle()).accessibilityIdentifier("social-identity-edit")
+                } else if error {
+                    Text("Couldn’t load your social identity. Your cooking library is still available.")
+                    Button("Retry identity") { Task { await load() } }
+                } else { ProgressView("Loading identity") }
+            }.sgCard().task { await load() }
+                .sheet(isPresented: $editing) {
+                    if let identity { SocialIdentityEditor(identity: identity) { self.identity = $0 } }
+                }
+        }
+    }
+    private func load() async {
+        guard let request else { return }; error = false
+        do { identity = try JSONDecoder().decode(SocialIdentity.self, from: await request("social_identity", "get", .init())) }
+        catch is CancellationError { }
+        catch { self.error = true }
+    }
+}
+
+struct SocialIdentityEditor: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.socialRequest) private var request
+    @State private var name: String
+    @State private var username: String
+    @State private var discoverable: Bool
+    @State private var saving = false
+    @State private var error = false
+    let onSave: (SocialIdentity) -> Void
+    init(identity: SocialIdentity, onSave: @escaping (SocialIdentity) -> Void) {
+        _name = State(initialValue: identity.displayName); _username = State(initialValue: identity.username ?? "")
+        _discoverable = State(initialValue: identity.discoverable); self.onSave = onSave
+    }
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Social identity") {
+                    TextField("Display name", text: $name).textContentType(.nickname).accessibilityIdentifier("social-display-name")
+                    TextField("Username", text: $username).textInputAutocapitalization(.never).autocorrectionDisabled()
+                        .accessibilityIdentifier("social-username")
+                    Text("3–24 lowercase letters, numbers or single underscores. Display names can use nicknames.")
+                        .font(SGTheme.TypeRole.secondary).foregroundStyle(.secondary)
+                }
+                Section {
+                    Toggle("Appear in Find Friends", isOn: $discoverable).accessibilityIdentifier("social-discoverable")
+                    Text("Off by default. Turning this off does not remove existing friends or change your cooking library.")
+                    Text("When you change your username, the old name is reserved for you for 30 days.")
+                }
+                if error { Text("Couldn’t save. Check your connection or try a different username.").foregroundStyle(.secondary).accessibilityIdentifier("social-identity-error") }
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .navigationTitle("Social identity").navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.disabled(saving) }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(saving ? "Saving…" : "Save") { Task { await save() } }
+                        .disabled(saving || !SocialIdentityRules.valid(name: name, username: username))
+                        .accessibilityIdentifier("social-identity-save")
+                }
+            }.interactiveDismissDisabled(saving)
+        }
+    }
+    private func save() async {
+        guard let request else { return }; saving = true; error = false
+        defer { saving = false }
+        do {
+            let result = try await request("social_identity", "save", .init(displayName: SocialIdentityRules.name(name), username: SocialIdentityRules.username(username), discoverable: discoverable))
+            onSave(try JSONDecoder().decode(SocialIdentity.self, from: result)); dismiss()
+        } catch is CancellationError { } catch { self.error = true }
+    }
+}

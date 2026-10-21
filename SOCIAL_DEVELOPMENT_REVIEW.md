@@ -1,0 +1,30 @@
+# Autonomous social foundation review
+
+Starting checkpoint: main `448073e768b14ef6415aa34561dd9ec2fd56243f`, clean and aligned with origin/main. The ten existing local/hosted migration versions/names/hashes matched. Run authorized by the owner's Autonomous Social Foundation + Friends Feed prompt. No real Apple authorization/deletion, credentials, App Store Connect, bundle identity, archive or TestFlight actions are permitted.
+
+## Checkpoint 1 — Social Profile Identity
+
+Implementation reuses profiles/permanent accounts, adds optional Profile editing and discoverability (off by default), strict usernames and 30-day old-handle reservation. New APIs do not expose private cooking or account/Auth fields. Debug review requires both an isolated store UUID and an explicit social-review flag; it uses only in-memory responses and cannot authenticate or provision.
+
+Local SQL identity/security: 24 assertions passed. Debug compile passed. SocialIdentityTests: 3 functions / 5 executions passed. The first UI attempt failed when a synthesized tap did not give the username keyboard focus; an explicit focus-wait/retry fixed the new harness, and the unchanged save/reopen assertions passed 1/1 in `/private/tmp/staygrubby-social-identity-ui-retry.xcresult`. No meaningful assertion was removed. Hosted migration `20261021032654_social_profile_identity` is deployed; all 11 version/name/SQL hashes align, 18/18 private tables retain RLS, zero anonymous social function access/direct authenticated writes, and all existing profiles remain undiscoverable/unconfigured. Before/after private hosted fingerprints are identical. Demo manifest/media remains exactly baseline. Secret and whitespace checks pass. The new inaccessible reservation table has the expected INFO no-policy advisory; the prior disabled-password warning is unchanged. Initial compile caught and repaired a Swift catch-variable shadowing error before verification.
+
+Checkpoint 1 file inventory:
+
+- `Backend/schema.sql`
+- `Backend/tests/social-harness.mjs`
+- `Backend/tests/social-identity.test.mjs`
+- `DevelopmentTools/check_privileged_secrets.py`
+- `SOCIAL_ARCHITECTURE.md`
+- `SOCIAL_DEVELOPMENT_REVIEW.md`
+- `STAYGRUBBY_MASTER_ROADMAP.md`
+- `StayGrubby/Accounts/AccountApplicationRoot.swift`
+- `StayGrubby/Accounts/AccountSessionCoordinator.swift`
+- `StayGrubby/Accounts/AccountView.swift`
+- `StayGrubby/ContentView.swift`
+- `StayGrubby/Social/SocialIdentity.swift`
+- `StayGrubby/Social/SocialIdentityView.swift`
+- `StayGrubby/Social/SocialReview.swift`
+- `StayGrubby/Social/SocialTransport.swift`
+- `StayGrubbyTests/SocialIdentityTests.swift`
+- `StayGrubbyUITests/SocialIdentityUITests.swift`
+- `supabase/migrations/20261021032654_social_profile_identity.sql`
