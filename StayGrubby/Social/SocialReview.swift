@@ -37,7 +37,7 @@ import SwiftUI
                 let id = UUID(uuidString: "70000000-0000-0000-0000-00000000000\(n + 1)")!
                 let path = n == 1 ? nil : own.id.uuidString.lowercased() + "/" + id.uuidString.lowercased() + ".jpg"
                 if let path { avatars[path] = Self.avatarFixture }
-                posts.append(SocialPost(id: id, author: own, title: title, versionTitle: "Sunday version", scoreText: n == 0 ? "8.4" : nil, achievement: nil, createdAt: 1000 - Double(n), photoPath: path, published: true, isAuthor: true, moderationState: "active", postDescription: n == 0 ? "Made this slowly on Sunday. Worth the wait!" : nil, metadata: .init(course: "soup")))
+                posts.append(SocialPost(id: id, author: own, title: title, versionTitle: "Sunday version", scoreText: n == 0 ? "8.4" : nil, achievement: nil, createdAt: Date().timeIntervalSince1970 - 3600 * Double(n + 1), photoPath: path, published: true, isAuthor: true, moderationState: "active", postDescription: n == 0 ? "Made this slowly on Sunday. Worth the wait!" : nil, metadata: .init(course: "soup")))
             }
         }
         if ProcessInfo.processInfo.arguments.contains("--shared-review") {

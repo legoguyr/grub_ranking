@@ -34,6 +34,9 @@ struct SocialPostComposer: View {
     @State private var attemptedShare = false
     @State private var didPublish = false
     private var model: ShareCardModel { .make(for: attempt) }
+    private var preservedExistingDescription: Bool {
+        didPublish && (savedPost?.postDescription ?? "") != postDescription.trimmingCharacters(in: CharacterSet(charactersIn: " \t\n\r"))
+    }
     private var ready: Bool {
         SocialPostPublisher.ready(context: context, sync: sync)
     }
@@ -44,6 +47,9 @@ struct SocialPostComposer: View {
                     Section {
                         Label("Shared with Sous Chefs", systemImage: "checkmark.circle.fill").accessibilityIdentifier("social-share-success")
                         Text("Your separate cooking post is available to eligible friends. Your private cooking and ranking are unchanged.")
+                        if preservedExistingDescription {
+                            Text("This cook was already shared. Its description was kept. To change it, use Edit Post in the post’s menu in My Kitchen.").accessibilityIdentifier("social-existing-description-preserved")
+                        }
                         Button("Done", action: close).accessibilityIdentifier("social-share-done")
                     }
                 } else {
@@ -54,7 +60,7 @@ struct SocialPostComposer: View {
                     if let score = model.scoreText { Text("\(score) / 10").foregroundStyle(SGTheme.ScoreColor.color(forDisplayedScore: score)) }
                     else { Text("Your score is locked and will not be shared.").accessibilityIdentifier("social-share-score-locked") }
                     if attempt.primaryImage != nil { Toggle("Include this food photo", isOn: $includePhoto).accessibilityIdentifier("social-share-photo") }
-                    Text("Includes Course, Cuisine and public cookbook/restaurant/online attribution. Private notes, tags, allergens, Friend/Family details, comparisons and personal rank are not shared. Existing shared snapshots stay unchanged until deleted.")
+                    Text("Includes Course, Cuisine and public cookbook/restaurant/online attribution. Private notes, tags, allergens, Friend/Family details, comparisons and personal rank are not shared. Cooking-derived snapshot details stay fixed. Post Descriptions can be edited from the post’s menu.")
                         .font(.footnote).foregroundStyle(.secondary)
                 }
                 Section("Post Description · optional") {

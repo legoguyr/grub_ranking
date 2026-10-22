@@ -68,9 +68,8 @@ final class ProfileUITests: StayGrubbyUITestCase {
     }
 
     @MainActor private func reach(_ control: XCUIElement, in app: XCUIApplication) {
-        XCTAssertTrue(control.waitForExistence(timeout: 10))
         for _ in 0..<12 {
-            if control.isHittable { return }
+            if control.exists && control.isHittable { return }
             app.swipeUp()
         }
         XCTFail("Unreachable Profile control: \(control.identifier)")

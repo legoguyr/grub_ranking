@@ -154,6 +154,26 @@ import Testing
         #expect(ScoreCalibration.reaction(in: restoredCook.rankedItem?.sessionDiagnosticsData) == .disliked)
         #expect(restoredCook.rankedItem!.score < 5.8)
     }
+    @Test func legacyCookWithoutDiagnosticsGetsCurrentAssessmentOnlyOnCompletion() throws {
+        let f = try fixture(1)
+        let cook = try #require(f.cooks.first), item = try #require(cook.rankedItem)
+        item.sessionDiagnosticsData = nil; try f.context.save()
+        let before = try CookingGraphExport.snapshot(context: f.context)
+        let workflow = CookingReRankingWorkflow(attempt: cook)
+        try workflow.choose(.liked, context: f.context)
+        #expect(item.sessionDiagnosticsData == nil)
+        #expect(try CookingGraphExport.snapshot(context: f.context) == before)
+        try workflow.finish(context: f.context)
+        #expect(ScoreCalibration.reaction(in: item.sessionDiagnosticsData) == .liked)
+        #expect(cook.id == before.attempts.first?.id && item.id == before.items.first?.id)
+        #expect(f.list.comparisons.isEmpty && f.list.items.count == 1)
+        #expect(ScoreUnlockPolicy.state(in: f.context).rankedEntryCount == 1)
+        #expect(ShareCardModel.make(for: cook).scoreText == nil)
+        let fields = try #require(JSONSerialization.jsonObject(with: item.sessionDiagnosticsData!) as? [String: Any])
+        #expect(fields["initialReaction"] == nil) // No invented historical reaction.
+        #expect(fields["latestSemanticReaction"] as? String == InitialReaction.liked.rawValue)
+    }
+
 }
 
 private actor RerankLoopbackTransport: SyncTransport {

@@ -13,7 +13,7 @@ struct SocialProfilePosts: View {
     @State private var more = false
     @State private var generation = UUID()
     @State private var revision = 0
-    private var columns: [GridItem] { Array(repeating: GridItem(.flexible(), spacing: SGTheme.Space.small), count: typeSize.isAccessibilitySize ? 1 : 3) }
+    private var columns: [GridItem] { Array(repeating: GridItem(.flexible(), spacing: SGTheme.Space.small, alignment: .top), count: typeSize.isAccessibilitySize ? 1 : 3) }
     var body: some View {
         if request != nil {
             VStack(alignment: .leading, spacing: SGTheme.Space.medium) {

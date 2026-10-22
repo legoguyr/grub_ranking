@@ -18,7 +18,6 @@ final class AccountEntryUITests: StayGrubbyUITestCase {
         XCTAssertTrue(app.rankingHeader.waitForExistence(timeout:15))
         XCTAssertTrue(app.staticTexts["Your taste. Your Grub Rank."].waitForExistence(timeout: 10), app.debugDescription)
         XCTAssertTrue(app.tabBars.buttons["Grub Rank"].isSelected, app.debugDescription)
-        XCTAssertEqual(app.tabBars.buttons.count,5)
         XCTAssertTrue(app.tabBars.buttons["Food Bible"].exists)
         XCTAssertFalse(app.tabBars.buttons["Tickets"].exists)
         XCTAssertEqual(app.tabBars.buttons.count, 4)

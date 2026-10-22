@@ -23,10 +23,13 @@ import Testing
             return try await review.request(endpoint, action, payload)
         }
         let explicit = "A Sunday worth cooking for."
-        let post = try await SocialPostPublisher.publish(attemptID: UUID(), postID: UUID(), revision: 0, includePhoto: false, photo: nil, request: request, media: nil, postDescription: explicit)
+        let attemptID = UUID()
+        let post = try await SocialPostPublisher.publish(attemptID: attemptID, postID: UUID(), revision: 0, includePhoto: false, photo: nil, request: request, media: nil, postDescription: explicit)
         #expect(post.postDescription == explicit)
         _ = try await SocialPostPublisher.publish(attemptID: UUID(), postID: UUID(), revision: 0, includePhoto: false, photo: nil, request: request, media: nil)
-        #expect(preparations.count == 2)
+        let retry = try await SocialPostPublisher.publish(attemptID: attemptID, postID: post.id, revision: 0, includePhoto: false, photo: nil, request: request, media: nil, postDescription: "Must not overwrite an existing caption")
+        #expect(retry.postDescription == explicit)
+        #expect(preparations.count == 3)
         #expect(preparations[0]["postDescription"] as? String == explicit)
         #expect(preparations[1]["postDescription"] == nil) // Automatic publication has no note-to-caption path.
         for payload in preparations {
