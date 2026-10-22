@@ -5,7 +5,7 @@ struct RecipeLibraryView: View {
     @Environment(\.socialRequest) private var request
     @State private var recipes: [Recipe] = []
     @State private var tickets: [RecipeTicket] = []
-    @State private var showingTickets = true
+    @State private var showingTickets = false
     @State private var creating = false
     @State private var failed = false
     @State private var loading = false
@@ -14,9 +14,9 @@ struct RecipeLibraryView: View {
     @Environment(\.scenePhase) private var phase
     var body: some View {
         SGEditorialList {
-            SGPageIntro(title: showingTickets ? "Tickets" : "Recipes", subtitle: showingTickets ? "Good things on your cooking list." : "Things you can make. Not things you’ve ranked.", eyebrow: "The next great cook")
+            SGPageIntro(title: "Food Bible", subtitle: "Recipes to keep. Tickets for what you’ll cook next.", eyebrow: "The next great cook", showsTitle: false)
             Picker("Library", selection: $showingTickets) {
-                Text("Tickets 🎟️").tag(true); Text("My Recipes").tag(false)
+                Text("Recipes").tag(false); Text("Tickets").tag(true)
             }.pickerStyle(.segmented).accessibilityIdentifier("recipe-library-mode")
             Text("Save something to make. Only a completed cook enters your Grub Rank.").font(.footnote).foregroundStyle(.secondary)
             if loading { ProgressView("Loading recipes") }
@@ -34,7 +34,7 @@ struct RecipeLibraryView: View {
                 if recipes.isEmpty && !loading && !failed { Text("Create your first recipe. Your private cooking history stays separate.") }
             }
             Button("Create Recipe") { creating = true }.accessibilityIdentifier("recipe-create")
-        }.navigationTitle("Recipes & Tickets").navigationBarTitleDisplayMode(.inline).toolbar(.visible, for: .navigationBar)
+        }.navigationTitle("Food Bible").navigationBarTitleDisplayMode(.inline).toolbar(.visible, for: .navigationBar)
             .task(id: revision) { await load() }.refreshable { await load() }
             .sheet(isPresented: $creating, onDismiss: { revision += 1 }) { RecipeEditor { _ in revision += 1 } }
             .onChange(of: showingTickets) { _, _ in revision += 1 }

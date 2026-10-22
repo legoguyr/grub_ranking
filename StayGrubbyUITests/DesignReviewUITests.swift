@@ -31,8 +31,8 @@ final class DesignReviewUITests: StayGrubbyUITestCase {
         app.buttons["Cancel"].tap(); XCTAssertTrue(app.buttons["detail-new-version"].waitForExistence(timeout: 8))
         reach(app.buttons["detail-new-version"], app); app.buttons["detail-new-version"].tap()
         XCTAssertTrue(app.staticTexts["inherited-dish-name"].waitForExistence(timeout: 8)); shot("04 New Version \(appearance)", app); app.buttons["Cancel"].tap()
-        tab("Food Bible", app); XCTAssertTrue(app.textFields["history-search"].waitForExistence(timeout: 8)); shot("05 Food Bible \(appearance)", app)
-        app.buttons["New Dish"].tap(); XCTAssertTrue(app.textFields["dish-name"].waitForExistence(timeout: 8)); shot("24 New Dish \(appearance)", app); app.buttons["Cancel"].tap()
+        tab("Food Bible", app); XCTAssertTrue(app.segmentedControls.buttons["Recipes"].waitForExistence(timeout: 8)); shot("05 Food Bible \(appearance)", app)
+        tab("Grub Rank", app); app.navigationBars.buttons.element(boundBy: 0).tap(); app.revealCreation(); app.buttons["new-dish"].tap(); XCTAssertTrue(app.textFields["dish-name"].waitForExistence(timeout: 8)); shot("24 New Dish \(appearance)", app); app.buttons["Cancel"].tap()
         tab("My Kitchen", app); XCTAssertTrue(app.buttons["settings-open"].waitForExistence(timeout: 8)); shot("06 My Kitchen \(appearance)", app)
         app.buttons["settings-open"].tap(); XCTAssertTrue(app.buttons["settings-account"].waitForExistence(timeout: 8)); shot("07 Settings \(appearance)", app)
         app.terminate()
@@ -48,12 +48,12 @@ final class DesignReviewUITests: StayGrubbyUITestCase {
         XCTAssertEqual(XCTWaiter.wait(for: [liked], timeout: 8), .completed); shot("09 Hands \(appearance)", app)
         reach(app.buttons["notifications-open"], app); app.buttons["notifications-open"].tap()
         XCTAssertTrue(app.navigationBars["Order Up!"].waitForExistence(timeout: 8)); shot("10 Order Up \(appearance)", app)
-        tab("Tickets", app); XCTAssertTrue(app.buttons["recipe-create"].waitForExistence(timeout: 8)); shot("11 Tickets Empty \(appearance)", app)
-        app.segmentedControls.buttons["My Recipes"].tap()
+        tab("Food Bible", app); XCTAssertTrue(app.buttons["recipe-create"].waitForExistence(timeout: 8)); shot("11 Tickets Empty \(appearance)", app)
+        app.segmentedControls.buttons["Recipes"].tap()
         let recipe = app.buttons["Lemon Soup Recipe"]; XCTAssertTrue(recipe.waitForExistence(timeout: 8)); recipe.tap()
         XCTAssertTrue(app.buttons["recipe-make"].waitForExistence(timeout: 8)); shot("12 Recipe \(appearance)", app)
         reach(app.buttons["recipe-ticket"], app); app.buttons["recipe-ticket"].tap()
-        app.navigationBars.buttons.element(boundBy: 0).tap(); app.segmentedControls.buttons["Tickets 🎟️"].tap()
+        app.navigationBars.buttons.element(boundBy: 0).tap(); app.segmentedControls.buttons["Tickets"].tap()
         XCTAssertTrue(app.buttons["Lemon Soup Recipe"].waitForExistence(timeout: 8)); shot("13 Tickets Saved \(appearance)", app)
         app.buttons["recipe-create"].tap(); XCTAssertTrue(app.textFields["recipe-edit-title"].waitForExistence(timeout: 8)); shot("25 Recipe Editor \(appearance)", app); app.buttons["Cancel"].tap()
         app.terminate()
@@ -87,7 +87,7 @@ final class DesignReviewUITests: StayGrubbyUITestCase {
         app.terminate()
         app.launchArguments = ["--ui-test-store", UUID().uuidString, "--test-light"]
         app.launchWithReviewOptions(); XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 20)); shot("22 Grub Rank Empty Light", app)
-        tab("Food Bible", app); XCTAssertTrue(app.textFields["history-search"].waitForExistence(timeout: 8)); shot("23 Food Bible Empty Light", app)
+        tab("Food Bible", app); XCTAssertTrue(app.segmentedControls.buttons["Recipes"].waitForExistence(timeout: 8)); shot("23 Food Bible Empty Light", app)
     }
 
 }

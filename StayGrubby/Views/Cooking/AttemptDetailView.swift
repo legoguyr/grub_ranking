@@ -84,7 +84,7 @@ struct AttemptDetailView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: SGTheme.Space.xSmall) {
-            SGEyebrow(text: globalRank == 1 ? "Signature Dish" : "From your Food Bible")
+            SGEyebrow(text: globalRank == 1 ? "Signature Dish" : "From your Grub Rank")
             Text(attempt.dish?.name ?? "Dish").font(SGTheme.TypeRole.hero)
                 .fixedSize(horizontal: false, vertical: true)
             Text(attempt.versionLabel).font(SGTheme.TypeRole.body).foregroundStyle(.secondary)

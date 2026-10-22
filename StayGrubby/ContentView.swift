@@ -15,10 +15,7 @@ struct ContentView: View {
                 .tag(StayGrubbyTab.rankings)
 
             NavigationStack { FoodBibleView() }
-                .tabItem { Label("Food Bible", systemImage: "book.closed") }.tag(StayGrubbyTab.history)
-
-            NavigationStack { RecipeLibraryView() }
-                .tabItem { Label("Tickets", systemImage: "ticket") }.tag(StayGrubbyTab.tickets)
+                .tabItem { Label("Food Bible", systemImage: "book.closed") }.tag(StayGrubbyTab.bible)
 
             NavigationStack {
                 AccountView()
@@ -37,7 +34,7 @@ struct ContentView: View {
 
 }
 
-enum StayGrubbyTab: Hashable { case feed, rankings, history, tickets, profile }
+enum StayGrubbyTab: Hashable { case feed, rankings, bible, profile }
 
 #Preview {
     ContentView().environment(AppLinkRouter()).environment(AccountSessionCoordinator()).modelContainer(try! ModelContainer(for: AppPersistence.schema,

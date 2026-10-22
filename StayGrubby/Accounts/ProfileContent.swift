@@ -15,7 +15,7 @@ struct ProfileCookingContent: View {
 
     private var cookingSnapshot: some View {
         VStack(alignment: .leading, spacing: SGTheme.Space.medium) {
-            Text("In your Food Bible").font(SGTheme.TypeRole.headline).accessibilityAddTraits(.isHeader)
+            Text("In your kitchen").font(SGTheme.TypeRole.headline).accessibilityAddTraits(.isHeader)
             let columns = textSize.isAccessibilitySize ? 1 : 2
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), alignment: .leading), count: columns),
                       alignment: .leading, spacing: SGTheme.Space.medium) {

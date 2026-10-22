@@ -46,7 +46,7 @@ struct CookingRankingResultView: View {
                 VStack(spacing: SGTheme.Space.xSmall) {
                     Image(systemName: "checkmark.circle").font(.title2).foregroundStyle(SGTheme.ColorToken.accent)
                         .accessibilityHidden(true)
-                    SGEyebrow(text: rank == 1 ? "Signature Dish" : "Saved in your Food Bible")
+                    SGEyebrow(text: rank == 1 ? "Signature Dish" : "Saved in your Grub Rank")
                     Text("Your dish is ranked!").font(SGTheme.TypeRole.hero)
                     Text(scores.isUnlocked ? "Here’s how it did." : scores.completionText)
                         .font(SGTheme.TypeRole.body).foregroundStyle(.secondary)
