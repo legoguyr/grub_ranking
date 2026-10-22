@@ -7,7 +7,8 @@ struct InitialReactionView: View {
         ScrollView {
             VStack(spacing: SGTheme.Space.large) {
                 Text(name).font(.title3).foregroundStyle(.secondary)
-                Text("How was it?").font(SGTheme.TypeRole.title)
+                SGEyebrow(text: "First impression")
+                Text("How was it?").font(SGTheme.TypeRole.hero)
                 ForEach(InitialReaction.allCases) { reaction in
                     Button { choose(reaction) } label: {
                         Text(reaction.rawValue).font(.headline).frame(maxWidth: .infinity, minHeight: SGTheme.Size.minimumTap)

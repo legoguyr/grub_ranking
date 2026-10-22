@@ -12,10 +12,8 @@ struct ComparisonView: View {
     let canUndo: Bool
     let onAnswer: (ComparisonAnswer) -> Void
     let onUndo: () -> Void
-    @Environment(\.sgReduceMotion) private var reduceMotion
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(\.dynamicTypeSize) private var textSize
-    @State private var selected: ComparisonAnswer?
     @State private var answering = false
     @State private var feedback = 0
     @ScaledMetric(relativeTo: .headline) private var titleHeight = SGTheme.Size.comparisonLabelHeight
@@ -27,7 +25,8 @@ struct ComparisonView: View {
                            max(0, (proxy.size.width - SGTheme.Space.medium * 2 - SGTheme.Size.comparisonSeparator - SGTheme.Space.xSmall * 2) / 2))
             ScrollView {
                 VStack(spacing: SGTheme.Space.large) {
-                    Text("Which do you prefer?")
+                    SGEyebrow(text: "Your taste decides")
+                    Text("Which would you cook again?")
                         .font(SGTheme.TypeRole.title).multilineTextAlignment(.center)
                     choices(side: side)
                     actionBar
@@ -78,12 +77,8 @@ struct ComparisonView: View {
             VStack(spacing: SGTheme.Space.small) {
                 DishPhoto(media: media, prepared: prepared, name: spokenName)
                     .frame(width: side, height: side)
-                    .clipShape(RoundedRectangle(cornerRadius: SGTheme.Radius.card))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: SGTheme.Radius.card)
-                            .stroke(selected == answer ? SGTheme.ColorToken.accent : SGTheme.ColorToken.border,
-                                    lineWidth: selected == answer ? SGTheme.Size.selectedBorder : SGTheme.Size.border)
-                    }.accessibilityHidden(true)
+                    .clipShape(RoundedRectangle(cornerRadius: SGTheme.Radius.hero))
+                    .accessibilityHidden(true)
                 VStack(spacing: SGTheme.Space.xSmall) {
                     Text(name).font(SGTheme.TypeRole.headline)
                         .frame(minHeight: textSize.isAccessibilitySize ? 0 : titleHeight, alignment: .top)
@@ -95,9 +90,8 @@ struct ComparisonView: View {
                 .frame(maxWidth: .infinity, alignment: .top)
             }
             .frame(width: side).contentShape(Rectangle())
-            .scaleEffect(selected == answer && !reduceMotion ? SGTheme.Motion.pressedScale : 1)
         }
-        .buttonStyle(.plain).disabled(answering)
+        .buttonStyle(ComparisonChoiceStyle()).disabled(answering)
         .accessibilityLabel("Prefer \(spokenName)")
         .accessibilityValue("Square photo area \(Int(side)) by \(Int(side)) points")
         .accessibilityIdentifier("comparison-choice-\(identifier)")
@@ -109,7 +103,7 @@ struct ComparisonView: View {
             action("Skip", symbol: "forward.end") { submit(.skip) }
         }
         .padding(SGTheme.Space.xSmall)
-        .background(SGTheme.ColorToken.surface, in: RoundedRectangle(cornerRadius: SGTheme.Radius.card))
+        .background(SGTheme.ColorToken.surface, in: RoundedRectangle(cornerRadius: SGTheme.Radius.field))
         .disabled(answering)
     }
     private func action(_ title: String, symbol: String, action: @escaping () -> Void) -> some View {
@@ -124,13 +118,23 @@ struct ComparisonView: View {
     private func choose(_ answer: ComparisonAnswer) {
         guard !answering else { return }
         answering = true; feedback += 1
-        guard !reduceMotion else { onAnswer(answer); resetSelection(); return }
-        withAnimation(SGTheme.Motion.quick) { selected = answer }
-        Task { @MainActor in
-            try? await Task.sleep(for: SGTheme.Motion.selectionDelay)
-            onAnswer(answer); resetSelection()
-        }
+        // Selection feedback never delays the engine or queues a stale answer.
+        onAnswer(answer)
+        Task { @MainActor in await Task.yield(); resetSelection() }
     }
+
     private func submit(_ answer: ComparisonAnswer) { feedback += 1; onAnswer(answer) }
-    private func resetSelection() { selected = nil; answering = false }
+    private func resetSelection() { answering = false }
+}
+
+/// Press feedback belongs to the touch, never to a delayed ranking answer.
+private struct ComparisonChoiceStyle: ButtonStyle {
+    @Environment(\.sgReduceMotion) private var reduceMotion
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(configuration.isPressed ? SGTheme.ColorToken.accent.opacity(0.09) : .clear, in: RoundedRectangle(cornerRadius: SGTheme.Radius.hero))
+            .overlay { RoundedRectangle(cornerRadius: SGTheme.Radius.hero).stroke(configuration.isPressed ? SGTheme.ColorToken.accent : .clear, lineWidth: SGTheme.Size.selectedBorder) }
+            .scaleEffect(configuration.isPressed && !reduceMotion ? SGTheme.Motion.pressedScale : 1)
+            .animation(reduceMotion ? nil : SGTheme.Motion.quick, value: configuration.isPressed)
+    }
 }

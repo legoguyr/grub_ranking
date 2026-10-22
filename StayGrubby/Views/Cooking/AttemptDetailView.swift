@@ -22,20 +22,20 @@ struct AttemptDetailView: View {
                 SGHeroMedia(media: attempt.primaryImage, name: attempt.dish?.name ?? attempt.displayName)
                 header
                 actionButtons
-                SocialShareAction(attempt: attempt)
-                CookingProvenanceView(itemID: attempt.rankedItemID)
                 metadata
+                CookingProvenanceView(itemID: attempt.rankedItemID)
+                SocialShareAction(attempt: attempt)
                 if let source = attempt.dish?.source {
                     VStack(alignment: .leading, spacing: SGTheme.Space.small) {
                         SGSectionHeader(title: "Source")
                         SourceSummary(source: source)
-                    }.sgCard()
+                    }.padding(.vertical, SGTheme.Space.medium)
                 }
                 if let notes = attempt.notes {
                     VStack(alignment: .leading, spacing: SGTheme.Space.small) {
                         SGSectionHeader(title: "Notes")
                         Text(notes)
-                    }.sgCard()
+                    }.padding(.vertical, SGTheme.Space.medium)
                 }
                 versions
             }
@@ -84,7 +84,8 @@ struct AttemptDetailView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: SGTheme.Space.xSmall) {
-            Text(attempt.dish?.name ?? "Dish").font(SGTheme.TypeRole.title)
+            SGEyebrow(text: globalRank == 1 ? "Signature Dish" : "From your Food Bible")
+            Text(attempt.dish?.name ?? "Dish").font(SGTheme.TypeRole.hero)
                 .fixedSize(horizontal: false, vertical: true)
             Text(attempt.versionLabel).font(SGTheme.TypeRole.body).foregroundStyle(.secondary)
             HStack(spacing: SGTheme.Space.small) {
@@ -125,7 +126,7 @@ struct AttemptDetailView: View {
                 Text("Legacy free-of labels: " + attempt.allergyTags.map(\.label).sorted().joined(separator: ", "))
                     .font(.caption).foregroundStyle(.secondary)
             }
-        }.sgCard()
+        }.padding(.vertical, SGTheme.Space.medium)
     }
 
     private var allTags: [String] {
@@ -151,7 +152,7 @@ struct AttemptDetailView: View {
                     }.buttonStyle(.plain)
                 }
             }
-        }.sgCard()
+        }.padding(.vertical, SGTheme.Space.medium)
     }
 
     private var newVersionButton: some View {

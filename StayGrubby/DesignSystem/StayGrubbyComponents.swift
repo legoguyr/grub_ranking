@@ -3,6 +3,7 @@ import UIKit
 
 struct DishPhoto: View {
     @Environment(\.cookingMediaRoot) private var mediaRoot
+    @Environment(\.sgReduceMotion) private var reduceMotion
     var media: CookingMedia?
     var prepared: PreparedCookingPhoto?
     var thumbnail = false
@@ -31,15 +32,15 @@ struct DishPhoto: View {
                         .frame(width: geometry.size.width, height: geometry.size.height)
                 } else {
                     ZStack {
-                        LinearGradient(colors: [SGTheme.ColorToken.placeholderStart, SGTheme.ColorToken.placeholderEnd],
-                                       startPoint: .topLeading, endPoint: .bottomTrailing)
-                        Image(systemName: "fork.knife.circle.fill")
-                            .font(.system(size: thumbnail ? SGTheme.Size.thumbnailIcon : SGTheme.Size.placeholderIcon)).foregroundStyle(.secondary)
+                        SGTheme.ColorToken.elevatedSurface
+                        Image(systemName: "photo")
+                            .font(.system(size: thumbnail ? SGTheme.Size.thumbnailIcon : SGTheme.Size.placeholderIcon, weight: .ultraLight)).foregroundStyle(.secondary)
                     }
                 }
             }.frame(width: geometry.size.width, height: geometry.size.height).clipped()
         }
         .clipped()
+        .animation(reduceMotion ? nil : SGTheme.Motion.quick, value: loadedImage != nil)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(loadedImage == nil ? "No photo for \(name)" : "Photo of \(name)")
         .onReceive(NotificationCenter.default.publisher(for: .cookingPhotoFilesRestored)) { notification in
@@ -63,9 +64,7 @@ struct ScoreBadge: View {
         Text(text)
             .font(SGTheme.TypeRole.score)
             .foregroundStyle(SGTheme.ScoreColor.color(forDisplayedScore: text))
-            .padding(.horizontal, SGTheme.Space.small).padding(.vertical, SGTheme.Space.xSmall)
-            .background(SGTheme.ScoreColor.color(forDisplayedScore: text).opacity(0.10),
-                        in: RoundedRectangle(cornerRadius: SGTheme.Radius.chip))
+            .padding(.horizontal, SGTheme.Space.xSmall).padding(.vertical, SGTheme.Space.xSmall)
             .fixedSize()
             .accessibilityLabel("Score \(text)")
         } else { LockedScoreIndicator() }
@@ -105,8 +104,10 @@ struct RankedDishRow: View {
 
     private var identity: some View {
         VStack(alignment: .leading, spacing: SGTheme.Space.hairline) {
+            if rank == 1 { SGEyebrow(text: "Signature Dish") }
+            else if rank <= 3 { Text("Signature Dishes").font(SGTheme.TypeRole.secondary).foregroundStyle(SGTheme.ColorToken.accent) }
             Text(attempt.dish?.name ?? attempt.displayName)
-                .font(SGTheme.TypeRole.headline).lineLimit(textSize.isAccessibilitySize ? nil : 2)
+                .font(SGTheme.TypeRole.dish).lineLimit(textSize.isAccessibilitySize ? nil : 2)
             Text(attempt.versionLabel).font(SGTheme.TypeRole.body)
                 .foregroundStyle(.secondary).lineLimit(textSize.isAccessibilitySize ? nil : 2)
             Text(attempt.category.label).font(SGTheme.TypeRole.secondary).foregroundStyle(.secondary)
@@ -120,7 +121,7 @@ struct RankedDishRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: SGTheme.Space.small) {
             HStack(alignment: .center, spacing: SGTheme.Space.small) {
-                Text("\(rank)").font(SGTheme.TypeRole.secondary.monospacedDigit()).foregroundStyle(.secondary)
+                Text(String(format: "%02d", rank)).font(SGTheme.TypeRole.rank).foregroundStyle(rank == 1 ? SGTheme.ColorToken.accent : .secondary)
                     .frame(minWidth: SGTheme.Size.rankWidth)
                 photo
                 if !textSize.isAccessibilitySize { identity }
@@ -187,5 +188,23 @@ struct SGSearchField: View {
                     .accessibilityIdentifier("\(identifier)-clear")
             }
         }.sgField()
+    }
+}
+
+struct SignatureRankHero: View {
+    let attempt: CookingAttempt
+    var body: some View {
+        VStack(alignment: .leading, spacing: SGTheme.Space.medium) {
+            SGHeroMedia(media: attempt.primaryImage, name: attempt.dish?.name ?? attempt.displayName)
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: SGTheme.Space.xSmall) {
+                    SGEyebrow(text: "01 · Signature Dish")
+                    Text(attempt.dish?.name ?? attempt.displayName).font(SGTheme.TypeRole.title).fixedSize(horizontal: false, vertical: true)
+                    Text(attempt.versionLabel).font(SGTheme.TypeRole.body).foregroundStyle(.secondary)
+                }
+                Spacer(minLength: SGTheme.Space.small)
+                if let item = attempt.rankedItem { ScoreBadge(score: item.score) }
+            }
+        }.padding(.vertical, SGTheme.Space.medium).contentShape(Rectangle())
     }
 }

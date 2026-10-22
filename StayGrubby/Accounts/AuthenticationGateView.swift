@@ -86,19 +86,20 @@ struct AuthenticationGateView: View {
                 }
 
             VStack(alignment: .leading, spacing: SGTheme.Space.small) {
-                Text("Your cooking, worth remembering.")
-                    .font(.system(.largeTitle, design: .rounded, weight: .bold))
+                SGEyebrow(text: "Cook · Rank · Share")
+                Text("Good food.\nYour signature.")
+                    .font(SGTheme.TypeRole.hero)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityAddTraits(.isHeader)
-                Text("Cook something. Find your favorites.")
+                Text("Keep your cooks in your Food Bible. Find your Signature Dishes. Share a little inspiration.")
                     .font(.body).foregroundStyle(.secondary)
             }
 
             comparisonExample
 
             VStack(alignment: .leading, spacing: SGTheme.Space.medium) {
-                story("Cook & remember", detail: "Save dishes, photos, and every new version.", symbol: "book.closed")
-                story("Share your favorites", detail: "Send a dish or your Top 3 when you want.", symbol: "square.and.arrow.up")
+                story("Your Food Bible", detail: "Save dishes, photos, and every new version.", symbol: "book.closed")
+                story("Share your favorites", detail: "Send a dish, your Signature Dishes or your Kitchen when you want.", symbol: "square.and.arrow.up")
             }
         }
         .accessibilityElement(children: .contain)

@@ -31,7 +31,7 @@ struct CookingRankingView: View {
                 if !scores.isUnlocked { ScoreUnlockProgressBanner(state: scores) }
                 if list.items.isEmpty {
                     ContentUnavailableView {
-                        Label("Your cooking, ranked", systemImage: "fork.knife")
+                        Label("Your taste. Your Grub Rank.", systemImage: "chart.bar")
                     } description: { Text("Add your first dish to begin.") } actions: {
                         Button("Add Your First Dish") { newDish = true }
                             .buttonStyle(SGButtonStyle(prominent: true))
@@ -39,7 +39,9 @@ struct CookingRankingView: View {
                 } else if entries.isEmpty { noResults }
                 ForEach(entries) { entry in
                     NavigationLink(value: entry.attempt.id) {
-                        RankedDishRow(attempt: entry.attempt, rank: entry.globalRank)
+                        if entry.globalRank == 1 && !hasSearch && !filters.isActive {
+                            SignatureRankHero(attempt: entry.attempt)
+                        } else { RankedDishRow(attempt: entry.attempt, rank: entry.globalRank) }
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("cook-row-\(entry.attempt.rankedItemID)")
@@ -48,12 +50,13 @@ struct CookingRankingView: View {
                     Divider().overlay(SGTheme.ColorToken.border).accessibilityHidden(true)
                 }
             }
+            .animation(reduceMotion ? nil : SGTheme.Motion.standard, value: entries.map(\.id))
             .frame(maxWidth: SGTheme.Size.contentMaximum)
             .padding(.horizontal, SGTheme.Space.medium).padding(.bottom, SGTheme.Space.large)
             .frame(maxWidth: .infinity)
         }
         .background(SGTheme.ColorToken.background)
-        .navigationTitle("Rankings").navigationBarTitleDisplayMode(.inline)
+        .navigationTitle("Grub Rank").navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .navigationBar)
         .safeAreaInset(edge: .top, spacing: 0) {
             VStack(spacing: SGTheme.Space.xSmall) {

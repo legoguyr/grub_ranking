@@ -35,25 +35,22 @@ struct StayGrubbyHeader: View {
                 .onAppear { searchFocused = true }
                 .transition(.opacity)
             } else {
-                ZStack {
-                    VStack(spacing: SGTheme.Space.hairline) {
-                        Text("StayGrubby").font(SGTheme.TypeRole.identity)
-                        Text(page).font(SGTheme.TypeRole.secondary).foregroundStyle(.secondary)
+                HStack(alignment: .center, spacing: SGTheme.Space.small) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        SGEyebrow(text: page == "Rankings" ? "Your personal taste" : "Made by you")
+                        Text(page == "Rankings" ? "Grub Rank" : page == "Profile" ? "My Kitchen" : page)
+                            .font(SGTheme.TypeRole.page).tracking(-0.8).fixedSize(horizontal: false, vertical: true)
+                    }.accessibilityElement(children: .combine)
+                        .accessibilityIdentifier("staygrubby-header-\(page.lowercased())")
+                    Spacer(minLength: 0)
+                    if let onSearch {
+                        SGIconButton(title: "Search Grub Rank", symbol: searchText.isEmpty ? "magnifyingglass" : "magnifyingglass.circle.fill") {
+                            onSearch(); animate { searching = true }
+                        }.accessibilityIdentifier("ranking-search")
                     }
-                    .padding(.horizontal, SGTheme.Size.minimumTap + SGTheme.Space.small)
-                    .accessibilityElement(children: .combine)
-                    .accessibilityIdentifier("staygrubby-header-\(page.lowercased())")
-                    HStack {
-                        if let onCreate {
-                            SGIconButton(title: "Create a cook", symbol: "plus", emphasized: true, action: onCreate)
-                                .accessibilityIdentifier("creation-toggle")
-                        }
-                        Spacer()
-                        if let onSearch {
-                            SGIconButton(title: "Search rankings", symbol: searchText.isEmpty ? "magnifyingglass" : "magnifyingglass.circle.fill") {
-                                onSearch(); animate { searching = true }
-                            }.accessibilityIdentifier("ranking-search")
-                        }
+                    if let onCreate {
+                        SGIconButton(title: "Create a cook", symbol: "plus", emphasized: true, action: onCreate)
+                            .accessibilityIdentifier("creation-toggle")
                     }
                 }.frame(minHeight: SGTheme.Size.minimumTap)
                 .transition(.opacity)

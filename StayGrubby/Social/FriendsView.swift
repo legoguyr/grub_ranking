@@ -27,7 +27,11 @@ struct FriendsView: View {
     @State private var requestGeneration = UUID()
     private var taskKey: String { section.rawValue + ":" + query + ":\(revision)" }
     var body: some View {
-        List {
+        SGEditorialList {
+            if administrative == nil {
+                SGPageIntro(title: "Sous Chefs", subtitle: "Good food is better with good company.", showsTitle: false).listRowSeparator(.hidden)
+                ShareMyKitchen()
+            }
             if let identity, !identity.isConfigured {
                 Section {
                     Text("Your cooking stays private. Choose a social identity when you’re ready to connect.")
@@ -39,9 +43,11 @@ struct FriendsView: View {
                         ForEach([FriendsSection.friends, .search, .incoming]) { Text($0.title).tag($0) }
                     }.pickerStyle(.segmented).accessibilityIdentifier("friends-section")
                 }
+                if section == .incoming && !loading {
+                    Text(page.people.count == 1 ? "1 request shown" : "\(page.people.count) requests shown").font(SGTheme.TypeRole.secondary).foregroundStyle(.secondary)
+                }
                 if section == .search {
-                    TextField("Search @username", text: $query).textInputAutocapitalization(.never).autocorrectionDisabled()
-                        .submitLabel(.search).accessibilityIdentifier("friends-search")
+                    SGSearchField(placeholder: "Search @username", text: $query, identifier: "friends-search").textInputAutocapitalization(.never).autocorrectionDisabled()
                     Text("Search by username. Only people who allow discovery appear here.").font(.footnote).foregroundStyle(.secondary)
                 }
                 if loading && page.people.isEmpty { ProgressView("Loading people") }
@@ -57,9 +63,9 @@ struct FriendsView: View {
                 ForEach(page.people) { person in
                     Button { selectedPerson = person } label: {
                         HStack(alignment: .top, spacing: 12) {
-                        SocialAvatar(name: person.displayName, path: person.avatarPath)
+                        SocialAvatar(name: person.displayName, path: person.avatarPath, size: 54)
                         VStack(alignment: .leading, spacing: SGTheme.Space.xSmall) {
-                            Text(person.displayName).font(SGTheme.TypeRole.headline)
+                            Text(person.displayName).font(SGTheme.TypeRole.dish)
                             Text(person.handle).foregroundStyle(.secondary)
                             Text(person.relationship.label).font(SGTheme.TypeRole.secondary)
                         } }.padding(.vertical, SGTheme.Space.xSmall).fixedSize(horizontal: false, vertical: true)
@@ -116,7 +122,7 @@ struct FriendProfileView: View {
     @State private var unavailable = false
     @State private var confirmation: String?
     var body: some View {
-        List {
+        SGEditorialList {
             if unavailable { ContentUnavailableView("Person unavailable", systemImage: "person.crop.circle.badge.xmark", description: Text("Their privacy or relationship may have changed.")) }
             else {
                 Section {
@@ -127,10 +133,10 @@ struct FriendProfileView: View {
                 }
                 Section {
                     switch person.relationship {
-                    case .none: action("Add Friend", "request")
+                    case .none: action("Add Sous Chef", "request")
                     case .incoming: action("Accept Request", "accept"); action("Decline Request", "decline")
                     case .outgoing: action("Cancel Request", "cancel")
-                    case .friends: Button("Remove Friend", role: .destructive) { confirmation = "remove" }
+                    case .friends: Button("Remove Sous Chef", role: .destructive) { confirmation = "remove" }
                     case .blocked: action("Unblock", "unblock")
                     }
                     if person.relationship != .blocked { Button("Block", role: .destructive) { confirmation = "block" } }
@@ -139,7 +145,7 @@ struct FriendProfileView: View {
             }
             if error { Text("This action couldn’t complete. Refresh to check the latest relationship.").accessibilityIdentifier("friend-action-error"); Button("Refresh profile") { Task { await refresh() } } }
         }
-        .navigationTitle("Friend profile").navigationBarTitleDisplayMode(.inline)
+        .navigationTitle("Kitchen").navigationBarTitleDisplayMode(.inline)
         .refreshable { await refresh() }.task { if person.relationship != .blocked { await refresh() } }
         .confirmationDialog(confirmation == "block" ? "Block this person?" : "Remove this friend?", isPresented: Binding(get: { confirmation != nil }, set: { if !$0 { confirmation = nil } }), titleVisibility: .visible) {
             Button(confirmation == "block" ? "Block Person" : "Remove Friendship", role: .destructive) {

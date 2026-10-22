@@ -4,11 +4,12 @@ struct KitchenSettings<AccountUtilities: View>: View {
     @Environment(\.socialRequest) private var request
     @ViewBuilder var account: () -> AccountUtilities
     var body: some View {
-        List {
-            NavigationLink("Account & Profile") {
+        SGEditorialList {
+            SGPageIntro(title: "Settings", subtitle: "Your account, your privacy, your choices.", showsTitle: false).listRowSeparator(.hidden)
+            NavigationLink {
                 ScrollView { VStack(alignment: .leading, spacing: 20) { SocialIdentitySection(); account() }.padding() }
                     .navigationTitle("Account & Profile").navigationBarTitleDisplayMode(.inline)
-            }.accessibilityIdentifier("settings-account")
+            } label: { SGDestinationLabel(title: "Account & Profile", subtitle: "Identity, photos, account & sync", symbol: "person.crop.circle", showsChevron: false) }.accessibilityIdentifier("settings-account")
             if request != nil {
                 Section("Social") {
                     NavigationLink("Sharing defaults") { SocialSettingsView() }.accessibilityIdentifier("social-settings-open")

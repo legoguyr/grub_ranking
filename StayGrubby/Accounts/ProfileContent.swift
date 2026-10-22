@@ -8,14 +8,14 @@ struct ProfileCookingContent: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: SGTheme.Space.large) {
-            cookingSnapshot
             topFoods
+            cookingSnapshot
         }
     }
 
     private var cookingSnapshot: some View {
         VStack(alignment: .leading, spacing: SGTheme.Space.medium) {
-            Text("Your kitchen, so far").font(SGTheme.TypeRole.headline).accessibilityAddTraits(.isHeader)
+            Text("In your Food Bible").font(SGTheme.TypeRole.headline).accessibilityAddTraits(.isHeader)
             let columns = textSize.isAccessibilitySize ? 1 : 2
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), alignment: .leading), count: columns),
                       alignment: .leading, spacing: SGTheme.Space.medium) {
@@ -37,7 +37,7 @@ struct ProfileCookingContent: View {
                     }.font(SGTheme.TypeRole.body)
                 }
             }
-        }.sgCard()
+        }.padding(.vertical, SGTheme.Space.medium)
     }
 
     private func statistic(_ count: Int, title: String, identifier: String) -> some View {
@@ -53,18 +53,18 @@ struct ProfileCookingContent: View {
     private var topFoods: some View {
         VStack(alignment: .leading, spacing: SGTheme.Space.medium) {
             VStack(alignment: .leading, spacing: SGTheme.Space.xSmall) {
-                Text("Your Top 3").font(SGTheme.TypeRole.title).accessibilityAddTraits(.isHeader)
+                Text("Signature Dishes").font(SGTheme.TypeRole.title).accessibilityAddTraits(.isHeader)
                 Text(snapshot.topFoods.isEmpty ? "Good food starts with your next cook." : "The dishes and versions leading your rankings.")
                     .font(SGTheme.TypeRole.body).foregroundStyle(.secondary)
             }
 
             if let first = snapshot.topFoods.first {
-                ProfileTopFood(food: first, featured: true)
+                NavigationLink(value: first.attempt.id) { ProfileTopFood(food: first, featured: true) }.buttonStyle(.plain)
                 ForEach(snapshot.topFoods.dropFirst()) { food in
-                    ProfileTopFood(food: food, featured: false)
+                    NavigationLink(value: food.attempt.id) { ProfileTopFood(food: food, featured: false) }.buttonStyle(.plain)
                 }
                 if snapshot.topFoods.count < 3 {
-                    Text("Keep cooking and ranking to build out your Top 3.")
+                    Text("Keep cooking to find your Signature Dishes.")
                         .font(SGTheme.TypeRole.body).foregroundStyle(.secondary)
                         .accessibilityIdentifier("profile-building-top-three")
                 }
@@ -73,7 +73,7 @@ struct ProfileCookingContent: View {
                     Image(systemName: "fork.knife.circle").font(.largeTitle)
                         .foregroundStyle(SGTheme.ColorToken.accent).accessibilityHidden(true)
                     Text("Make something worth remembering.").font(SGTheme.TypeRole.headline)
-                    Text("Add your first dish in Rankings. As you cook and compare, your favorites will take their place here.")
+                    Text("Add your first dish in Grub Rank. As you cook and compare, your favorites will take their place here.")
                         .font(SGTheme.TypeRole.body).foregroundStyle(.secondary)
                 }.frame(maxWidth: .infinity, alignment: .leading).sgCard()
                     .accessibilityIdentifier("profile-empty")
@@ -88,7 +88,7 @@ struct ProfileCookingContent: View {
                     ScoreUnlockProgressBanner(state: snapshot.scores)
                 }
                 // Keep the permanent action and all export/native-sheet gating intact.
-                TopThreeShareAction(list: ranking)
+                TopThreeShareAction(list: ranking, title: "Share Signature Dishes")
             }
         }
     }
@@ -101,6 +101,9 @@ private struct ProfileTopFood: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: SGTheme.Space.medium) {
+            if featured {
+                SGHeroMedia(media: food.attempt.primaryImage, name: food.title).accessibilityHidden(true)
+            }
             HStack(alignment: .top, spacing: SGTheme.Space.small) {
                 if !featured {
                     DishPhoto(media: food.attempt.primaryImage, thumbnail: true, name: food.title)
@@ -109,7 +112,7 @@ private struct ProfileTopFood: View {
                         .accessibilityHidden(true)
                 }
                 VStack(alignment: .leading, spacing: SGTheme.Space.xSmall) {
-                    Text(food.rank == 1 ? "#1 · Your current favorite" : "#\(food.rank)")
+                    Text(food.rank == 1 ? "#1 · Signature Dish" : "#\(food.rank)")
                         .font(SGTheme.TypeRole.secondary.weight(.semibold))
                         .foregroundStyle(featured ? SGTheme.ColorToken.accent : .secondary)
                     Text(food.title).font(featured ? SGTheme.TypeRole.title : SGTheme.TypeRole.headline)
@@ -120,13 +123,7 @@ private struct ProfileTopFood: View {
                 }.frame(maxWidth: .infinity, alignment: .leading)
                 if !textSize.isAccessibilitySize { score }
             }
-            if featured, food.attempt.primaryImage != nil {
-                DishPhoto(media: food.attempt.primaryImage, name: food.title)
-                    .frame(height: SGTheme.Size.editorPhotoHeight)
-                    .clipShape(RoundedRectangle(cornerRadius: SGTheme.Radius.field))
-                    .accessibilityHidden(true)
-            }
-        }.sgCard()
+        }.padding(.vertical, SGTheme.Space.small)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(food.accessibilityLabel)
             .accessibilityIdentifier("profile-top-food-\(food.rank)")

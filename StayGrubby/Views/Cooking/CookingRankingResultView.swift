@@ -44,9 +44,10 @@ struct CookingRankingResultView: View {
         ScrollView {
             VStack(spacing: SGTheme.Space.large) {
                 VStack(spacing: SGTheme.Space.xSmall) {
-                    Image(systemName: "sparkles").font(.title2).foregroundStyle(SGTheme.ColorToken.accent)
+                    Image(systemName: "checkmark.circle").font(.title2).foregroundStyle(SGTheme.ColorToken.accent)
                         .accessibilityHidden(true)
-                    Text("Your dish is ranked!").font(SGTheme.TypeRole.title)
+                    SGEyebrow(text: rank == 1 ? "Signature Dish" : "Saved in your Food Bible")
+                    Text("Your dish is ranked!").font(SGTheme.TypeRole.hero)
                     Text(scores.isUnlocked ? "Here’s how it did." : scores.completionText)
                         .font(SGTheme.TypeRole.body).foregroundStyle(.secondary)
                 }.multilineTextAlignment(.center)
@@ -96,7 +97,7 @@ struct CookingRankingResultView: View {
                     }
                 }
                 if scores.isUnlocked, model.achievement == .newNumberOne {
-                    Text("Your Top 3 has a new leader. You can also share your updated Top 3 below.")
+                    Text("Your Signature Dishes have a new leader. Share your updated Top 3 below.")
                         .font(SGTheme.TypeRole.body).foregroundStyle(.secondary).multilineTextAlignment(.center)
                 }
             }
@@ -104,6 +105,7 @@ struct CookingRankingResultView: View {
             .opacity(appeared ? 1 : 0)
             .offset(y: appeared || reduceMotion ? 0 : 8)
         }
+        .sensoryFeedback(.success, trigger: appeared)
         .accessibilityIdentifier("ranking-result")
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: SGTheme.Space.small) {

@@ -155,9 +155,10 @@ struct SGFormSection<Content: View>: View {
     @ViewBuilder let content: Content
     var body: some View {
         VStack(alignment: .leading, spacing: SGTheme.Space.small) {
-            Text(title).font(SGTheme.TypeRole.secondary.weight(.semibold)).foregroundStyle(.secondary)
+            SGEyebrow(text: title)
             content
-        }.font(SGTheme.TypeRole.body).sgCard()
+        }.font(SGTheme.TypeRole.body).padding(.vertical, SGTheme.Space.medium)
+            .overlay(alignment: .top) { Divider().accessibilityHidden(true) }
     }
 }
 

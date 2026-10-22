@@ -5,6 +5,7 @@ struct AccountView: View {
     @Environment(AccountSessionCoordinator.self) private var session
     @Environment(\.cookingSyncCoordinator) private var sync
     @Environment(\.modelContext) private var context
+    @Environment(\.dynamicTypeSize) private var typeSize
     @Query private var sharingCooks: [CookingAttempt]
     @Query private var sharingTombstones: [SyncTombstone]
     @State private var showingPrivacyPolicy = false
@@ -32,15 +33,15 @@ struct AccountView: View {
         let snapshot = ProfileSnapshot(context: context, list: ranking)
         ScrollView {
             VStack(alignment: .leading, spacing: SGTheme.Space.large) {
-                identity
+                KitchenIdentityHeader()
                 SocialPendingShares()
                 SharedCookingPending()
                 ShareMyKitchen()
-                NavigationLink("Recipes & Tickets 🎟️") { RecipeLibraryView() }.buttonStyle(SGButtonStyle()).accessibilityIdentifier("recipes-open")
-                NavigationLink("Settings") { KitchenSettings { accountUtilities } }.buttonStyle(SGButtonStyle()).accessibilityIdentifier("settings-open")
-                SocialFriendsLink()
-                NotificationsLink()
+                let links = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: SGTheme.Space.small)) : AnyLayout(HStackLayout(spacing: SGTheme.Space.large))
+                links { SocialFriendsLink(); NotificationsLink() }
                 ProfileCookingContent(snapshot: snapshot, ranking: ranking)
+                NavigationLink { FoodBibleView() } label: { SGDestinationLabel(title: "Food Bible", subtitle: "Every cook. Every version.", symbol: "book.closed") }
+                NavigationLink { RecipeLibraryView() } label: { SGDestinationLabel(title: "Recipes & Tickets", subtitle: "What you’ll cook next", symbol: "ticket") }.accessibilityIdentifier("recipes-open")
                 #if DEBUG
                 if let endDevelopmentReview {
                     VStack(alignment: .leading, spacing: SGTheme.Space.small) {
@@ -50,9 +51,7 @@ struct AccountView: View {
                         Button("Exit development library", action: endDevelopmentReview)
                             .buttonStyle(SGButtonStyle()).accessibilityIdentifier("development-exit")
                     }.sgCard()
-                } else { accountUtilities }
-                #else
-                accountUtilities
+                }
                 #endif
             }
             .frame(maxWidth: SGTheme.Size.contentMaximum)
@@ -60,10 +59,17 @@ struct AccountView: View {
             .frame(maxWidth: .infinity, alignment: .center)
         }
         .background(SGTheme.ColorToken.background)
-        .navigationTitle("Profile").toolbar(.hidden, for: .navigationBar)
+        .navigationTitle("My Kitchen").toolbar(.hidden, for: .navigationBar)
         .safeAreaInset(edge: .top) {
-            StayGrubbyHeader(page: "Profile", searchText: .constant(""), searching: .constant(false))
+            HStack {
+                Text("My Kitchen").font(SGTheme.TypeRole.title).accessibilityAddTraits(.isHeader)
+                Spacer()
+                NavigationLink { KitchenSettings { accountUtilities } } label: {
+                    Image(systemName: "gearshape").frame(width: SGTheme.Size.minimumTap, height: SGTheme.Size.minimumTap)
+                }.accessibilityLabel("Settings").accessibilityIdentifier("settings-open")
+            }.padding(.horizontal, SGTheme.Space.medium).background(SGTheme.ColorToken.background)
         }
+        .navigationDestination(for: UUID.self) { id in if let cook = sharingCooks.first(where: { $0.id == id }) { AttemptDetailView(attempt: cook) } }
         .sheet(isPresented: $showingPrivacyPolicy) { PrivacyPolicyView() }
         .sheet(isPresented: $showingDeletion) {
             AccountDeletionAuthorizationView(canCancel: true) { showingDeletion = false }
@@ -77,22 +83,6 @@ struct AccountView: View {
         } message: {
             Text("Your StayGrubby account, cooking library, rankings, comparison history, and backed-up photos will be permanently deleted. This cannot be undone.")
         }
-    }
-
-    private var identity: some View {
-        VStack(alignment: .leading, spacing: SGTheme.Space.small) {
-            Image(systemName: "person.crop.circle.fill").font(.largeTitle)
-                .foregroundStyle(SGTheme.ColorToken.accent).accessibilityHidden(true)
-            Text("Your cooking profile").font(.system(.largeTitle, design: .rounded, weight: .bold))
-                .fixedSize(horizontal: false, vertical: true).accessibilityAddTraits(.isHeader)
-            Text("Cook. Rank. Make it again.").font(SGTheme.TypeRole.body).foregroundStyle(.secondary)
-            if case .resolved(let account) = session.state {
-                Text("Account · \(account.accountID.uuidString.suffix(8).lowercased())")
-                    .font(SGTheme.TypeRole.secondary.monospaced())
-                    .foregroundStyle(.secondary)
-                    .accessibilityLabel("Account ending in \(account.accountID.uuidString.suffix(8).lowercased())")
-            }
-        }.padding(.vertical, SGTheme.Space.small).accessibilityIdentifier("profile-identity")
     }
 
     @ViewBuilder private var accountUtilities: some View {

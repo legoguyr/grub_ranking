@@ -8,16 +8,22 @@ struct ContentView: View {
     var body: some View {
         TabView(selection: $selection) {
             NavigationStack { SocialFeedView(isSelected: selection == .feed) }
-                .tabItem { Label("Feed", systemImage: "house") }.tag(StayGrubbyTab.feed)
+                .tabItem { Label("Grub List", systemImage: "house") }.tag(StayGrubbyTab.feed)
 
             HomeView()
-                .tabItem { Label("Rankings", systemImage: "chart.bar.fill") }
+                .tabItem { Label("Grub Rank", systemImage: "chart.bar.fill") }
                 .tag(StayGrubbyTab.rankings)
+
+            NavigationStack { FoodBibleView() }
+                .tabItem { Label("Food Bible", systemImage: "book.closed") }.tag(StayGrubbyTab.history)
+
+            NavigationStack { RecipeLibraryView() }
+                .tabItem { Label("Tickets", systemImage: "ticket") }.tag(StayGrubbyTab.tickets)
 
             NavigationStack {
                 AccountView()
             }
-            .tabItem { Label("Profile", systemImage: "person") }.tag(StayGrubbyTab.profile)
+            .tabItem { Label("My Kitchen", systemImage: "person") }.tag(StayGrubbyTab.profile)
         }
         .tint(SGTheme.ColorToken.accent)
         .modifier(AppLinkPresentation())
@@ -31,7 +37,7 @@ struct ContentView: View {
 
 }
 
-enum StayGrubbyTab: Hashable { case feed, rankings, profile }
+enum StayGrubbyTab: Hashable { case feed, rankings, history, tickets, profile }
 
 #Preview {
     ContentView().environment(AppLinkRouter()).environment(AccountSessionCoordinator()).modelContainer(try! ModelContainer(for: AppPersistence.schema,

@@ -73,7 +73,7 @@ struct SocialIdentityEditor: View {
                         .font(SGTheme.TypeRole.secondary).foregroundStyle(.secondary)
                 }
                 Section {
-                    Toggle("Appear in Find Friends", isOn: $discoverable).accessibilityIdentifier("social-discoverable")
+                    Toggle("Appear in Find Sous Chefs", isOn: $discoverable).accessibilityIdentifier("social-discoverable")
                     Text("Off by default. Turning this off does not remove existing friends or change your cooking library.")
                     Text("When you change your username, previous share links continue to identify your account. Published usernames cannot be taken by another account.")
                 }
