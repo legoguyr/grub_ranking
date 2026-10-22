@@ -31,6 +31,15 @@ import SwiftUI
             let id = UUID(uuidString: "60000000-0000-0000-0000-000000000001")!
             recipes[id] = Recipe(id: id, isOwner: true, content: RecipeContent(title: "Lemon Soup Recipe", ingredients: ["1 lemon", "2 cups stock"], steps: ["Simmer gently"], course: "soup", cuisine: "Italian", source: "A recipe author"), visibility: "private", revision: 1, createdAt: 100, updatedAt: 100, saved: false)
         }
+        if ProcessInfo.processInfo.arguments.contains("--product-review-grid") {
+            let own = SocialPerson(id: UUID(uuidString: "10000000-0000-0000-0000-000000000099")!, displayName: identity.displayName, username: identity.username ?? "review_cook", relationship: .none)
+            for (n, title) in ["Lemon Soup", "Slow-roasted Cauliflower with Tahini", "Chocolate Tart"].enumerated() {
+                let id = UUID(uuidString: "70000000-0000-0000-0000-00000000000\(n + 1)")!
+                let path = n == 1 ? nil : own.id.uuidString.lowercased() + "/" + id.uuidString.lowercased() + ".jpg"
+                if let path { avatars[path] = Self.avatarFixture }
+                posts.append(SocialPost(id: id, author: own, title: title, versionTitle: "Sunday version", scoreText: n == 0 ? "8.4" : nil, achievement: nil, createdAt: 1000 - Double(n), photoPath: path, published: true, isAuthor: true, moderationState: "active", postDescription: n == 0 ? "Made this slowly on Sunday. Worth the wait!" : nil, metadata: .init(course: "soup")))
+            }
+        }
         if ProcessInfo.processInfo.arguments.contains("--shared-review") {
             let eventID = UUID(uuidString: "40000000-0000-0000-0000-000000000001")!
             let own = SocialPerson(id: UUID(uuidString: "10000000-0000-0000-0000-000000000099")!, displayName: "Review Cook", username: "review_cook", relationship: .none)
@@ -165,7 +174,7 @@ import SwiftUI
             return try JSONEncoder().encode(SocialPostsPage(posts: [posts[index]]))
         }
         if endpoint == "social_feed" {
-            if feedFailures > 0 { feedFailures -= 1; throw URLError(.notConnectedToInternet) }
+            if action == "page" && feedFailures > 0 { feedFailures -= 1; throw URLError(.notConnectedToInternet) }
             if !feedSeeded && ProcessInfo.processInfo.arguments.contains("--social-review-feed") {
                 feedSeeded = true
                 posts.append(SocialPost(id: UUID(uuidString: "20000000-0000-0000-0000-000000000001")!, author: people[0], title: "Harissa Chicken with Roasted Peppers", versionTitle: "Grilled with lemon", scoreText: "8.6", achievement: nil, createdAt: Date().timeIntervalSince1970, photoPath: nil, published: true, isAuthor: false, moderationState: "active"))
@@ -175,7 +184,11 @@ import SwiftUI
                 comments[seed.id] = [SocialComment(id: UUID(uuidString: "30000000-0000-0000-0000-000000000001")!, author: people[0], body: "A friendly cooking comment", createdAt: Date().timeIntervalSince1970, canDelete: false, isAuthor: false)]
             }
             if ProcessInfo.processInfo.arguments.contains("--recipes-review-feed"), let id = recipes.keys.first, let index = posts.firstIndex(where: { !$0.isAuthor }) { posts[index].recipeID = id }
-            let visible = posts.filter { post in post.isAuthor || people.contains(where: { $0.id == post.author.id && $0.relationship == .friends }) }
+            let visible = posts.filter { post in post.isAuthor || people.contains(where: { $0.id == post.author.id && $0.relationship == .friends }) }.sorted { $0.createdAt == $1.createdAt ? $0.id.uuidString > $1.id.uuidString : $0.createdAt > $1.createdAt }
+            if action == "profile" { return try JSONEncoder().encode(SocialPostsPage(posts: visible.filter { post in
+                if let peer = payload.peerID { return post.author.id == peer }
+                return post.isAuthor
+            })) }
             if action == "post" { return try JSONEncoder().encode(SocialPostsPage(posts: visible.filter { $0.id == payload.postID })) }
             return try JSONEncoder().encode(SocialPostsPage(posts: visible))
         }
@@ -184,11 +197,13 @@ import SwiftUI
             if action == "prepare", let id = payload.postID {
                 if !posts.contains(where: { $0.id == id }) {
                     let author = SocialPerson(id: UUID(uuidString: "10000000-0000-0000-0000-000000000099")!, displayName: identity.displayName, username: identity.username ?? "review_cook", relationship: .none)
-                    posts.append(SocialPost(id: id, author: author, title: "Review cooking post", versionTitle: nil, scoreText: nil, achievement: nil, createdAt: Date().timeIntervalSince1970, photoPath: payload.includePhoto == true ? author.id.uuidString.lowercased() + "/" + id.uuidString.lowercased() + ".jpg" : nil, published: payload.includePhoto != true, isAuthor: true, moderationState: "active"))
+                    posts.append(SocialPost(id: id, author: author, title: "Review cooking post", versionTitle: nil, scoreText: nil, achievement: nil, createdAt: Date().timeIntervalSince1970, photoPath: payload.includePhoto == true ? author.id.uuidString.lowercased() + "/" + id.uuidString.lowercased() + ".jpg" : nil, published: payload.includePhoto != true, isAuthor: true, moderationState: "active", postDescription: payload.postDescription))
                 }
+            } else if action == "editDescription", let index = posts.firstIndex(where: { $0.id == payload.postID && $0.isAuthor }) {
+                posts[index].postDescription = payload.postDescription?.trimmingCharacters(in: .whitespacesAndNewlines)
             } else if action == "delete" { posts.removeAll { $0.id == payload.postID } }
             else if action == "publish", let index = posts.firstIndex(where: { $0.id == payload.postID }) {
-                let p = posts[index]; posts[index] = SocialPost(id: p.id, author: p.author, title: p.title, versionTitle: p.versionTitle, scoreText: p.scoreText, achievement: p.achievement, createdAt: p.createdAt, photoPath: p.photoPath, published: true, isAuthor: p.isAuthor, moderationState: p.moderationState)
+                let p = posts[index]; posts[index] = SocialPost(id: p.id, author: p.author, title: p.title, versionTitle: p.versionTitle, scoreText: p.scoreText, achievement: p.achievement, createdAt: p.createdAt, photoPath: p.photoPath, published: true, isAuthor: p.isAuthor, moderationState: p.moderationState, postDescription: p.postDescription, metadata: p.metadata)
             }
             return try JSONEncoder().encode(SocialPostsPage(posts: payload.postID == nil ? posts.filter(\.isAuthor) : posts.filter { $0.id == payload.postID }))
         }

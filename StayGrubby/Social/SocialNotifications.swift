@@ -32,7 +32,7 @@ struct NotificationsLink: View {
     var body: some View {
         if request != nil {
             NavigationLink { SocialNotificationsView() } label: {
-                Label(unread > 0 ? "Order Up!, \(unread) unread" : "Order Up!", systemImage: unread > 0 ? "bell.badge" : "bell")
+                Label(unread > 0 ? "Order Up!, \(unread) unread" : "Order Up!", systemImage: unread > 0 ? "bell.badge" : "bell").frame(minHeight: SGTheme.Size.minimumTap).contentShape(Rectangle())
             }.accessibilityIdentifier("notifications-open")
                 .task(id: revision) { await load() }
                 .onChange(of: phase) { _, next in unread = 0; if next == .active { revision += 1 } }
@@ -94,7 +94,7 @@ struct SocialNotificationsView: View {
                 case "request", "accepted": FriendProfileView(person: notice.actor) { Task { await load() } }
                 case "invited", "joined": SharedCookingEntryView(eventID: notice.targetID)
                 default:
-                    if let postID = notice.postID { NotificationPostView(postID: postID, comments: notice.kind == "comment") }
+                    if let postID = notice.postID { SocialPostDetailView(postID: postID, comments: notice.kind == "comment") }
                 }
             }
     }
@@ -122,7 +122,7 @@ struct SocialNotificationsView: View {
 }
 extension Notification.Name { static let socialNotificationsRead = Notification.Name("StayGrubby.socialNotificationsRead") }
 
-struct NotificationPostView: View {
+struct SocialPostDetailView: View {
     let postID: UUID
     var comments = false
     @Environment(\.socialRequest) private var request
@@ -132,14 +132,17 @@ struct NotificationPostView: View {
     @State private var showingComments = false
     @State private var person: SocialPerson?
     @State private var deleting = false
+    @State private var route: SocialPostRoute?
     @State private var generation = UUID()
     var body: some View {
         ScrollView {
-            if let post { SocialFeedCard(post: post, profile: { person = post.author }, delete: { deleting = true }).padding() }
+            if let post { SocialFeedCard(post: post, profile: { person = post.author }, delete: { deleting = true }, isDetail: true, navigate: { route = $0 }).padding() }
             else if failed { ContentUnavailableView("Post unavailable", systemImage: "lock", description: Text("The post or your access may have changed.")); Button("Retry post") { Task { await load() } } }
             else { ProgressView("Loading post") }
-        }.navigationTitle("Cooking Post").navigationBarTitleDisplayMode(.inline).task { await load(); if post != nil { showingComments = comments } }
+        }.background(SGTheme.ColorToken.background).navigationTitle("Post").navigationBarTitleDisplayMode(.inline).task { await load(); if post != nil { showingComments = comments } }
+            .navigationDestination(item: $route) { SocialPostDestination(route: $0) }
             .onChange(of: phase) { _, next in generation = UUID(); post = nil; if next == .active { Task { await load() } } }
+            .onReceive(NotificationCenter.default.publisher(for: .socialContentChanged)) { _ in Task { await load() } }
             .onDisappear { generation = UUID() }
             .sheet(isPresented: $showingComments, onDismiss: { Task { await load() } }) { SocialCommentsView(postID: postID) }
             .sheet(item: $person, onDismiss: { Task { await load() } }) { person in NavigationStack { FriendProfileView(person: person) { Task { await load() } }.toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { self.person = nil } } } } }

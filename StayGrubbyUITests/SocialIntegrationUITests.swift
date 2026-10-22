@@ -17,14 +17,18 @@ final class SocialIntegrationUITests: StayGrubbyUITestCase {
         XCTAssertTrue(app.navigationBars["Share with Sous Chefs"].waitForNonExistence(timeout: 8), app.debugDescription)
         app.buttons["ranking-result-close"].tap()
         XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 8))
-        selectFeed(app)
-        let scope = app.segmentedControls["feed-scope"]
-        XCTAssertTrue(scope.waitForExistence(timeout: 5)); scope.buttons["Shared by me"].tap()
+        app.tabBars.buttons["My Kitchen"].tap()
+        let post = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'profile-post-'")).firstMatch
+        XCTAssertTrue(post.waitForExistence(timeout: 8)); post.tap()
+        let actions = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'post-actions-'")).firstMatch
+        XCTAssertTrue(actions.waitForExistence(timeout: 8)); actions.tap()
         let deletion = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'feed-delete-'")).firstMatch
         for _ in 0..<3 { if deletion.isHittable { break }; app.swipeUp() }
         XCTAssertTrue(deletion.waitForExistence(timeout: 5)); deletion.tap()
-        app.sheets["Delete this shared post?"].buttons["Delete shared post"].tap()
-        XCTAssertTrue(app.staticTexts["Nothing shared yet"].waitForExistence(timeout: 8), app.debugDescription)
+        app.sheets["Delete shared post?"].buttons["Delete shared post"].tap()
+        XCTAssertTrue(app.staticTexts["Post unavailable"].waitForExistence(timeout: 8), app.debugDescription)
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.staticTexts["profile-posts-empty"].waitForExistence(timeout: 8))
         app.tabBars.buttons["Grub Rank"].tap()
         let row = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'cook-row-' AND label CONTAINS 'Integrated Private Soup'")).firstMatch
         XCTAssertTrue(row.waitForExistence(timeout: 5)); XCTAssertTrue(row.label.contains("score locked"))

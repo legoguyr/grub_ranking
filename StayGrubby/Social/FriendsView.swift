@@ -34,8 +34,8 @@ struct FriendsView: View {
             }
             if let identity, !identity.isConfigured {
                 Section {
-                    Text("Your cooking stays private. Choose a social identity when you’re ready to connect.")
-                    Button("Set up social identity") { editingIdentity = true }.accessibilityIdentifier("friends-setup")
+                    Text("Your cooking stays private. Set up your profile when you’re ready to connect.")
+                    Button("Set up Profile") { editingIdentity = true }.accessibilityIdentifier("friends-setup")
                 }
             } else {
                 if administrative == nil {
@@ -121,6 +121,7 @@ struct FriendProfileView: View {
     @State private var error = false
     @State private var unavailable = false
     @State private var confirmation: String?
+    @State private var socialRoute: SocialPostRoute?
     var body: some View {
         SGEditorialList {
             if unavailable { ContentUnavailableView("Person unavailable", systemImage: "person.crop.circle.badge.xmark", description: Text("Their privacy or relationship may have changed.")) }
@@ -141,11 +142,15 @@ struct FriendProfileView: View {
                     }
                     if person.relationship != .blocked { Button("Block", role: .destructive) { confirmation = "block" } }
                 }.disabled(busy)
-                if person.relationship != .blocked { Section { SocialReportButton(kind: "profile", targetID: person.id) } }
+                if person.relationship != .blocked {
+                    Section { SocialProfilePosts(open: { socialRoute = .post($0) }, personID: person.id).id(person.id) }
+                    Section { SocialReportButton(kind: "profile", targetID: person.id) }
+                }
             }
             if error { Text("This action couldn’t complete. Refresh to check the latest relationship.").accessibilityIdentifier("friend-action-error"); Button("Refresh profile") { Task { await refresh() } } }
         }
         .navigationTitle("Kitchen").navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(item: $socialRoute) { SocialPostDestination(route: $0) }
         .refreshable { await refresh() }.task { if person.relationship != .blocked { await refresh() } }
         .confirmationDialog(confirmation == "block" ? "Block this person?" : "Remove this friend?", isPresented: Binding(get: { confirmation != nil }, set: { if !$0 { confirmation = nil } }), titleVisibility: .visible) {
             Button(confirmation == "block" ? "Block Person" : "Remove Friendship", role: .destructive) {
@@ -180,8 +185,11 @@ struct SocialFriendsLink: View {
     @Environment(\.socialRequest) private var request
     var body: some View {
         if request != nil {
-            NavigationLink("Sous Chefs") { FriendsView() }
-                .buttonStyle(SGButtonStyle()).accessibilityIdentifier("friends-open")
+            NavigationLink { FriendsView() } label: {
+                Label("Sous Chefs", systemImage: "person.2")
+                    .frame(maxWidth: .infinity, minHeight: SGTheme.Size.minimumTap, alignment: .leading)
+                    .contentShape(Rectangle())
+            }.buttonStyle(SGButtonStyle()).accessibilityIdentifier("friends-open")
         }
     }
 }

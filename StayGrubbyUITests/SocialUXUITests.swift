@@ -7,17 +7,16 @@ final class SocialUXUITests: StayGrubbyUITestCase {
         app.launchArguments = ["--ui-test-store", UUID().uuidString, "--social-review", "--social-review-ready", "--social-review-avatar-selection", "--test-dark"]
         app.launchWithReviewOptions(); XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 15))
         app.openAccountProfileSettings()
-        let edit = app.buttons["social-identity-edit"]
-        XCTAssertTrue(edit.waitForExistence(timeout: 8)); openIdentity(app, link: edit)
+        let edit = app.buttons["settings-account"]
         let preview = app.descendants(matching: .any).matching(identifier: "avatar-preview").firstMatch
         XCTAssertTrue(preview.waitForExistence(timeout: 5), app.debugDescription); XCTAssertEqual(preview.label, "Selected profile photo preview")
         app.buttons["social-identity-save"].tap()
-        XCTAssertTrue(app.navigationBars["Social identity"].waitForNonExistence(timeout: 8))
+        XCTAssertTrue(app.navigationBars["Profile"].waitForNonExistence(timeout: 8))
         openIdentity(app, link: edit); XCTAssertTrue(app.buttons["avatar-remove"].waitForExistence(timeout: 5)); app.buttons["avatar-remove"].tap()
         XCTAssertEqual(preview.label, "Profile photo initials fallback")
         XCTAssertTrue(app.buttons["social-identity-save"].isHittable, app.debugDescription)
         app.buttons["social-identity-save"].tap()
-        XCTAssertTrue(app.navigationBars["Social identity"].waitForNonExistence(timeout: 8))
+        XCTAssertTrue(app.navigationBars["Profile"].waitForNonExistence(timeout: 8))
     }
 
     @MainActor func testSharingSettingPersistsWithoutPublishing() throws {
@@ -26,6 +25,7 @@ final class SocialUXUITests: StayGrubbyUITestCase {
         app.launchArguments = ["--ui-test-store", UUID().uuidString, "--social-review", "--social-review-ready", "--test-light"]
         app.launchWithReviewOptions(); XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 15))
         app.openAccountProfileSettings()
+        app.navigationBars.buttons.element(boundBy: 0).tap()
         let settings = app.buttons["social-settings-open"]
         XCTAssertTrue(settings.waitForExistence(timeout: 8)); openSettings(app, link: settings)
         let toggle = app.switches["social-settings-default"]
@@ -45,22 +45,17 @@ final class SocialUXUITests: StayGrubbyUITestCase {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-test-store", UUID().uuidString, "--social-review", "--test-light", "--test-large-type"]
         app.launchWithReviewOptions(); XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 15))
-        app.openAccountProfileSettings(); let edit = app.buttons["social-identity-edit"]
-        XCTAssertTrue(edit.waitForExistence(timeout: 8)); openIdentity(app, link: edit)
+        app.openAccountProfileSettings()
         let name = app.textFields["social-display-name"]
         for _ in 0..<4 { if name.isHittable { break }; app.swipeUp() }
         XCTAssertTrue(name.waitForExistence(timeout: 5)); fill(name, "Social Cook")
         let username = app.textFields["social-username"]; fill(username, "social_cook")
-        let toggle = app.switches["social-sharing-default"]
-        for _ in 0..<5 { if toggle.isHittable { break }; app.swipeUp() }
-        XCTAssertTrue(toggle.waitForExistence(timeout: 5)); XCTAssertEqual(toggle.value as? String, "0")
-        XCTAssertTrue(toggle.switches.firstMatch.exists); toggle.switches.firstMatch.tap()
-        let chosen = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == '1'"), object: toggle)
-        XCTAssertEqual(XCTWaiter.wait(for: [chosen], timeout: 5), .completed)
+        XCTAssertFalse(app.switches["social-sharing-default"].exists)
         app.buttons["social-identity-save"].tap()
-        XCTAssertTrue(app.navigationBars["Social identity"].waitForNonExistence(timeout: 8))
-        app.navigationBars.buttons.element(boundBy: 0).tap()
-        XCTAssertTrue(app.buttons["social-settings-open"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 8))
+        app.buttons["social-settings-open"].tap()
+        let toggle = app.switches["social-settings-default"]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 8)); XCTAssertEqual(toggle.value as? String, "0")
     }
     @MainActor func testDefaultOffCanShareCompletedCookWithLockedScore() throws {
         continueAfterFailure = false
@@ -79,8 +74,9 @@ final class SocialUXUITests: StayGrubbyUITestCase {
         XCTAssertEqual(app.staticTexts["result-dish-title"].label, "Shared Soup")
         XCTAssertFalse(app.staticTexts["result-score"].exists)
         app.buttons["ranking-result-close"].tap(); selectFeed(app)
-        let scope = app.segmentedControls["feed-scope"]
-        XCTAssertTrue(scope.waitForExistence(timeout: 5)); scope.buttons["Shared by me"].tap()
+        app.tabBars.buttons["My Kitchen"].tap()
+        let post = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'profile-post-'")).firstMatch
+        XCTAssertTrue(post.waitForExistence(timeout: 8)); post.tap()
         XCTAssertTrue(app.staticTexts["Score locked"].waitForExistence(timeout: 8))
         let shot = XCTAttachment(screenshot: app.screenshot()); shot.name = "Dark shared cook with locked score and avatar"; shot.lifetime = .keepAlways; add(shot)
     }
@@ -96,9 +92,8 @@ final class SocialUXUITests: StayGrubbyUITestCase {
         XCTAssertTrue(app.buttons["share-with-friends"].exists)
         XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "automatic-share-success").firstMatch.exists)
         app.buttons["ranking-result-close"].tap(); selectFeed(app)
-        let scope = app.segmentedControls["feed-scope"]
-        XCTAssertTrue(scope.waitForExistence(timeout: 5)); scope.buttons["Shared by me"].tap()
-        XCTAssertTrue(app.staticTexts["Nothing shared yet"].waitForExistence(timeout: 8))
+        app.tabBars.buttons["My Kitchen"].tap()
+        XCTAssertTrue(app.staticTexts["profile-posts-empty"].waitForExistence(timeout: 8))
         app.tabBars.buttons["Grub Rank"].tap(); XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 5))
         app.revealCreation(); app.buttons["new-version"].tap()
         let dish = app.buttons["choose-dish-Version Soup"]
@@ -159,14 +154,14 @@ final class SocialUXUITests: StayGrubbyUITestCase {
     @MainActor private func openSettings(_ app: XCUIApplication, link: XCUIElement) {
         for _ in 0..<3 {
             link.tap()
-            if app.navigationBars["Social settings"].waitForExistence(timeout: 3) { return }
+            if app.navigationBars["Sharing Preferences"].waitForExistence(timeout: 3) { return }
         }
         XCTFail("Social settings navigation did not complete: \(app.debugDescription)")
     }
     @MainActor private func openIdentity(_ app: XCUIApplication, link: XCUIElement) {
         for _ in 0..<3 {
             link.tap()
-            if app.navigationBars["Social identity"].waitForExistence(timeout: 3) { return }
+            if app.navigationBars["Profile"].waitForExistence(timeout: 3) { return }
             XCTAssertTrue(link.exists, app.debugDescription)
         }
         XCTFail("Social identity presentation did not complete: \(app.debugDescription)")

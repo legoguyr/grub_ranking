@@ -53,13 +53,13 @@ struct ProfileCookingContent: View {
     private var topFoods: some View {
         VStack(alignment: .leading, spacing: SGTheme.Space.medium) {
             VStack(alignment: .leading, spacing: SGTheme.Space.xSmall) {
-                Text("Signature Dishes").font(SGTheme.TypeRole.title).accessibilityAddTraits(.isHeader)
+                Text("Signature Dishes").font(SGTheme.TypeRole.headline).accessibilityAddTraits(.isHeader)
                 Text(snapshot.topFoods.isEmpty ? "Good food starts with your next cook." : "The dishes and versions leading your rankings.")
                     .font(SGTheme.TypeRole.body).foregroundStyle(.secondary)
             }
 
             if let first = snapshot.topFoods.first {
-                NavigationLink(value: first.attempt.id) { ProfileTopFood(food: first, featured: true) }.buttonStyle(.plain)
+                NavigationLink(value: first.attempt.id) { ProfileTopFood(food: first, featured: false) }.buttonStyle(.plain)
                 ForEach(snapshot.topFoods.dropFirst()) { food in
                     NavigationLink(value: food.attempt.id) { ProfileTopFood(food: food, featured: false) }.buttonStyle(.plain)
                 }

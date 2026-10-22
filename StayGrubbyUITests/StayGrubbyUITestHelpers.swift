@@ -73,6 +73,6 @@ extension XCUIApplication {
         buttons["settings-open"].tap()
         XCTAssertTrue(buttons["settings-account"].waitForExistence(timeout: 8), debugDescription)
         buttons["settings-account"].tap()
-        XCTAssertTrue(buttons["social-identity-edit"].waitForExistence(timeout: 8), debugDescription)
+        XCTAssertTrue(textFields["social-display-name"].waitForExistence(timeout: 8), debugDescription)
     }
 }

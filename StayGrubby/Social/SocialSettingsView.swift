@@ -27,7 +27,7 @@ struct SocialSettingsView: View {
                 Text("Couldn’t update the sharing default. Existing cooking and posts are unchanged.")
                 Button("Retry") { Task { if identity == nil { await load() } else { await save() } } }
             }
-        }.navigationTitle("Social settings").navigationBarTitleDisplayMode(.inline)
+        }.navigationTitle("Sharing Preferences").navigationBarTitleDisplayMode(.inline)
             .onChange(of: automaticallyShare) { _, _ in saved = false }
             .task { await load() }
     }

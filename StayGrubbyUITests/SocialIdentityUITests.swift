@@ -16,17 +16,15 @@ final class SocialIdentityUITests: StayGrubbyUITestCase {
         app.launchWithReviewOptions()
         XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 15))
         app.openAccountProfileSettings()
-        let edit = app.buttons["social-identity-edit"]
-        XCTAssertTrue(edit.waitForExistence(timeout: 10)); edit.tap()
         let name = app.textFields["social-display-name"], username = app.textFields["social-username"]
         XCTAssertTrue(name.waitForExistence(timeout: 5)); fill(name, "Home Cook")
         fill(username, "home_cook")
         XCTAssertTrue(app.switches["social-discoverable"].exists)
         XCTAssertEqual(app.switches["social-discoverable"].value as? String, "0")
         app.buttons["social-identity-save"].tap()
-        XCTAssertTrue(app.staticTexts["@home_cook"].waitForExistence(timeout: 5))
-        edit.tap(); XCTAssertEqual(username.value as? String, "home_cook")
-        app.buttons["Cancel"].tap()
-        XCTAssertTrue(app.buttons["social-identity-edit"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 8))
+        app.buttons["settings-account"].tap(); XCTAssertEqual(username.value as? String, "home_cook")
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.buttons["settings-account"].waitForExistence(timeout: 5))
     }
 }

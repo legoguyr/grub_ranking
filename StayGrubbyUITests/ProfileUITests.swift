@@ -50,8 +50,8 @@ final class ProfileUITests: StayGrubbyUITestCase {
 
     @MainActor private func accountSettings(_ app: XCUIApplication) {
         app.buttons["settings-open"].tap()
-        XCTAssertTrue(app.buttons["settings-account"].waitForExistence(timeout: 8)); app.buttons["settings-account"].tap()
-        XCTAssertTrue(app.navigationBars["Account & Profile"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.buttons["settings-sync"].waitForExistence(timeout: 8)); app.buttons["settings-sync"].tap()
+        XCTAssertTrue(app.navigationBars["Account & Sync"].waitForExistence(timeout: 8))
     }
     @MainActor private func element(_ id: String, in app: XCUIApplication) -> XCUIElement {
         app.descendants(matching: .any).matching(identifier: id).firstMatch
@@ -163,18 +163,13 @@ final class ProfileUITests: StayGrubbyUITestCase {
             app.launchWithReviewOptions()
             XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 20))
             openProfile(in: app); accountSettings(app)
-            let disclosure = app.buttons.matching(NSPredicate(format: "label CONTAINS 'Account & sync'")).firstMatch
-            reach(disclosure, in: app)
-            XCTAssertFalse(app.buttons["account-sign-out"].exists)
-            capture("Profile account collapsed \(pending ? "light" : "dark")", app: app)
-            disclosure.tap()
             let signOut = app.buttons["account-sign-out"]
             XCTAssertTrue(signOut.waitForExistence(timeout: 10))
             let account = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Account ID: '")).firstMatch
             XCTAssertTrue(account.exists)
             let accountID = String(account.label.dropFirst("Account ID: ".count))
             XCTAssertNotNil(UUID(uuidString: accountID))
-            XCTAssertTrue(app.navigationBars["Account & Profile"].exists)
+            XCTAssertTrue(app.navigationBars["Account & Sync"].exists)
             if pending {
                 let retry = app.buttons["Retry sync"]
                 reach(retry, in: app)
@@ -210,9 +205,6 @@ final class ProfileUITests: StayGrubbyUITestCase {
                                "--profile-sync-current", "--test-light", "--test-reduce-motion"]
         app.launchWithReviewOptions()
         XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 20)); openProfile(in: app); accountSettings(app)
-        let disclosure = app.buttons.matching(NSPredicate(format: "label CONTAINS 'Account & sync'")).firstMatch
-        reach(disclosure, in: app); disclosure.tap()
-
         let privacy = app.buttons["privacy-policy-open"]
         reach(privacy, in: app); privacy.tap()
         XCTAssertTrue(app.navigationBars["Privacy Policy"].waitForExistence(timeout: 10))
@@ -224,13 +216,13 @@ final class ProfileUITests: StayGrubbyUITestCase {
         reach(start, in: app); start.tap()
         XCTAssertTrue(app.alerts["Permanently delete your account?"].waitForExistence(timeout: 10))
         app.alerts.buttons["Cancel"].tap()
-        XCTAssertTrue(app.navigationBars["Account & Profile"].exists)
+        XCTAssertTrue(app.navigationBars["Account & Sync"].exists)
 
         start.tap(); app.alerts.buttons["Continue"].tap()
         XCTAssertTrue(app.staticTexts["Permanently delete account"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.buttons["account-delete-apple"].exists)
         app.buttons["account-delete-cancel"].tap()
-        XCTAssertTrue(app.navigationBars["Account & Profile"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.navigationBars["Account & Sync"].waitForExistence(timeout: 10))
     }
 
 }

@@ -22,7 +22,7 @@ struct CookingSharingChoice: View {
                 .disabled(selection.loading || selection.configured == false).accessibilityIdentifier("cook-share-with-friends")
             if selection.loading { ProgressView("Loading sharing default") }
             else if selection.configured == false {
-                Text("Set up your social identity in My Kitchen to share. This cook will stay private.")
+                Text("Set up your profile in Settings → Profile to share. This cook will stay private.")
             } else if selection.loadFailed {
                 Text("Default unavailable, so this starts private. You can choose to share; publication will wait for your social profile and connection.")
             }

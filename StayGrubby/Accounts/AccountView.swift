@@ -9,6 +9,7 @@ struct AccountView: View {
     @Query private var sharingCooks: [CookingAttempt]
     @Query private var sharingTombstones: [SyncTombstone]
     @State private var showingPrivacyPolicy = false
+    @State private var socialRoute: SocialPostRoute?
     @State private var confirmingDeletion = false
     @State private var showingDeletion = false
     #if DEBUG
@@ -38,11 +39,12 @@ struct AccountView: View {
                 SocialPendingShares()
                 SharedCookingPending()
                 ShareMyKitchen()
-                let links = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: SGTheme.Space.small)) : AnyLayout(HStackLayout(spacing: SGTheme.Space.large))
-                links { SocialFriendsLink(); NotificationsLink() }
+                VStack(spacing: SGTheme.Space.small) {
+                    SocialFriendsLink()
+                    NotificationsLink().frame(maxWidth: .infinity, alignment: .leading)
+                }
+                SocialProfilePosts(open: { socialRoute = .post($0) })
                 ProfileCookingContent(snapshot: snapshot, ranking: ranking)
-                NavigationLink { FoodBibleView() } label: { SGDestinationLabel(title: "Food Bible", subtitle: "Every cook. Every version.", symbol: "book.closed") }
-                NavigationLink { RecipeLibraryView() } label: { SGDestinationLabel(title: "Recipes & Tickets", subtitle: "What you’ll cook next", symbol: "ticket") }.accessibilityIdentifier("recipes-open")
                 #if DEBUG
                 if let endDevelopmentReview {
                     VStack(alignment: .leading, spacing: SGTheme.Space.small) {
@@ -70,37 +72,15 @@ struct AccountView: View {
                 }.accessibilityLabel("Settings").accessibilityIdentifier("settings-open")
             }.padding(.horizontal, SGTheme.Space.medium).background(SGTheme.ColorToken.background)
         }
+        .navigationDestination(item: $socialRoute) { SocialPostDestination(route: $0) }
         .navigationDestination(for: UUID.self) { id in if let cook = sharingCooks.first(where: { $0.id == id }) { AttemptDetailView(attempt: cook) } }
     }
 
     @ViewBuilder private var accountUtilities: some View {
         if case .resolved = session.state {
-            DisclosureGroup {
-                VStack(alignment: .leading, spacing: SGTheme.Space.medium) { connectedAccount }
-                    .padding(.top, SGTheme.Space.medium)
-            } label: {
-                VStack(alignment: .leading, spacing: SGTheme.Space.xSmall) {
-                    Label("Account & sync", systemImage: "gearshape").font(SGTheme.TypeRole.headline)
-                        .foregroundStyle(SGTheme.ColorToken.primaryText)
-                        .accessibilityIdentifier("profile-account-utilities")
-                    if let sync, sync.status != .idle {
-                        Text(sync.status.label).font(SGTheme.TypeRole.secondary).foregroundStyle(Color.secondary)
-                    }
-                }
-            }.tint(SGTheme.ColorToken.accent).sgCard()
-            .sheet(isPresented: $showingPrivacyPolicy) { PrivacyPolicyView() }
-            .sheet(isPresented: $showingDeletion) {
-                AccountDeletionAuthorizationView(canCancel: true) { showingDeletion = false }
-                    .presentationDetents([.medium, .large])
-            }
-            .alert("Permanently delete your account?", isPresented: $confirmingDeletion) {
-                Button("Cancel", role: .cancel) {}
-                Button("Continue", role: .destructive) {
-                    session.requestAccountDeletion(); showingDeletion = true
-                }
-            } message: {
-                Text("Your StayGrubby account, cooking library, rankings, comparison history, and backed-up photos will be permanently deleted. This cannot be undone.")
-            }
+            connectedAccount
+        } else {
+            Section("Account") { Text("No connected account. This local development library does not synchronize with an account.").foregroundStyle(.secondary) }
         }
         #if DEBUG
         if let profileReviewStatus { Text(profileReviewStatus()).font(.caption).accessibilityIdentifier("profile-review-status") }
@@ -112,6 +92,7 @@ struct AccountView: View {
     }
     @ViewBuilder private var connectedAccount: some View {
         if case .resolved(let account) = session.state {
+            Section("Sign-in & synchronization") {
             Label("Account connected",systemImage:"checkmark.circle.fill").foregroundStyle(SGTheme.ColorToken.accent)
             Text("Account ID: \(account.accountID.uuidString.lowercased())").font(.footnote).textSelection(.enabled)
             if let sync, sync.status != .idle {
@@ -143,12 +124,30 @@ struct AccountView: View {
                 .accessibilityIdentifier("development-verify-fresh-restore")
             if let restoreCheck { Text(restoreCheck).font(.footnote).foregroundStyle(.secondary) }
             #endif
+            }
+            Section("Privacy") {
             Button("Privacy Policy") { showingPrivacyPolicy = true }
-                .buttonStyle(.bordered).controlSize(.large).accessibilityIdentifier("privacy-policy-open")
+                .accessibilityIdentifier("privacy-policy-open")
+                .sheet(isPresented: $showingPrivacyPolicy) { PrivacyPolicyView() }
+            }
+            Section("Account Actions") {
             Button("Sign out") { Task { await session.signOut() } }
-                .buttonStyle(.bordered).controlSize(.large).accessibilityIdentifier("account-sign-out")
+                .accessibilityIdentifier("account-sign-out")
             Button("Delete account…", role: .destructive) { confirmingDeletion = true }
-                .buttonStyle(.bordered).controlSize(.large).accessibilityIdentifier("account-delete-start")
+                .accessibilityIdentifier("account-delete-start")
+            .sheet(isPresented: $showingDeletion) {
+                AccountDeletionAuthorizationView(canCancel: true) { showingDeletion = false }
+                    .presentationDetents([.medium, .large])
+            }
+            .alert("Permanently delete your account?", isPresented: $confirmingDeletion) {
+                Button("Cancel", role: .cancel) {}
+                Button("Continue", role: .destructive) {
+                    session.requestAccountDeletion(); showingDeletion = true
+                }
+            } message: {
+                Text("Your StayGrubby account, cooking library, rankings, comparison history, and backed-up photos will be permanently deleted. This cannot be undone.")
+            }
+            }
         }
     }
 }

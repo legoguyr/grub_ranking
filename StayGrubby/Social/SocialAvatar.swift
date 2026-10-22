@@ -72,7 +72,7 @@ struct SocialAvatarPicker: View {
             }
             if loading { ProgressView("Preparing profile photo") }
             if failed { Text("Couldn’t read that photo. Choose it again or try another image.").font(.footnote) }
-            Text("Optional. Visible wherever your social identity is visible. A circular preview keeps the full photo unchanged.")
+            Text("Optional. Visible wherever your profile is visible. A circular preview keeps the full photo unchanged.")
                 .font(.footnote).foregroundStyle(.secondary)
         }
         .buttonStyle(.borderless)

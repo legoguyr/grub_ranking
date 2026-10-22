@@ -26,6 +26,7 @@ struct SocialPostComposer: View {
     @State private var identity: SocialIdentity?
     @State private var editingIdentity = false
     @State private var includePhoto = false
+    @State private var postDescription = ""
     @State private var postID = UUID()
     @State private var savedPost: SocialPost?
     @State private var busy = false
@@ -56,18 +57,23 @@ struct SocialPostComposer: View {
                     Text("Includes Course, Cuisine and public cookbook/restaurant/online attribution. Private notes, tags, allergens, Friend/Family details, comparisons and personal rank are not shared. Existing shared snapshots stay unchanged until deleted.")
                         .font(.footnote).foregroundStyle(.secondary)
                 }
+                Section("Post Description · optional") {
+                    TextField("Tell your Sous Chefs about this cook", text: $postDescription, axis: .vertical)
+                        .lineLimit(3...8).accessibilityIdentifier("post-description-input")
+                    Text("Shared with this post’s authorized audience. Personal Notes stay private and are never copied here. Up to 2,000 characters.").font(.footnote).foregroundStyle(.secondary)
+                }
                 if let identity {
                     if !identity.isConfigured {
-                        Button("Set up social identity") { editingIdentity = true }.accessibilityIdentifier("social-share-setup")
+                        Button("Set up Profile") { editingIdentity = true }.accessibilityIdentifier("social-share-setup")
                     } else {
                         Text("Posting as \(identity.handle). If you have no friends yet, only you can see the post until you connect.")
                         if !ready { Text("Wait for cooking data and photos to finish syncing before sharing.") }
                         Button(busy ? "Sharing…" : "Publish to Sous Chefs") { Task { await publish() } }
-                            .disabled(busy || !ready).accessibilityIdentifier("social-share-publish")
+                            .disabled(busy || !ready || postDescription.unicodeScalars.count > 2000).accessibilityIdentifier("social-share-publish")
                     }
                 } else {
                     if failed { Button("Retry identity") { Task { await load() } } }
-                    else { ProgressView("Loading social identity") }
+                    else { ProgressView("Loading profile") }
                 }
                 if failed { Text("Couldn’t share. Check your connection and cooking sync, then retry. You can cancel a pending draft and try again.").accessibilityIdentifier("social-share-error") }
                 Text("The separate Share action opens the native image share sheet; it does not publish to Sous Chefs.").font(.footnote).foregroundStyle(.secondary)
@@ -94,7 +100,7 @@ struct SocialPostComposer: View {
             let revision = try SyncJournal.binding(context)?.acceptedRevision ?? 0
             let bytes = includePhoto ? attempt.primaryImage.flatMap { LocalPhotoStore.data(for: $0, thumbnail: false, rootURL: mediaRoot) } : nil
             _ = try await SocialPostPublisher.publish(attemptID: attempt.id, postID: postID, revision: revision,
-                includePhoto: includePhoto, photo: bytes, request: request, media: media, prepared: { post in
+                includePhoto: includePhoto, photo: bytes, request: request, media: media, postDescription: postDescription, prepared: { post in
                     savedPost = post; postID = post.id
                 })
             didPublish = true

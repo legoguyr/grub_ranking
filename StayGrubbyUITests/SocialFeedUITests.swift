@@ -22,8 +22,8 @@ final class SocialFeedUITests: StayGrubbyUITestCase {
         let app = launch(["--test-light", "--test-large-type", "--social-review-feed"])
         XCTAssertTrue(app.staticTexts["Harissa Chicken with Roasted Peppers"].waitForExistence(timeout: 8))
         let shot = XCTAttachment(screenshot: app.screenshot()); shot.name = "Feed light accessibility"; shot.lifetime = .keepAlways; add(shot)
-        app.segmentedControls["feed-scope"].buttons["Shared by me"].tap()
-        XCTAssertTrue(app.staticTexts["Nothing shared yet"].waitForExistence(timeout: 8))
+        app.tabBars.buttons["My Kitchen"].tap()
+        XCTAssertTrue(app.staticTexts["profile-posts-empty"].waitForExistence(timeout: 8))
         app.tabBars.buttons["Grub Rank"].tap(); XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 5))
     }
 }

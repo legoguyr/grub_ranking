@@ -101,7 +101,7 @@ struct CookingMetadataForm: View {
                             .buttonStyle(SGButtonStyle())
                     }
                 }.font(SGTheme.TypeRole.body)
-                TextField("Notes (optional)", text: $draft.notes, axis: .vertical)
+                TextField("Personal Notes · private (optional)", text: $draft.notes, axis: .vertical)
                     .lineLimit(2...6).accessibilityIdentifier("cook-notes").sgField()
             }
         }

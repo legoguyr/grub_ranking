@@ -73,7 +73,7 @@ struct ShareMyKitchen: View {
                 if let identity, identity.discoverable, let username = identity.username, let url = AppRoute.profileURL(username: username) {
                     ShareLink(item: url) { Label("Share My Kitchen", systemImage: "square.and.arrow.up") }
                         .buttonStyle(SGButtonStyle()).accessibilityIdentifier("share-my-kitchen")
-                } else if identity != nil { Text("To share your Kitchen, enable discovery in Settings → Account & Profile.").font(.footnote).foregroundStyle(.secondary) }
+                } else if identity != nil { Text("To share your Kitchen, enable discovery in Settings → Profile.").font(.footnote).foregroundStyle(.secondary) }
                 if failed { Button("Retry Kitchen sharing") { Task { await load() } } }
             }.task { await load() }
                 .onReceive(NotificationCenter.default.publisher(for: .socialContentChanged)) { _ in Task { await load() } }

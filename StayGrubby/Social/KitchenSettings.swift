@@ -4,27 +4,33 @@ struct KitchenSettings<AccountUtilities: View>: View {
     @Environment(\.socialRequest) private var request
     @ViewBuilder var account: () -> AccountUtilities
     var body: some View {
-        SGEditorialList {
-            SGPageIntro(title: "Settings", subtitle: "Your account, your privacy, your choices.", showsTitle: false).listRowSeparator(.hidden)
-            NavigationLink {
-                ScrollView { VStack(alignment: .leading, spacing: 20) { SocialIdentitySection(); account() }.padding() }
-                    .navigationTitle("Account & Profile").navigationBarTitleDisplayMode(.inline)
-            } label: { SGDestinationLabel(title: "Account & Profile", subtitle: "Identity, photos, account & sync", symbol: "person.crop.circle", showsChevron: false) }.accessibilityIdentifier("settings-account")
+        List {
+            Section("Account") {
+                if request != nil {
+                    NavigationLink { SocialIdentitySection() } label: { Label("Profile", systemImage: "person.crop.circle") }
+                        .accessibilityIdentifier("settings-account")
+                }
+                NavigationLink { Form { account() }.navigationTitle("Account & Sync").navigationBarTitleDisplayMode(.inline) } label: {
+                    Label("Account & Sync", systemImage: "arrow.triangle.2.circlepath")
+                }.accessibilityIdentifier("settings-sync")
+            }
             if request != nil {
                 Section("Social") {
-                    NavigationLink("Sharing defaults") { SocialSettingsView() }.accessibilityIdentifier("social-settings-open")
+                    NavigationLink("Sharing Preferences") { SocialSettingsView() }.accessibilityIdentifier("social-settings-open")
                     NavigationLink("Sent Requests") { FriendsView(section: .outgoing) }
                 }
-                Section("Privacy & Safety") {
+                Section {
                     NavigationLink("Blocked Accounts") { FriendsView(section: .blocked) }
-                    NavigationLink("Discoverability & profile privacy") { SocialIdentitySection().padding().navigationTitle("Profile privacy") }
+                } header: { Text("Privacy & Safety") } footer: {
+                    Text("Sharing is for mutual Sous Chefs. Discovery is optional and can be changed in Profile; it does not make your cooking library public.")
                 }
             }
             Section("Support & About") {
-                Link("Support", destination: URL(string: "mailto:support@staygrubby.com")!)
                 Link("Privacy Policy", destination: URL(string: "https://staygrubby.com/privacy")!)
-                Text("StayGrubby \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "") (\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? ""))")
+                Link("Support", destination: URL(string: "mailto:support@staygrubby.com")!)
+                LabeledContent("StayGrubby", value: "\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "") (\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? ""))")
             }
-        }.navigationTitle("Settings").navigationBarTitleDisplayMode(.inline).toolbar(.visible, for: .navigationBar)
+        }.listStyle(.insetGrouped).scrollContentBackground(.hidden).background(SGTheme.ColorToken.background)
+            .navigationTitle("Settings").navigationBarTitleDisplayMode(.inline).toolbar(.visible, for: .navigationBar)
     }
 }

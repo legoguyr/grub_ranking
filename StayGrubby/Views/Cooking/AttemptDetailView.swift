@@ -33,7 +33,7 @@ struct AttemptDetailView: View {
                 }
                 if let notes = attempt.notes {
                     VStack(alignment: .leading, spacing: SGTheme.Space.small) {
-                        SGSectionHeader(title: "Notes")
+                        SGSectionHeader(title: "Personal Notes · private")
                         Text(notes)
                     }.padding(.vertical, SGTheme.Space.medium)
                 }
