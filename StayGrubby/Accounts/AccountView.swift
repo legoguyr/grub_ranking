@@ -17,6 +17,7 @@ struct AccountView: View {
     #endif
     #if DEBUG
     @Environment(\.endDevelopmentReview) private var endDevelopmentReview
+    @Environment(\.profileAccountReviewStatus) private var profileReviewStatus
     #endif
     var body: some View {
         #if DEBUG
@@ -70,19 +71,6 @@ struct AccountView: View {
             }.padding(.horizontal, SGTheme.Space.medium).background(SGTheme.ColorToken.background)
         }
         .navigationDestination(for: UUID.self) { id in if let cook = sharingCooks.first(where: { $0.id == id }) { AttemptDetailView(attempt: cook) } }
-        .sheet(isPresented: $showingPrivacyPolicy) { PrivacyPolicyView() }
-        .sheet(isPresented: $showingDeletion) {
-            AccountDeletionAuthorizationView(canCancel: true) { showingDeletion = false }
-                .presentationDetents([.medium, .large])
-        }
-        .alert("Permanently delete your account?", isPresented: $confirmingDeletion) {
-            Button("Cancel", role: .cancel) {}
-            Button("Continue", role: .destructive) {
-                session.requestAccountDeletion(); showingDeletion = true
-            }
-        } message: {
-            Text("Your StayGrubby account, cooking library, rankings, comparison history, and backed-up photos will be permanently deleted. This cannot be undone.")
-        }
     }
 
     @ViewBuilder private var accountUtilities: some View {
@@ -100,7 +88,23 @@ struct AccountView: View {
                     }
                 }
             }.tint(SGTheme.ColorToken.accent).sgCard()
+            .sheet(isPresented: $showingPrivacyPolicy) { PrivacyPolicyView() }
+            .sheet(isPresented: $showingDeletion) {
+                AccountDeletionAuthorizationView(canCancel: true) { showingDeletion = false }
+                    .presentationDetents([.medium, .large])
+            }
+            .alert("Permanently delete your account?", isPresented: $confirmingDeletion) {
+                Button("Cancel", role: .cancel) {}
+                Button("Continue", role: .destructive) {
+                    session.requestAccountDeletion(); showingDeletion = true
+                }
+            } message: {
+                Text("Your StayGrubby account, cooking library, rankings, comparison history, and backed-up photos will be permanently deleted. This cannot be undone.")
+            }
         }
+        #if DEBUG
+        if let profileReviewStatus { Text(profileReviewStatus()).font(.caption).accessibilityIdentifier("profile-review-status") }
+        #endif
     }
     private var sharingRanking: RankingList? {
         _ = sharingCooks.count; _ = sharingTombstones.count

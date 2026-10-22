@@ -5,14 +5,14 @@ final class SocialInteractionUITests: StayGrubbyUITestCase {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launchArguments = ["--ui-test-store", UUID().uuidString, "--social-review", "--social-review-ready", "--social-review-trace", "--social-review-feed", "--test-dark"]
-        app.launchWithReviewOptions(); XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 15)); app.tabBars.buttons["Feed"].tap()
+        app.launchWithReviewOptions(); XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 15)); app.tabBars.buttons["Grub List"].tap()
         let like = app.buttons["social-like-20000000-0000-0000-0000-000000000001"]
         for _ in 0..<3 { if like.isHittable { break }; app.swipeUp() }
         XCTAssertTrue(like.waitForExistence(timeout: 8)); like.tap()
-        let liked = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == 'Unlike post' AND value == '1 likes'"), object: like)
+        let liked = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == 'Remove Hands, unlike post' AND value == '1 Hands'"), object: like)
         XCTAssertEqual(XCTWaiter.wait(for: [liked], timeout: 5), .completed)
         like.tap()
-        let unliked = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == 'Like post' AND value == '0 likes'"), object: like)
+        let unliked = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == 'Give Hands, like this cook' AND value == '0 Hands'"), object: like)
         XCTAssertEqual(XCTWaiter.wait(for: [unliked], timeout: 5), .completed)
         let shot = XCTAttachment(screenshot: app.screenshot()); shot.name = "Friends Feed dark"; shot.lifetime = .keepAlways; add(shot)
         app.buttons["social-comments-20000000-0000-0000-0000-000000000001"].tap()

@@ -92,6 +92,6 @@ final class CuisineUITests: StayGrubbyUITestCase {
         app.buttons["cuisine-clear"].tap()
         XCTAssertTrue(app.buttons["dish-cuisine"].label.contains("Optional"))
         app.buttons["Cancel"].tap()
-        XCTAssertTrue(app.staticTexts["Your cooking, ranked"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Your taste. Your Grub Rank."].waitForExistence(timeout: 5))
     }
 }

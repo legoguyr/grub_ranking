@@ -14,7 +14,7 @@ final class SocialIntegrationUITests: StayGrubbyUITestCase {
         XCTAssertTrue(app.staticTexts["social-share-score-locked"].waitForExistence(timeout: 5))
         app.buttons["social-share-publish"].tap()
         XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "social-share-success").firstMatch.waitForExistence(timeout: 8)); app.buttons["social-share-done"].tap()
-        XCTAssertTrue(app.navigationBars["Share with Friends"].waitForNonExistence(timeout: 8), app.debugDescription)
+        XCTAssertTrue(app.navigationBars["Share with Sous Chefs"].waitForNonExistence(timeout: 8), app.debugDescription)
         app.buttons["ranking-result-close"].tap()
         XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 8))
         selectFeed(app)
@@ -25,7 +25,7 @@ final class SocialIntegrationUITests: StayGrubbyUITestCase {
         XCTAssertTrue(deletion.waitForExistence(timeout: 5)); deletion.tap()
         app.sheets["Delete this shared post?"].buttons["Delete shared post"].tap()
         XCTAssertTrue(app.staticTexts["Nothing shared yet"].waitForExistence(timeout: 8), app.debugDescription)
-        app.tabBars.buttons["Rankings"].tap()
+        app.tabBars.buttons["Grub Rank"].tap()
         let row = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'cook-row-' AND label CONTAINS 'Integrated Private Soup'")).firstMatch
         XCTAssertTrue(row.waitForExistence(timeout: 5)); XCTAssertTrue(row.label.contains("score locked"))
         app.terminate(); app.launchWithReviewOptions()
@@ -51,7 +51,7 @@ final class SocialIntegrationUITests: StayGrubbyUITestCase {
         XCTAssertFalse(app.buttons["Edit Cook"].exists)
     }
     @MainActor private func selectFeed(_ app: XCUIApplication) {
-        let feed = app.tabBars.buttons["Feed"]
+        let feed = app.tabBars.buttons["Grub List"]
         for _ in 0..<3 {
             feed.tap()
             let selected = XCTNSPredicateExpectation(predicate: NSPredicate(format: "isSelected == true"), object: feed)

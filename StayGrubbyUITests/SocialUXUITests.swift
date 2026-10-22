@@ -59,6 +59,7 @@ final class SocialUXUITests: StayGrubbyUITestCase {
         XCTAssertEqual(XCTWaiter.wait(for: [chosen], timeout: 5), .completed)
         app.buttons["social-identity-save"].tap()
         XCTAssertTrue(app.navigationBars["Social identity"].waitForNonExistence(timeout: 8))
+        app.navigationBars.buttons.element(boundBy: 0).tap()
         XCTAssertTrue(app.buttons["social-settings-open"].waitForExistence(timeout: 5))
     }
     @MainActor func testDefaultOffCanShareCompletedCookWithLockedScore() throws {
@@ -98,7 +99,7 @@ final class SocialUXUITests: StayGrubbyUITestCase {
         let scope = app.segmentedControls["feed-scope"]
         XCTAssertTrue(scope.waitForExistence(timeout: 5)); scope.buttons["Shared by me"].tap()
         XCTAssertTrue(app.staticTexts["Nothing shared yet"].waitForExistence(timeout: 8))
-        app.tabBars.buttons["Rankings"].tap(); XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 5))
+        app.tabBars.buttons["Grub Rank"].tap(); XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 5))
         app.revealCreation(); app.buttons["new-version"].tap()
         let dish = app.buttons["choose-dish-Version Soup"]
         XCTAssertTrue(dish.waitForExistence(timeout: 5)); dish.tap()
@@ -134,7 +135,7 @@ final class SocialUXUITests: StayGrubbyUITestCase {
         XCTAssertEqual(XCTWaiter.wait(for: [chosen], timeout: 5), .completed, XCUIApplication().debugDescription)
     }
     @MainActor private func selectFeed(_ app: XCUIApplication) {
-        let feed = app.tabBars.buttons["Feed"]
+        let feed = app.tabBars.buttons["Grub List"]
         for _ in 0..<3 {
             feed.tap()
             let selected = XCTNSPredicateExpectation(predicate: NSPredicate(format: "isSelected == true"), object: feed)

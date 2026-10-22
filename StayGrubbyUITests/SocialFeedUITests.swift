@@ -6,7 +6,7 @@ final class SocialFeedUITests: StayGrubbyUITestCase {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-test-store", UUID().uuidString, "--social-review", "--social-review-ready"] + args
         app.launchWithReviewOptions()
-        XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 15)); app.tabBars.buttons["Feed"].tap()
+        XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 15)); app.tabBars.buttons["Grub List"].tap()
         return app
     }
     @MainActor func testFeedErrorRetryAndBlockRevokesVisiblePosts() throws {
@@ -24,6 +24,6 @@ final class SocialFeedUITests: StayGrubbyUITestCase {
         let shot = XCTAttachment(screenshot: app.screenshot()); shot.name = "Feed light accessibility"; shot.lifetime = .keepAlways; add(shot)
         app.segmentedControls["feed-scope"].buttons["Shared by me"].tap()
         XCTAssertTrue(app.staticTexts["Nothing shared yet"].waitForExistence(timeout: 8))
-        app.tabBars.buttons["Rankings"].tap(); XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 5))
+        app.tabBars.buttons["Grub Rank"].tap(); XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 5))
     }
 }

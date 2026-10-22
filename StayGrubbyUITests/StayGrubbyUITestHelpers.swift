@@ -66,7 +66,7 @@ extension XCUIApplication {
 extension XCUIApplication {
     @MainActor func openAccountProfileSettings() {
         for _ in 0..<3 {
-            tabBars.buttons["Profile"].tap()
+            tabBars.buttons["My Kitchen"].tap()
             if buttons["settings-open"].waitForExistence(timeout: 3) { break }
         }
         XCTAssertTrue(buttons["settings-open"].waitForExistence(timeout: 8), debugDescription)

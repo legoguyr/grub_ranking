@@ -9,17 +9,17 @@ final class SharedSocialUITests: StayGrubbyUITestCase {
     }
     @MainActor private func notifications(_ app: XCUIApplication) {
         for _ in 0..<3 {
-            app.tabBars.buttons["Feed"].tap()
-            if app.navigationBars["Friends Feed"].waitForExistence(timeout: 3) { break }
+            app.tabBars.buttons["Grub List"].tap()
+            if app.navigationBars["Grub List"].waitForExistence(timeout: 3) { break }
         }
-        XCTAssertTrue(app.navigationBars["Friends Feed"].waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertTrue(app.navigationBars["Grub List"].waitForExistence(timeout: 5), app.debugDescription)
         let link = app.buttons["notifications-open"]
         XCTAssertTrue(link.waitForExistence(timeout: 8), app.debugDescription)
         for _ in 0..<3 {
             link.tap()
-            if app.navigationBars["Notifications"].waitForExistence(timeout: 3) { return }
+            if app.navigationBars["Order Up!"].waitForExistence(timeout: 3) { return }
         }
-        XCTAssertTrue(app.navigationBars["Notifications"].waitForExistence(timeout: 8), app.debugDescription)
+        XCTAssertTrue(app.navigationBars["Order Up!"].waitForExistence(timeout: 8), app.debugDescription)
     }
     @MainActor private func invite(_ app: XCUIApplication) {
         notifications(app)
@@ -49,13 +49,13 @@ final class SharedSocialUITests: StayGrubbyUITestCase {
     @MainActor func testDeclineAddsNoPrivateCooking() throws {
         let app = launch(["--test-light"]); invite(app); app.buttons["shared-decline"].tap()
         XCTAssertTrue(app.staticTexts["Invitation declined. Nothing was added to your cooking history."].waitForExistence(timeout: 8))
-        app.tabBars.buttons["Rankings"].tap(); XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 5))
+        app.tabBars.buttons["Grub Rank"].tap(); XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 5))
         XCTAssertFalse(app.staticTexts["Lemon Chicken Together"].exists)
         app.revealCreation(); app.buttons["new-version"].tap()
         XCTAssertFalse(app.buttons["choose-dish-Lemon Chicken Together"].exists)
     }
     @MainActor func testRecreateSafePrefillCanBeAbandonedThenRankedPrivately() throws {
-        let app = launch(["--test-light"]); app.tabBars.buttons["Feed"].tap()
+        let app = launch(["--test-light"]); app.tabBars.buttons["Grub List"].tap()
         let make = app.buttons["recreate-20000000-0000-0000-0000-000000000001"]
         for _ in 0..<5 { if make.isHittable { break }; app.swipeUp() }
         XCTAssertTrue(make.waitForExistence(timeout: 8)); make.tap(); XCTAssertTrue(app.buttons["shared-begin"].waitForExistence(timeout: 8)); app.buttons["shared-begin"].tap()
@@ -102,7 +102,7 @@ final class SharedSocialUITests: StayGrubbyUITestCase {
         let accept = app.buttons["friend-action-accept"]
         if !accept.waitForExistence(timeout: 3), row.isHittable { row.tap() }
         XCTAssertTrue(accept.waitForExistence(timeout: 8)); accept.tap()
-        XCTAssertTrue(app.buttons["Remove Friend"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.buttons["Remove Sous Chef"].waitForExistence(timeout: 8))
     }
     @MainActor func testCommentNotificationRoutesAndBlockHidesInaccessibleActivity() throws {
         let app = launch(["--test-dark", "--social-review-comment"]); notifications(app)
@@ -117,7 +117,7 @@ final class SharedSocialUITests: StayGrubbyUITestCase {
         XCTAssertTrue(app.buttons["Block"].waitForExistence(timeout: 5)); app.buttons["Block"].tap(); app.buttons["Block Person"].tap()
         XCTAssertTrue(app.staticTexts["Post unavailable"].waitForExistence(timeout: 8), app.debugDescription)
         app.navigationBars.buttons.element(boundBy: 0).tap()
-        XCTAssertTrue(app.navigationBars["Notifications"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.navigationBars["Order Up!"].waitForExistence(timeout: 8))
         XCTAssertFalse(app.buttons["notification-50000000-0000-0000-0000-000000000001"].exists)
         XCTAssertEqual(app.staticTexts["notifications-unread"].label, "1 unread")
     }

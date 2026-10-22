@@ -21,10 +21,9 @@ import SwiftData
                     .environment(\.endDevelopmentReview, nil)
                     .environment(\.cookingSyncCoordinator, fixture.sync)
                     .modelContainer(fixture.store.container)
-                    .safeAreaInset(edge: .bottom) {
-                        Text(fixture.backend.signOuts > 0 ? "Review signed out" : "Review sync reads: \(fixture.cloud.reads)")
-                            .font(.caption).accessibilityIdentifier("profile-review-status")
-                    }
+                    .environment(\.profileAccountReviewStatus, {
+                        fixture.backend.signOuts > 0 ? "Review signed out" : "Review sync reads: \(fixture.cloud.reads)"
+                    })
             } else if failed {
                 Text("Couldn't open isolated Profile review")
             } else { ProgressView("Opening isolated Profile review") }
@@ -34,7 +33,9 @@ import SwiftData
             do { fixture = try await Fixture.open() }
             catch { failed = true }
         }
-        .onDisappear { fixture?.sync.disconnect() }
+        // Pushing Settings is not the end of this account review. Keep its
+        // mock coordinator alive with the fixture; UI-test teardown terminates
+        // the isolated process. This harness never enters a real account tree.
     }
 
     @MainActor @Observable fileprivate final class Backend: AccountBackend {
@@ -83,6 +84,13 @@ import SwiftData
                 })
             return fixture
         }
+    }
+}
+private struct ProfileAccountReviewStatusKey: EnvironmentKey { static let defaultValue: (() -> String)? = nil }
+extension EnvironmentValues {
+    var profileAccountReviewStatus: (() -> String)? {
+        get { self[ProfileAccountReviewStatusKey.self] }
+        set { self[ProfileAccountReviewStatusKey.self] = newValue }
     }
 }
 #endif

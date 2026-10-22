@@ -1,8 +1,8 @@
-# Integrated presentation — October 15, 2026
+# Integrated presentation — October 21, 2026
 
 Onboarding now uses the canonical wordmark and comparison explanation with reachable native Apple entry, phase-specific progress/retry and accessibility scrolling. AuthenticationGatePresentation supplies copy/actions only; AccountApplicationRoot and exact account-store readiness still authorize access.
 
-Profile is a read-only cooking snapshot with ranked-entry/Dish counts, real dates and current global Top 3. It uses ScoreUnlockPolicy independently of Rankings display mode. Account/sync controls live in a disclosure; sign-out and safe Debug restore semantics are unchanged. There is no editable/public profile or social navigation.
+The native shell now exposes Grub List, Grub Rank (initial selection), Food Bible, Tickets and My Kitchen. Food Bible reads saved completed CookingAttempts, including versions; it adds no statistics system and never treats a Recipe or Ticket as cooking history. My Kitchen leads with identity, Share My Kitchen and real Signature Dishes. Sous Chefs exposes connections, Find and Requests directly. Settings holds account/profile/sync, sharing defaults, sent requests, blocked accounts, privacy and support. Authentication and owner-bound service contracts remain unchanged. See STAYGRUBBY_DESIGN_SYSTEM_REVIEW.md for the editorial tokens, motion, terminology, visual evidence and physical-review handoff.
 
 Ranking results distinguish native semantic-colored scores/private rank/movement from the unchanged official-red rendered card. Shared native image-sheet completion provides Save Image feedback only for actual success, silent cancellation and explicit failure. Recoverable previews never resave ranking data. See V1_SHARING_ARCHITECTURE.md and V1_INTEGRATION_REVIEW.md. Default development is one primary workflow on main with one Simulator lane; future scope is canonical in STAYGRUBBY_MASTER_ROADMAP.md.
 
@@ -18,7 +18,7 @@ Completed creation and completed saved re-ranking sessions present one celebrati
 
 # In-app numerical score colors
 
-In-app numerical scores use the centralized `SGTheme.ScoreColor` palette: displayed 1.0–4.9 muted coral, 5.0–7.5 orange, and 7.6–10.0 gold. Shared ScoreBadge covers ranking and Detail/version rows; the native completion score uses the same policy. Light/dark shades and a subtle matching badge tint retain readable contrast. This is presentation over the existing one-decimal string; it does not change score calculation, mapping, unlocking or stored values. General controls/progress keep the brand accent. Exported card scores, including the raster preview inside results, always keep fixed `SGTheme.Brand.red` and their approved layout/typography.
+In-app numerical scores use the centralized `SGTheme.ScoreColor` palette: displayed 1.0–4.9 muted coral, 5.0–7.5 orange, and 7.6–10.0 gold. Shared ScoreBadge covers ranking and Detail/version rows; the native completion score uses the same policy. Light/dark shades retain readable contrast on the warm neutral surfaces; scores use open typography rather than filled badges. This is presentation over the existing one-decimal string; it does not change score calculation, mapping, unlocking or stored values. General controls/progress keep the brand accent. Exported card scores, including the raster preview inside results, always keep fixed `SGTheme.Brand.red` and their approved layout/typography.
 
 # Current Phase 3D Part 2 media integration
 
@@ -30,7 +30,7 @@ The existing Profile status/Retry now includes pending/failed photo backup, rest
 
 Authenticated Profile now has a small cooking-sync status and Retry. Its Debug-only fresh-restore check uses a separate disposable store and requires matching local/cloud data; it never replaces the primary store or uploads. Incoming hydration waits for retained cooking/detail view lifetimes to end. Rankings rows, Source/tag/search semantics and portrait layouts are unchanged. See SYNC_ARCHITECTURE.md and PHASE_3D_SYNC_REVIEW.md for the structured-only scope and manual review.
 
-The current authenticated navigation contains only Rankings and Profile, with Rankings selected initially. Feed remains intentionally hidden; reactivation depends on the planned Friends, privacy and moderation foundation in the canonical Master Roadmap. Its existing destination and tab identity remain in `ContentView` for re-enabling later; social framework code is preserved. This navigation cleanup does not change authentication, account initialization, or Debug development-library access.
+Historical Part 2C navigation contained only Rankings and Profile, with Rankings selected initially. Feed was intentionally hidden; reactivation depends on the planned Friends, privacy and moderation foundation in the canonical Master Roadmap. Its existing destination and tab identity remain in `ContentView` for re-enabling later; social framework code is preserved. This navigation cleanup does not change authentication, account initialization, or Debug development-library access.
 
 Production logged-out access is onboarding/authentication/setup only. Rankings, dish history/creation, comparisons, personal search/filter and Profile exist solely inside the authenticated ready account tree. Native Apple authentication belongs at the root. Sign Out closes that tree and returns to onboarding. New real accounts begin at the existing empty Rankings UI with Add Your First Dish, after clean account-scoped initialization; existing accounts restore their own graph. No sample content or guest adoption is used.
 
@@ -46,17 +46,17 @@ The active project, app target and shared scheme are `StayGrubby`; the canonical
 
 Normal launches inherit the user's Dynamic Type setting without a size clamp. DEBUG review typography/appearance is scoped to an explicit isolated test-store UUID; UI tests terminate review processes and keep photos in the same temporary scope. See `UI_ENVIRONMENT_DIAGNOSIS.md` for the reproduced oversized-review-session issue, correction and regression coverage.
 
-Phase 2C extends the native local cooking shell with a compact StayGrubby visual language. Ranking math, evidence selection, persistence ownership, and score calculation remain unchanged. The Phase 2C section below describes the current presentation; the preceding Phase 2A/2B sections record its foundation.
+Phase 2C extends the native local cooking shell with a compact StayGrubby visual language. Ranking math, evidence selection, persistence ownership, and score calculation remain unchanged. The Phase 2C section below records the earlier presentation; the preceding Phase 2A/2B sections record its foundation.
 
 ## App shell and navigation
 
-`ContentView` owns the current two-tab shell: Rankings and Profile. Rankings is the selected destination. Selecting it opens the one personal global cooking ranking directly; StayGrubby has no user-facing ranking-list picker, list creation control, category ranking, or separate version ranking. The ranking engine may continue using its saved `RankingList` as the internal container. Feed retains its placeholder destination in code but is absent from visible navigation. Profile contains account status and Sign Out (or the explicit development-library exit during Debug review). Native Apple entry and account setup live at the authentication root. Each visible tab owns a `NavigationStack`; future Feed navigation can be re-enabled independently. Add/Edit/New Version remain modal workflows launched from the ranking or detail screen.
+`ContentView` owns five native tabs: Grub List, Grub Rank, Food Bible, Tickets and My Kitchen. Grub Rank is selected initially and opens the single global cooking ranking. There is no ranking-list picker, list creation control, category ranking or separate version ranking. Each destination retains an independent navigation stack. Food Bible is a read-only presentation of actual cooks, Tickets contains the existing Recipe/Ticket library, and My Kitchen provides identity, Signature Dishes and Settings. Existing cooking forms remain modal. Native Apple entry/account readiness remain above this shell, and all Debug review stores/media remain isolated.
 
 ## Design tokens
 
-`DesignSystem/StayGrubbyTheme.swift` is the small source of truth for semantic colors, spacing, corner radii, common image/tap sizes, and animation timing. Colors use iOS semantic backgrounds and labels, so the same views adapt to light and dark appearance. Change the app accent through the asset catalog; change layout rhythm or radii through `SGTheme` rather than editing every screen.
+`DesignSystem/StayGrubbyTheme.swift` is the small source of truth for semantic colors, spacing, corner radii, common image/tap sizes, and animation timing. Adaptive cream/charcoal surfaces and semantic labels support light and dark appearance. Change the app accent through the asset catalog; change layout rhythm or radii through `SGTheme` rather than editing every screen.
 
-Liquid Glass is reserved for interactive surfaces. The system tab bar provides the primary native glass navigation treatment on iOS 26, and the comparison action bar uses native interactive glass. Food photos and content rows use opaque semantic surfaces rather than turning every card into glass.
+Liquid Glass is reserved for interactive surfaces. The system tab bar provides the primary native glass navigation treatment on iOS 26, and content/action bars use quiet opaque surfaces. Food photos and content rows use opaque semantic surfaces rather than turning every card into glass.
 
 ## Reusable components
 
@@ -152,7 +152,7 @@ Phase 2C gives the local product a compact, food-first presentation. The root ra
 
 ### Header, search and creation
 
-The Rankings root hides its native navigation bar and installs a safe-area header: circular creation control on the left, centered StayGrubby/page identity, search on the right. Detail destinations restore native navigation and back behavior. Profile and the retained Feed destination use the same identity component but expose no pretend search or social creation actions. The native accessible shell currently shows Rankings and Profile.
+The Rankings root hides its native navigation bar and installs a safe-area header: circular creation control on the left, centered StayGrubby/page identity, search on the right. Detail destinations restore native navigation and back behavior. Profile and the retained Feed destination use the same identity component but expose no pretend search or social creation actions. That two-tab shell and centered header are historical; the current five-tab shell and left-aligned Grub Rank header supersede them.
 
 Search takes over the header with a native `TextField`, submit/keyboard dismissal, independent clear action and Done. Done collapses the header without clearing the query; reopening restores it. Query and filters remain Rankings-owned state and survive details and creation/edit sheets. Search presentation only forwards the existing query into `CookingDiscovery`; normalization, searchable fields, order and scores are unchanged. Custom tags remain searchable, not structured filters.
 
@@ -166,7 +166,7 @@ Course, Dietary and Avoid controls sit in a compact horizontal strip below the h
 
 ### Comparison
 
-A receding focus background, centered preference prompt, two square choices and nearby Undo/Too Tough/Skip form one compact interaction. Choices show Dish and Version only, never numerical scores. Both photo and placeholder use the same explicit square dimensions and aspect-fill clipping; OR is centered between the photo areas. Upright portrait uses centrally limited image sizes; content scrolls when height is limited. Accessibility sizes stack the choices with OR between them so full labels can grow. Answer selection has brief press feedback and a single haptic, with duplicate taps blocked during the short presentation transition; Reduce Motion answers immediately. Existing callbacks alone change the ranking session.
+A receding focus background, centered preference prompt, two square choices and nearby Undo/Too Tough/Skip form one compact interaction. Choices show Dish and Version only, never numerical scores. Both photo and placeholder use the same explicit square dimensions and aspect-fill clipping; OR is centered between the photo areas. Upright portrait uses centrally limited image sizes; content scrolls when height is limited. Accessibility sizes stack the choices with OR between them so full labels can grow. Answer selection has touch-driven press feedback and a single haptic. All answers reach the existing session immediately, without an animation delay or queued answer; Reduce Motion removes spatial feedback. Existing callbacks alone change the ranking session.
 
 ### Detail and forms
 

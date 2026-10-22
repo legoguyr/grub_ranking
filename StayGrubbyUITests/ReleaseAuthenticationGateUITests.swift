@@ -11,7 +11,7 @@ final class ReleaseAuthenticationGateUITests: StayGrubbyUITestCase {
             XCTAssertTrue(app.buttons["account-sign-in-apple"].waitForExistence(timeout: 20))
             XCTAssertTrue(app.staticTexts["onboarding-brand"].exists)
             XCTAssertFalse(app.rankingHeader.exists)
-            XCTAssertFalse(app.tabBars.buttons["Rankings"].exists)
+            XCTAssertFalse(app.tabBars.buttons["Grub Rank"].exists)
             XCTAssertFalse(app.buttons["new-dish"].exists)
             XCTAssertFalse(app.buttons["account-continue-guest"].exists)
             XCTAssertFalse(app.buttons["development-library-open"].exists)

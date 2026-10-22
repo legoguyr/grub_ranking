@@ -52,7 +52,7 @@ final class ReviewEnvironmentUITests: StayGrubbyUITestCase {
         XCTAssertTrue(app.staticTexts["onboarding-brand"].waitForExistence(timeout: 15))
         // The canonical wordmark is fixed artwork, not a Dynamic Type probe.
         // Measure scalable copy and compare the same ranking header at both sizes.
-        let title = app.staticTexts["Your cooking, worth remembering."]
+        let title = app.staticTexts["Good food.\nYour signature."]
         XCTAssertTrue(title.exists)
         let normal = title.frame.height
         app.terminate()

@@ -36,8 +36,8 @@ final class ProfileUITests: StayGrubbyUITestCase {
     }
 
     @MainActor private func openProfile(in app: XCUIApplication) {
-        let tab = app.tabBars.buttons["Profile"]
-        let identity = app.staticTexts["Your cooking profile"]
+        let tab = app.tabBars.buttons["My Kitchen"]
+        let identity = app.staticTexts["Your Kitchen"]
         tab.tap()
         // XCTest can miss a synthesized tab tap. Retry once only when the
         // Profile tab is demonstrably still unselected; require the destination.
@@ -48,8 +48,23 @@ final class ProfileUITests: StayGrubbyUITestCase {
         XCTAssertTrue(identity.waitForExistence(timeout: 10))
     }
 
+    @MainActor private func accountSettings(_ app: XCUIApplication) {
+        app.buttons["settings-open"].tap()
+        XCTAssertTrue(app.buttons["settings-account"].waitForExistence(timeout: 8)); app.buttons["settings-account"].tap()
+        XCTAssertTrue(app.navigationBars["Account & Profile"].waitForExistence(timeout: 8))
+    }
     @MainActor private func element(_ id: String, in app: XCUIApplication) -> XCUIElement {
         app.descendants(matching: .any).matching(identifier: id).firstMatch
+    }
+
+    @MainActor private func countLabel(_ id: String, in app: XCUIApplication) -> String {
+        let control = element(id, in: app)
+        for _ in 0..<12 { if control.exists { break }; app.swipeUp() }
+        XCTAssertTrue(control.exists)
+        let value = control.label
+        // Food leads My Kitchen now; counts remain available below it.
+        for _ in 0..<12 { if app.staticTexts["Your Kitchen"].isHittable { break }; app.swipeDown() }
+        return value
     }
 
     @MainActor private func reach(_ control: XCUIElement, in app: XCUIApplication) {
@@ -68,8 +83,8 @@ final class ProfileUITests: StayGrubbyUITestCase {
 
     @MainActor func testEmptyProfileHasIntentionalContentLockedShareAndDevelopmentExit() {
         let app = launch(0)
-        XCTAssertEqual(element("profile-entry-count", in: app).label, "0 ranked entries")
-        XCTAssertEqual(element("profile-dish-count", in: app).label, "0 dishes ranked")
+        XCTAssertEqual(countLabel("profile-entry-count", in: app), "0 ranked entries")
+        XCTAssertEqual(countLabel("profile-dish-count", in: app), "0 dishes ranked")
         XCTAssertTrue(element("profile-empty", in: app).exists)
         XCTAssertFalse(element("profile-top-food-1", in: app).exists)
         XCTAssertFalse(app.buttons["account-sign-out"].exists)
@@ -87,7 +102,7 @@ final class ProfileUITests: StayGrubbyUITestCase {
     @MainActor func testOneAndTwoEntriesNeedNoPhotosOrPlaceholderFoods() {
         for count in [1, 2] {
             let app = launch(count)
-            XCTAssertEqual(element("profile-entry-count", in: app).label, "\(count) ranked entries")
+            XCTAssertEqual(countLabel("profile-entry-count", in: app), "\(count) ranked entries")
             XCTAssertTrue(element("profile-building-top-three", in: app).exists)
             for rank in 1...count {
                 let row = element("profile-top-food-\(rank)", in: app)
@@ -102,8 +117,8 @@ final class ProfileUITests: StayGrubbyUITestCase {
 
     @MainActor func testLockedDarkAccessibilityProfileCountsVersionsWithoutScoreLeaks() {
         let app = launch(9, appearance: "--test-dark", large: true)
-        XCTAssertEqual(element("profile-entry-count", in: app).label, "9 ranked entries")
-        XCTAssertEqual(element("profile-dish-count", in: app).label, "8 dishes ranked")
+        XCTAssertEqual(countLabel("profile-entry-count", in: app), "9 ranked entries")
+        XCTAssertEqual(countLabel("profile-dish-count", in: app), "8 dishes ranked")
         capture("Profile dark accessibility identity", app: app)
         for rank in 1...3 {
             let row = element("profile-top-food-\(rank)", in: app)
@@ -120,8 +135,8 @@ final class ProfileUITests: StayGrubbyUITestCase {
 
     @MainActor func testUnlockedProfileKeepsPermanentNativeTopThreeSharing() {
         let app = launch(10, appearance: "--test-dark")
-        XCTAssertEqual(element("profile-entry-count", in: app).label, "10 ranked entries")
-        XCTAssertEqual(element("profile-dish-count", in: app).label, "9 dishes ranked")
+        XCTAssertEqual(countLabel("profile-entry-count", in: app), "10 ranked entries")
+        XCTAssertEqual(countLabel("profile-dish-count", in: app), "9 dishes ranked")
         for rank in 1...3 {
             let label = element("profile-top-food-\(rank)", in: app).label
             XCTAssertFalse(label.contains("score locked"))
@@ -147,7 +162,7 @@ final class ProfileUITests: StayGrubbyUITestCase {
             if !pending { app.launchArguments.append("--test-large-type") }
             app.launchWithReviewOptions()
             XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 20))
-            openProfile(in: app)
+            openProfile(in: app); accountSettings(app)
             let disclosure = app.buttons.matching(NSPredicate(format: "label CONTAINS 'Account & sync'")).firstMatch
             reach(disclosure, in: app)
             XCTAssertFalse(app.buttons["account-sign-out"].exists)
@@ -159,7 +174,7 @@ final class ProfileUITests: StayGrubbyUITestCase {
             XCTAssertTrue(account.exists)
             let accountID = String(account.label.dropFirst("Account ID: ".count))
             XCTAssertNotNil(UUID(uuidString: accountID))
-            XCTAssertTrue(app.staticTexts["Account ending in \(accountID.suffix(8))"].exists)
+            XCTAssertTrue(app.navigationBars["Account & Profile"].exists)
             if pending {
                 let retry = app.buttons["Retry sync"]
                 reach(retry, in: app)
@@ -194,7 +209,7 @@ final class ProfileUITests: StayGrubbyUITestCase {
         app.launchArguments = ["--ui-test-store", UUID().uuidString, "--profile-account-review",
                                "--profile-sync-current", "--test-light", "--test-reduce-motion"]
         app.launchWithReviewOptions()
-        XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 20)); openProfile(in: app)
+        XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 20)); openProfile(in: app); accountSettings(app)
         let disclosure = app.buttons.matching(NSPredicate(format: "label CONTAINS 'Account & sync'")).firstMatch
         reach(disclosure, in: app); disclosure.tap()
 
@@ -209,13 +224,13 @@ final class ProfileUITests: StayGrubbyUITestCase {
         reach(start, in: app); start.tap()
         XCTAssertTrue(app.alerts["Permanently delete your account?"].waitForExistence(timeout: 10))
         app.alerts.buttons["Cancel"].tap()
-        XCTAssertTrue(app.staticTexts["Your cooking profile"].exists)
+        XCTAssertTrue(app.navigationBars["Account & Profile"].exists)
 
         start.tap(); app.alerts.buttons["Continue"].tap()
         XCTAssertTrue(app.staticTexts["Permanently delete account"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.buttons["account-delete-apple"].exists)
         app.buttons["account-delete-cancel"].tap()
-        XCTAssertTrue(app.staticTexts["Your cooking profile"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.navigationBars["Account & Profile"].waitForExistence(timeout: 10))
     }
 
 }
@@ -229,7 +244,7 @@ final class ProfileReleaseIsolationUITests: StayGrubbyUITestCase {
                                "--profile-sync-pending", "--score-unlock-fixture", "10"]
         app.launch()
         XCTAssertTrue(app.buttons["account-sign-in-apple"].waitForExistence(timeout: 20))
-        XCTAssertFalse(app.tabBars.buttons["Profile"].exists)
+        XCTAssertFalse(app.tabBars.buttons["My Kitchen"].exists)
         XCTAssertFalse(app.staticTexts["profile-review-status"].exists)
         XCTAssertFalse(app.buttons["development-exit"].exists)
         XCTAssertFalse(app.buttons["development-verify-fresh-restore"].exists)

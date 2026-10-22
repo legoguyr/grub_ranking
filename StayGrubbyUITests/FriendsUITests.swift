@@ -6,7 +6,7 @@ final class FriendsUITests: StayGrubbyUITestCase {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-test-store", UUID().uuidString, "--social-review", "--social-review-ready"] + extra
         app.launchWithReviewOptions()
-        XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 15)); app.tabBars.buttons["Profile"].tap()
+        XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 15)); app.tabBars.buttons["My Kitchen"].tap()
         let friends = app.buttons["friends-open"]
         XCTAssertTrue(friends.waitForExistence(timeout: 10)); friends.tap()
         XCTAssertTrue(app.navigationBars["Sous Chefs"].waitForExistence(timeout: 5))
@@ -27,16 +27,16 @@ final class FriendsUITests: StayGrubbyUITestCase {
         let friend = app.buttons["friend-person-friend_cook"]
         XCTAssertTrue(friend.waitForExistence(timeout: 5)); friend.tap()
         XCTAssertTrue(app.staticTexts["@friend_cook"].waitForExistence(timeout: 5))
-        XCTAssertFalse(app.staticTexts["Your Top 3"].exists)
+        XCTAssertFalse(app.staticTexts["Signature Dishes"].exists)
         XCTAssertFalse(app.buttons["Edit Cook"].exists)
-        app.buttons["Remove Friend"].tap(); app.buttons["Remove Friendship"].tap()
+        app.buttons["Remove Sous Chef"].tap(); app.buttons["Remove Friendship"].tap()
         XCTAssertTrue(app.navigationBars["Sous Chefs"].waitForExistence(timeout: 5))
         XCTAssertFalse(friend.exists)
         section("Requests", in: app)
         let incoming = app.buttons["friend-person-incoming_cook"]
         XCTAssertTrue(incoming.waitForExistence(timeout: 5)); incoming.tap()
         app.buttons["friend-action-accept"].tap()
-        XCTAssertTrue(app.buttons["Remove Friend"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["Remove Sous Chef"].waitForExistence(timeout: 5))
         app.buttons["Block"].tap(); app.buttons["Block Person"].tap()
         XCTAssertTrue(app.navigationBars["Sous Chefs"].waitForExistence(timeout: 5))
         section("Blocked Accounts", in: app)

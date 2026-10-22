@@ -13,8 +13,8 @@ final class OnboardingUITests: StayGrubbyUITestCase {
     }
 
     @MainActor private func assertGated(_ app: XCUIApplication) {
-        XCTAssertFalse(app.tabBars.buttons["Rankings"].exists)
-        XCTAssertFalse(app.tabBars.buttons["Profile"].exists)
+        XCTAssertFalse(app.tabBars.buttons["Grub Rank"].exists)
+        XCTAssertFalse(app.tabBars.buttons["My Kitchen"].exists)
         XCTAssertFalse(app.buttons["new-dish"].exists)
         XCTAssertFalse(app.buttons["account-continue-guest"].exists)
         XCTAssertFalse(app.buttons["Skip"].exists)
@@ -34,7 +34,7 @@ final class OnboardingUITests: StayGrubbyUITestCase {
     @MainActor func testWelcomeExplainsComparisonAndKeepsNativeAppleInReach() {
         let app = launch()
         XCTAssertTrue(app.staticTexts["onboarding-brand"].exists)
-        XCTAssertTrue(app.staticTexts["Your cooking, worth remembering."].exists)
+        XCTAssertTrue(app.staticTexts["Good food.\nYour signature."].exists)
         XCTAssertTrue(app.descendants(matching: .any)["onboarding-comparison-example"].exists)
         XCTAssertTrue(app.buttons["account-sign-in-apple"].isHittable)
         XCTAssertGreaterThanOrEqual(app.buttons["account-sign-in-apple"].frame.height, 44)

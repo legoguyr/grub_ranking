@@ -243,7 +243,7 @@ private struct RecipeSummaryRow: View {
             SGEyebrow(text: ticket ? "Ticket · Want to cook" : "Recipe")
             Text(recipe.content.title).font(SGTheme.TypeRole.title).foregroundStyle(SGTheme.ColorToken.primaryText).fixedSize(horizontal: false, vertical: true)
             if let source = recipe.content.source { Text(source).font(SGTheme.TypeRole.body).foregroundStyle(.secondary) }
-            Text("\(recipe.content.ingredients.count) ingredients · \(recipe.content.steps.count) steps").font(SGTheme.TypeRole.secondary).foregroundStyle(.secondary)
+            Text("\(recipe.content.ingredients.count) ingredient\(recipe.content.ingredients.count == 1 ? "" : "s") · \(recipe.content.steps.count) step\(recipe.content.steps.count == 1 ? "" : "s")").font(SGTheme.TypeRole.secondary).foregroundStyle(.secondary)
         }.padding(.vertical, SGTheme.Space.medium).contentShape(Rectangle())
     }
 }

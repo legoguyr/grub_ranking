@@ -100,11 +100,15 @@ final class V1RevisionUITests: StayGrubbyUITestCase {
         tap(app.buttons["ranking-result-close"], app)
         XCTAssertTrue(edit.waitForExistence(timeout: 15))
         tap(app.navigationBars.buttons.firstMatch, app)
-        tap(app.buttons["Profile"], app)
+        tap(app.tabBars.buttons["My Kitchen"], app)
         let top = app.buttons["profile-share-top-three"]
         XCTAssertTrue(top.waitForExistence(timeout: 15) && top.isEnabled)
-        XCTAssertEqual(app.descendants(matching: .any).matching(identifier: "profile-entry-count").firstMatch.label,
+        let entries = app.descendants(matching: .any).matching(identifier: "profile-entry-count").firstMatch
+        for _ in 0..<12 { if entries.exists { break }; app.swipeUp() }
+        XCTAssertTrue(entries.exists)
+        XCTAssertEqual(entries.label,
                        "12 ranked entries", "Re-rank must not count as another entry in Profile")
+        for _ in 0..<8 { if top.isHittable { break }; app.swipeDown() }
         tap(top, app)
         XCTAssertTrue(app.cells.matching(identifier: "actionGroupCell").matching(NSPredicate(format: "label == 'Copy'")).firstMatch.waitForExistence(timeout: 15))
         capture("Profile current Top 3 native share", app)
@@ -125,10 +129,13 @@ final class V1RevisionUITests: StayGrubbyUITestCase {
         tap(app.navigationBars.buttons.firstMatch, app)
         XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 15))
         XCTAssertTrue(app.descendants(matching: .any)["score-unlock-banner"].label.contains("9 / 10"))
-        tap(app.buttons["Profile"], app)
+        tap(app.tabBars.buttons["My Kitchen"], app)
         XCTAssertFalse(app.buttons["profile-share-top-three"].isEnabled)
-        let dishCountBefore = app.descendants(matching: .any).matching(identifier: "profile-dish-count").firstMatch.label
-        tap(app.buttons["Rankings"], app)
+        let dishCount = app.descendants(matching: .any).matching(identifier: "profile-dish-count").firstMatch
+        for _ in 0..<12 { if dishCount.exists { break }; app.swipeUp() }
+        XCTAssertTrue(dishCount.exists)
+        let dishCountBefore = dishCount.label
+        tap(app.tabBars.buttons["Grub Rank"], app)
         app.revealCreation(); tap(app.buttons["new-version"], app)
         let dish = app.buttons["choose-dish-Matzo Ball Soup"]
         transition(dish, to: app.buttons["Continue"], app)
@@ -142,8 +149,9 @@ final class V1RevisionUITests: StayGrubbyUITestCase {
         capture("Second version crosses entry threshold large text", app)
         tap(app.buttons["ranking-result-close"], app)
         XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 15))
-        tap(app.tabBars.buttons["Profile"], app)
+        tap(app.tabBars.buttons["My Kitchen"], app)
         let entries = app.descendants(matching: .any).matching(identifier: "profile-entry-count").firstMatch
+        for _ in 0..<12 { if entries.exists { break }; app.swipeUp() }
         XCTAssertTrue(entries.waitForExistence(timeout: 15))
         XCTAssertEqual(entries.label, "10 ranked entries")
         XCTAssertEqual(app.descendants(matching: .any).matching(identifier: "profile-dish-count").firstMatch.label,

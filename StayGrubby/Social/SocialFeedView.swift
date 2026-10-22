@@ -20,7 +20,7 @@ struct SocialFeedView: View {
     @State private var confirmingDelete = false
     var body: some View {
         SGEditorialList {
-            SGPageIntro(title: "Grub List", subtitle: "What’s cooking in your circle.", eyebrow: "From your Sous Chefs", showsTitle: false).listRowSeparator(.hidden)
+            SGPageIntro(title: "Grub List", subtitle: "What’s cooking in your circle. Give Hands 🙌 to show you like a cook.", eyebrow: "From your Sous Chefs", showsTitle: false).listRowSeparator(.hidden)
             Picker("Posts", selection: $own) {
                 Text("Sous Chefs").tag(false); Text("Shared by me").tag(true)
             }.pickerStyle(.segmented).accessibilityIdentifier("feed-scope")
@@ -150,7 +150,7 @@ struct SocialFeedCard: View {
             else { SocialReportButton(kind: "post", targetID: post.id) }
         }
         .padding(.vertical, SGTheme.Space.medium)
-        .overlay(alignment: .bottom) { Divider().padding(.top, SGTheme.Space.medium) }
+        .overlay(alignment: .bottom) { SGTheme.ColorToken.border.frame(height: SGTheme.Size.border) }
         .buttonStyle(.borderless)
         .accessibilityElement(children: .contain).accessibilityIdentifier("feed-post-\(post.id)")
     }
