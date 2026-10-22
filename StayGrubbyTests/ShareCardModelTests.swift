@@ -39,7 +39,7 @@ struct ShareCardModelTests {
         let noPhoto = ShareCardModel.make(for: attempt)
         #expect(noPhoto.title == "Dish 0" && noPhoto.photo == nil)
         #expect(noPhoto.versionSubtitle == nil && noPhoto.scoreText == nil && noPhoto.achievement == nil)
-        #expect(attempt.rankedItem?.score == 5.5)
+        #expect(abs((attempt.rankedItem?.score ?? 0) - 8.203937019662644) < 1e-12)
         let media = CookingMedia(id: UUID(), displayFilename: "display.jpg", thumbnailFilename: "thumb.jpg",
                                  pixelWidth: 800, pixelHeight: 600)
         f.context.insert(media); attempt.media.append(media)
@@ -65,8 +65,8 @@ struct ShareCardModelTests {
         #expect(ShareCardModel.make(for: second).versionSubtitle == "Extra crispy")
     }
 
-    @Test(arguments: [(0.0, "5.5"), (2 * log(5.0), "8.5"), (-2 * log(5.0), "2.5")])
-    func scoreUsesExistingMappingAndStableOneDecimal(strength: Double, expected: String) throws {
+    @Test(arguments: [(0.0, "8.2"), (2 * log(5.0), "9.5"), (-2 * log(5.0), "7.2")])
+    func scoreUsesSemanticMappingAndStableOneDecimal(strength: Double, expected: String) throws {
         let f = try fixture(ScoreUnlockPolicy.requiredRankedEntryCount)
         let attempt = try #require(f.attempts.first)
         let item = try #require(attempt.rankedItem)

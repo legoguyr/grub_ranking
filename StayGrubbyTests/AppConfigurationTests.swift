@@ -16,9 +16,10 @@ import Testing
         #expect(Bundle.main.infoDictionary?["UIDeviceFamily"] as? [Int] == [1])
     }
 
-    @Test func initialReleaseVersionAndExemptEncryptionAreExplicit() {
+    @Test func releaseVersionBuildAndExemptEncryptionAreExplicit() {
         #expect(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String == "1.0")
-        #expect(Bundle.main.infoDictionary?["CFBundleVersion"] as? String == "1")
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String
+        #expect(build.flatMap(Int.init).map { $0 > 0 } == true)
         #expect(Bundle.main.infoDictionary?["ITSAppUsesNonExemptEncryption"] as? Bool == false)
     }
 

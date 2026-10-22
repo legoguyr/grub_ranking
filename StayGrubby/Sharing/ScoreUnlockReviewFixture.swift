@@ -35,6 +35,14 @@ import UIKit
             draft.pendingPhoto = try LocalPhotoStore.prepare(data: bytes)
             _ = try add(draft, dish: dish)
         }
+        if ProcessInfo.processInfo.arguments.contains("--score-calibration-review") {
+            for (index, item) in list.orderedItems.enumerated() {
+                let reaction = InitialReaction.allCases[index % InitialReaction.allCases.count]
+                item.sessionDiagnosticsData = try ScoreCalibration.recording(reaction, in: item.sessionDiagnosticsData)
+            }
+            try context.save()
+        }
+
     }
 }
 #endif

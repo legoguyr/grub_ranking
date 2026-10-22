@@ -178,13 +178,13 @@ import UIKit
         #expect(defaults["NSPrivacyAccessedAPITypeReasons"] as? [String] == ["CA92.1"])
     }
 
-    @Test func lockedFactoryCannotRenderIndividualOrTopThreeAndInternalFivePointFiveSurvives() throws {
+    @Test func lockedFactoryCannotRenderIndividualOrTopThreeDespiteInternalCalibration() throws {
         let f = try fixture(1)
         let (context, list, cooks) = (f.context, f.list, f.cooks)
         defer { withExtendedLifetime(f) {} }
         let first = try #require(cooks.first)
         let model = ShareCardModel.make(for: first)
-        #expect(model.scoreText == nil && first.rankedItem?.score == 5.5)
+        #expect(model.scoreText == nil && abs((first.rankedItem?.score ?? 0) - 8.203937019662644) < 1e-12)
         #expect(throws: ShareCardRenderer.RenderError.scoresLocked) { try ShareCardRenderer.render(model: model, mediaRoot: nil) }
         #expect(TopThreeShareCardModel.make(in: list) == nil)
         #expect(!context.hasChanges)

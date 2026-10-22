@@ -28,7 +28,7 @@ import Observation
               Set(session.orderedIDs) == Set(list.items.map(\.id).filter { $0 != attempt.rankedItemID })
         else { throw CookingStore.StoreError.missingItem }
         let before = RankingCompletionSnapshot.capture(from: list)
-        try CookingStore.rerank(attempt, evidence: session.evidence, context: context)
+        try CookingStore.rerank(attempt, evidence: session.evidence, context: context, reaction: session.reaction)
         completionSnapshot = before
         completed = true
     }

@@ -41,6 +41,8 @@ import Testing
         #expect(try CookingGraphExport.snapshot(context: f.context) == start)
         try workflow.finish(context: f.context)
         #expect(workflow.completed)
+        #expect(ScoreCalibration.reaction(in: cook.rankedItem?.sessionDiagnosticsData) == reaction)
+        #expect(cook.rankedItem?.sessionDiagnostics?.initialReaction == InitialReaction.fine.rawValue)
         #expect(workflow.completionSnapshot?.eligibleRankedEntryCount == count)
         #expect(f.list.comparisons.count == old.count + fresh.count)
         for (id, evidence) in old { #expect(f.list.comparisons.first { $0.id == id }?.evidence == evidence) }
@@ -59,7 +61,7 @@ import Testing
         let f = try fixture(12); defer { withExtendedLifetime(f) {} }
         let before = try CookingGraphExport.snapshot(context: f.context)
         let workflow = CookingReRankingWorkflow(attempt: try #require(f.cooks.first))
-        try workflow.choose(.fine, context: f.context)
+        try workflow.choose(.disliked, context: f.context)
         let opponent = workflow.session?.nextOpponent
         workflow.answer(.skip)
         #expect(workflow.session?.evidence.isEmpty == true)
@@ -128,11 +130,12 @@ import Testing
             try SyncJournal.enable(context)
             let cook = try #require(context.fetch(FetchDescriptor<CookingAttempt>()).first)
             selectedID = cook.id
-            let workflow = CookingReRankingWorkflow(attempt: cook); try workflow.choose(.fine, context: context)
+            let workflow = CookingReRankingWorkflow(attempt: cook); try workflow.choose(.disliked, context: context)
             while workflow.session?.nextOpponent != nil { workflow.answer(.tooTough) }
             try workflow.finish(context: context)
             let pending = try SyncJournal.pending(context)
             #expect(pending.count == 1 && pending.first?.kind == "appendEvidence")
+            #expect(ScoreCalibration.reaction(in: cook.rankedItem?.sessionDiagnosticsData) == .disliked)
             expected = try CookingGraphExport.snapshot(context: context)
             #expect(expected?.attempts.count == 10 && expected?.items.count == 10)
             #expect(try #require(expected).comparisons.count > graph.comparisons.count)
@@ -147,6 +150,9 @@ import Testing
         #expect(try CookingGraphExport.snapshot(context: reloaded.container.mainContext) == expected)
         #expect(try reloaded.container.mainContext.fetch(FetchDescriptor<CookingAttempt>()).contains { $0.id == selectedID })
         #expect(ScoreUnlockPolicy.state(in: reloaded.container.mainContext).rankedEntryCount == 10)
+        let restoredCook = try #require(reloaded.container.mainContext.fetch(FetchDescriptor<CookingAttempt>()).first { $0.id == selectedID })
+        #expect(ScoreCalibration.reaction(in: restoredCook.rankedItem?.sessionDiagnosticsData) == .disliked)
+        #expect(restoredCook.rankedItem!.score < 5.8)
     }
 }
 

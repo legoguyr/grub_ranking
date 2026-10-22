@@ -39,17 +39,22 @@ enum RankingStore {
         try record([evidence], in: list, context: context)
     }
 
-    static func record(_ evidence: [PreferenceEvidence], in list: RankingList, context: ModelContext) throws {
+    static func record(_ evidence: [PreferenceEvidence], in list: RankingList, context: ModelContext,
+                       completedReaction: (item: RankedItem, reaction: InitialReaction)? = nil) throws {
         let ids = Set(list.items.map(\.id))
         guard evidence.allSatisfy({ ids.contains($0.first) && ids.contains($0.second) && $0.first != $0.second && [0.0, 0.5, 1.0].contains($0.outcome) }) else { throw EvidenceError.invalidComparison }
+        if let assessment = completedReaction, !list.items.contains(where: { $0 === assessment.item }) { throw EvidenceError.invalidComparison }
         let baseline = try SyncJournal.begin(context)
-        for observation in evidence {
-            let comparison = Comparison(evidence: observation)
-            context.insert(comparison)
-            list.comparisons.append(comparison)
-        }
-        list.recompute()
         do {
+            if let assessment = completedReaction {
+                assessment.item.sessionDiagnosticsData = try ScoreCalibration.recording(assessment.reaction, in: assessment.item.sessionDiagnosticsData)
+            }
+            for observation in evidence {
+                let comparison = Comparison(evidence: observation)
+                context.insert(comparison)
+                list.comparisons.append(comparison)
+            }
+            list.recompute()
             try SyncJournal.stage(baseline, kind: "appendEvidence", context: context)
             try context.save()
             SyncJournal.didCommit(context)

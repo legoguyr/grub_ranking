@@ -14,7 +14,7 @@ final class RankedItem {
         return try? JSONDecoder().decode(SessionDiagnostics.self, from: sessionDiagnosticsData)
     }
     var list: RankingList?
-    var score: Double { PreferenceEstimate(strength: strength, uncertainty: uncertainty).score }
+    var score: Double { ScoreCalibration.score(strength: strength, metadata: sessionDiagnosticsData) }
     init(id: UUID = UUID(), name: String) {
         self.id = id; self.name = name; createdAt = .now
     }
