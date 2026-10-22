@@ -14,19 +14,21 @@ enum SGTheme {
         // Accessible red variants for product controls; exports keep Brand.red.
         static let accent = adaptive(light: 0xCB1015, dark: 0xFF6B63)
         static let buttonAccent = Color(red: 203 / 255, green: 16 / 255, blue: 21 / 255)
-        static let background = adaptive(light: 0xF6F5F0, dark: 0x111514)
+        static let background = adaptive(light: 0xFAF3EC, dark: 0x171615)
         static let groupedBackground = background
-        static let surface = adaptive(light: 0xFFFFFF, dark: 0x1C2220)
-        static let elevatedSurface = adaptive(light: 0xEBEDE7, dark: 0x29312D)
+        static let surface = adaptive(light: 0xFFFCF8, dark: 0x22201E)
+        static let elevatedSurface = adaptive(light: 0xEFE5DA, dark: 0x302C28)
         static let primaryText = Color.primary
         static let subdued = Color.secondary
-        static let destructive = Color.red
+        static let destructive = adaptive(light: 0xB72420, dark: 0xFF8C80)
+        static let tertiaryText = Color.secondary.opacity(0.8)
+        static let photoScrim = Color.black.opacity(0.65)
         static let border = Color.primary.opacity(0.09)
         static let placeholderStart = Color.secondary.opacity(0.13)
         static let placeholderEnd = Color.secondary.opacity(0.05)
         static let onAccent = Color.white
         static let selected = accent.opacity(0.13)
-        static let focusBackground = adaptive(light: 0xE7EAE3, dark: 0x0B0F0D)
+        static let focusBackground = adaptive(light: 0xF1E7DC, dark: 0x100F0E)
         fileprivate static func adaptive(light: UInt32, dark: UInt32) -> Color {
             Color(UIColor { traits in
                 let hex = traits.userInterfaceStyle == .dark ? dark : light
@@ -73,13 +75,13 @@ enum SGTheme {
     enum Radius {
         static let chip: CGFloat = 10
         static let field: CGFloat = 12
-        static let card: CGFloat = 18
-        static let hero: CGFloat = 24
+        static let card: CGFloat = 16
+        static let hero: CGFloat = 18
     }
     enum Size {
-        static let rowThumbnail: CGFloat = 68
+        static let rowThumbnail: CGFloat = 86
         static let versionThumbnail: CGFloat = 44
-        static let rankWidth: CGFloat = 22
+        static let rankWidth: CGFloat = 30
         static let minimumTap: CGFloat = 44
         static let heroHeight: CGFloat = 260
         static let placeholderHeight: CGFloat = 96
@@ -98,9 +100,15 @@ enum SGTheme {
         static let thumbnailIcon: CGFloat = 22
     }
     enum TypeRole {
-        static let identity = Font.system(.title3, design: .rounded, weight: .heavy)
-        static let title = Font.system(.title2, design: .rounded, weight: .bold)
+        static let identity = Font.system(.title3, design: .default, weight: .black)
+        static let title = Font.system(.title2, design: .default, weight: .bold)
         static let headline = Font.headline.weight(.semibold)
+        static let hero = Font.system(.largeTitle, design: .default, weight: .black)
+        static let page = Font.system(.largeTitle, design: .default, weight: .bold)
+        static let dish = Font.system(.title3, design: .default, weight: .bold)
+        static let eyebrow = Font.caption.weight(.bold)
+        static let reading = Font.body
+        static let rank = Font.system(.title2, design: .serif, weight: .semibold).monospacedDigit()
         static let body = Font.subheadline
         static let secondary = Font.caption
         static let score = Font.system(.title3, design: .rounded, weight: .bold).monospacedDigit()
@@ -129,6 +137,7 @@ struct SGButtonStyle: ButtonStyle {
                         in: RoundedRectangle(cornerRadius: SGTheme.Radius.field))
             .opacity(enabled ? (configuration.isPressed ? 0.8 : 1) : 0.4)
             .scaleEffect(configuration.isPressed && !reduceMotion ? SGTheme.Motion.pressedScale : 1)
+            .animation(reduceMotion ? nil : SGTheme.Motion.quick, value: configuration.isPressed)
     }
 }
 
