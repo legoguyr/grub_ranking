@@ -1,3 +1,5 @@
+> Current presentation, October 22, 2026: ranking mathematics, evidence and adaptive selection in this document are unchanged. User-facing `RankedItem.score` now uses the reaction-conditioned `ScoreCalibration` mapping described in [STAYGRUBBY_PRODUCT_STRUCTURE_SCORE_REVIEW.md](STAYGRUBBY_PRODUCT_STRUCTURE_SCORE_REVIEW.md). `PreferenceEstimate.score` and its interval remain the historical relative diagnostic transform, not the current calibrated UI scale. Latest completed re-rank assessment is persisted in existing opaque diagnostic JSON, without changing BT priors/outcomes or score-unlock eligibility.
+
 # StayGrubby ranking system — technical specification
 
 Status: local native MVP, hardened October 2, 2026. Ranking logic lives in
@@ -188,9 +190,9 @@ then refits every item and explicitly saves. Contradictory/repeated observations
 remain in history. Completion undo refuses to delete a session if later refinement
 has added evidence involving that item, preventing accidental loss of new history.
 
-## 7. Score scaling audit
+## 7. Historical score scaling audit
 
-The unchanged display transform is:
+The following audit records the original relative transform, retained for internal diagnostics and unknown-reaction legacy fallback. It is superseded for recognized-reaction UI scores by ScoreCalibration above. The retained transform is:
 
 ```
 score = 1 + 9 * sigmoid(strength / 2)
