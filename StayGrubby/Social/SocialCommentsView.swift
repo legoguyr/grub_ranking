@@ -18,19 +18,26 @@ struct SocialEngagementView: View {
     @State private var busy = false
     @State private var failed = false
     @State private var showingComments = false
+    @Environment(\.sgReduceMotion) private var reduceMotion
+    @State private var reactionFeedback = 0
     private var current: SocialPost { latest ?? post }
     var body: some View {
         VStack(alignment: .leading) {
             HStack(spacing: 24) {
                 Button { Task { await update(current.liked == true ? "unlike" : "like") } } label: {
-                    Label("\(current.likeCount ?? 0)", systemImage: current.liked == true ? "heart.fill" : "heart").frame(minHeight: 44)
-                }.accessibilityLabel(current.liked == true ? "Unlike post" : "Like post")
-                    .accessibilityValue("\(current.likeCount ?? 0) likes").accessibilityIdentifier("social-like-\(post.id)")
+                    HStack(spacing: 6) {
+                        Text("🙌").scaleEffect(current.liked == true && !reduceMotion ? 1.12 : 1)
+                        Text(current.liked == true || (current.likeCount ?? 0) > 0 ? "\(current.likeCount ?? 0) Hands" : "Give Hands")
+                    }.font(SGTheme.TypeRole.body.weight(.semibold)).frame(minHeight: 44)
+                }.accessibilityLabel(current.liked == true ? "Remove Hands, unlike post" : "Give Hands, like this cook")
+                    .accessibilityValue("\(current.likeCount ?? 0) Hands").accessibilityIdentifier("social-like-\(post.id)")
                 Button { showingComments = true } label: { Label("\(current.commentCount ?? 0)", systemImage: "bubble").frame(minHeight: 44) }
                     .accessibilityLabel("Comments").accessibilityValue("\(current.commentCount ?? 0) comments").accessibilityIdentifier("social-comments-\(post.id)")
             }.disabled(busy || failed).frame(minHeight: 44)
             if failed { Text("Post unavailable or connection interrupted.").font(.footnote); Button("Refresh post") { Task { await update(nil) } } }
         }
+        .sensoryFeedback(.selection, trigger: reactionFeedback)
+        .animation(reduceMotion ? nil : SGTheme.Motion.quick, value: current.liked)
         .sheet(isPresented: $showingComments, onDismiss: { Task { await update(nil) } }) { SocialCommentsView(postID: post.id) }
     }
     private func update(_ action: String?) async {
@@ -39,7 +46,7 @@ struct SocialEngagementView: View {
         do {
             let response = try await request(action == nil ? "social_feed" : "social_interactions", action ?? "post", .init(postID: post.id))
             guard !Task.isCancelled, let next = try JSONDecoder().decode(SocialPostsPage.self, from: response).posts.first else { return }
-            latest = next; failed = false
+            if action != nil { reactionFeedback += 1 }; latest = next; failed = false
         } catch is CancellationError { } catch { failed = true }
     }
 }
@@ -65,7 +72,7 @@ struct SocialCommentsView: View {
     @State private var deletionRequest: SocialComment?
     var body: some View {
         NavigationStack {
-            List {
+            SGEditorialList {
                 if let post { Text(post.title).font(.headline) }
                 if loading && comments.isEmpty { ProgressView("Loading comments") }
                 if failed {

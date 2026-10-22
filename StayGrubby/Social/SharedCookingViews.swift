@@ -3,6 +3,7 @@ import SwiftData
 
 struct CookedWithSelection: View {
     @Binding var selected: Set<UUID>
+    @Environment(\.sgReduceMotion) private var reduceMotion
     @Environment(\.socialRequest) private var request
     @State private var people: [SocialPerson] = []
     @State private var loading = false
@@ -10,8 +11,8 @@ struct CookedWithSelection: View {
     @State private var cursor: String?
     @State private var revision = 0
     var body: some View {
-        SGFormSection(title: "Cooked With · optional") {
-            Text("Invite up to eight friends after saving and ranking. They choose whether to add their own cook. This does not share a Feed post.")
+        SGFormSection(title: "Tag a Sous Chef · optional") {
+            Text("Invite up to eight friends after saving and ranking. They choose whether to add their own cook. This does not share a Grub List post.")
                 .font(.footnote).foregroundStyle(.secondary)
             Text("Invitations include the dish title, Course, Cuisine and public cookbook/restaurant/online attribution. Notes, allergens, private annotations and photos stay private.").font(.footnote).foregroundStyle(.secondary)
             if loading { ProgressView("Loading friends") }
@@ -22,7 +23,7 @@ struct CookedWithSelection: View {
                 } label: {
                     HStack {
                         SocialAvatar(name: person.displayName, path: person.avatarPath, size: 32)
-                        Text(person.displayName).foregroundStyle(SGTheme.ColorToken.primaryText)
+                        VStack(alignment: .leading) { Text(person.displayName).font(.headline); Text(person.handle).font(.caption).foregroundStyle(.secondary) }.foregroundStyle(SGTheme.ColorToken.primaryText)
                         Spacer()
                         Image(systemName: selected.contains(person.id) ? "checkmark.circle.fill" : "circle")
                     }.frame(minHeight: 44).contentShape(Rectangle())
@@ -30,10 +31,13 @@ struct CookedWithSelection: View {
                     .accessibilityValue(selected.contains(person.id) ? "Selected" : "Not selected")
                     .accessibilityIdentifier("cooked-with-\(person.id)")
             }
+            Text("\(selected.count) of 8 selected").font(.caption).foregroundStyle(.secondary)
             if let cursor { Button("More friends") { Task { await load(after: cursor) } }.disabled(loading) }
             if failed { Text("Friends unavailable. Your selection is not sent until your cook is saved.").font(.footnote); Button("Retry friends") { revision += 1 } }
             else if !loading && people.isEmpty { Text("Current friends will appear here.").font(.footnote).foregroundStyle(.secondary) }
-        }.task(id: revision) { await load() }
+        }.animation(reduceMotion ? nil : SGTheme.Motion.quick, value: selected)
+            .sensoryFeedback(.selection, trigger: selected)
+            .task(id: revision) { await load() }
     }
     private func load(after: String? = nil) async {
         guard let request else { return }; loading = true; failed = false
@@ -65,7 +69,7 @@ struct SharedCookingEntryView: View {
     @State private var completed = false
     @State private var generation = UUID()
     var body: some View {
-        List {
+        SGEditorialList {
             if failed {
                 ContentUnavailableView("Cooking activity unavailable", systemImage: "wifi.exclamationmark", description: Text("Your access may have changed or the connection was interrupted."))
                 Button("Retry") { Task { await load() } }
@@ -100,7 +104,7 @@ struct SharedCookingEntryView: View {
                     if event != nil { Button("Decline invitation", role: .destructive) { Task { await decline() } }.accessibilityIdentifier("shared-decline").disabled(busy) }
                 }
             }
-        }.navigationTitle(eventID == nil ? "Make This" : "Cooked Together").navigationBarTitleDisplayMode(.inline)
+        }.navigationTitle(eventID == nil ? "Run It Back" : "Cooked Together").navigationBarTitleDisplayMode(.inline)
             .task { await load() }.refreshable { await load() }
             .onChange(of: phase) { _, next in generation = UUID(); event = nil; post = nil; if next == .active { Task { await load() } } }
             .onDisappear { generation = UUID() }
@@ -168,7 +172,7 @@ struct CookingProvenanceView: View {
             VStack(alignment: .leading, spacing: 8) {
                 if let page {
                     ForEach(page.origins) { origin in
-                        Text(origin.kind == "recreated" ? origin.creator.map { "Recreated from \($0.displayName)" } ?? "Recreated cooking · original activity unavailable" : origin.creator.map { "Cooked with \($0.displayName)" } ?? "Cooked Together · original activity unavailable")
+                        Text(origin.kind == "recreated" ? origin.creator.map { "Ran It Back from \($0.displayName)" } ?? "Run It Back · original activity unavailable" : origin.creator.map { "Cooked with \($0.displayName)" } ?? "Cooked Together · original activity unavailable")
                             .font(.subheadline)
                     }
                     ForEach(page.events) { event in NavigationLink("Cooked Together · participants") { SharedCookingEntryView(eventID: event.id) } }

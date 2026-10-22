@@ -13,7 +13,8 @@ struct RecipeLibraryView: View {
     @State private var generation = UUID()
     @Environment(\.scenePhase) private var phase
     var body: some View {
-        List {
+        SGEditorialList {
+            SGPageIntro(title: showingTickets ? "Tickets" : "Recipes", subtitle: showingTickets ? "Good things on your cooking list." : "Things you can make. Not things you’ve ranked.", eyebrow: "The next great cook")
             Picker("Library", selection: $showingTickets) {
                 Text("Tickets 🎟️").tag(true); Text("My Recipes").tag(false)
             }.pickerStyle(.segmented).accessibilityIdentifier("recipe-library-mode")
@@ -23,13 +24,13 @@ struct RecipeLibraryView: View {
             if showingTickets {
                 ForEach(tickets) { ticket in
                     if let recipe = ticket.recipe {
-                        NavigationLink { RecipeDetailView(id: recipe.id) } label: { Label(recipe.content.title, systemImage: "ticket") }
+                        NavigationLink { RecipeDetailView(id: recipe.id) } label: { RecipeSummaryRow(recipe: recipe, ticket: true) }.accessibilityLabel(recipe.content.title).accessibilityHint("Ticket, saved recipe. Opens recipe details.")
                     } else { Text("Recipe unavailable").foregroundStyle(.secondary) }
                     Button("Remove Ticket", role: .destructive) { Task { await remove(ticket.id) } }.font(.footnote)
                 }
                 if tickets.isEmpty && !loading && !failed { Text("No Tickets yet. Save a recipe you want to cook.") }
             } else {
-                ForEach(recipes) { recipe in NavigationLink(recipe.content.title) { RecipeDetailView(id: recipe.id) } }
+                ForEach(recipes) { recipe in NavigationLink { RecipeDetailView(id: recipe.id) } label: { RecipeSummaryRow(recipe: recipe, ticket: false) }.accessibilityLabel(recipe.content.title) }
                 if recipes.isEmpty && !loading && !failed { Text("Create your first recipe. Your private cooking history stays separate.") }
             }
             Button("Create Recipe") { creating = true }.accessibilityIdentifier("recipe-create")
@@ -71,10 +72,11 @@ struct RecipeDetailView: View {
     @State private var reservation = UUID()
     @State private var generation = UUID()
     var body: some View {
-        List {
+        SGEditorialList {
             if let recipe {
                 Section {
-                    Text(recipe.content.title).font(.title2.bold()).accessibilityIdentifier("recipe-title")
+                    SGEyebrow(text: "Recipe · something to make")
+                    Text(recipe.content.title).font(SGTheme.TypeRole.hero).accessibilityIdentifier("recipe-title")
                     if let creator = recipe.creator { Text("Added by \(creator.displayName)").foregroundStyle(.secondary) }
                     if let description = recipe.content.description, !description.isEmpty { Text(description) }
                     if let source = recipe.content.source, !source.isEmpty { Text("Source · \(source)") }
@@ -82,11 +84,13 @@ struct RecipeDetailView: View {
                     if let course = recipe.content.course { Text("Course · \(DishCategory(rawValue: course)?.label ?? course)") }
                     if let cuisine = recipe.content.cuisine { Text("Cuisine · \(cuisine)") }
                 }
-                Section("Ingredients") { ForEach(Array(recipe.content.ingredients.enumerated()), id: \.offset) { _, text in Text(text) } }
-                Section("Instructions") { ForEach(Array(recipe.content.steps.enumerated()), id: \.offset) { index, text in Text("\(index + 1). \(text)") } }
+                .listRowSeparator(.hidden)
+                Section("Ingredients") { ForEach(Array(recipe.content.ingredients.enumerated()), id: \.offset) { _, text in Text(text).font(SGTheme.TypeRole.reading).lineSpacing(6) } }
+                .listRowSeparator(.hidden)
+                Section("Instructions") { ForEach(Array(recipe.content.steps.enumerated()), id: \.offset) { index, text in Text("\(index + 1). \(text)").font(SGTheme.TypeRole.reading).lineSpacing(8).padding(.vertical, SGTheme.Space.small) } }
                 Section {
                     Button(recipe.saved ? "Remove Ticket" : "Save Ticket 🎟️") { Task { await ticket() } }.accessibilityIdentifier("recipe-ticket")
-                    Button("Make This") { Task { await begin() } }.accessibilityIdentifier("recipe-make")
+                    Button { Task { await begin() } } label: { Text("Make This").frame(maxWidth: .infinity) }.buttonStyle(SGButtonStyle(prominent: true)).accessibilityIdentifier("recipe-make")
                     Text("Review and edit your cook before ranking. Saving a Ticket or opening this form never adds cooking history.").font(.footnote)
                 }.disabled(busy)
                 if recipe.isOwner {
@@ -149,26 +153,29 @@ struct RecipeEditor: View {
     }
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Recipe") {
+            ScrollView {
+              VStack(alignment: .leading, spacing: SGTheme.Space.large) {
+                SGPageIntro(title: recipe == nil ? "A recipe worth keeping." : "Make it your recipe.", subtitle: "Ingredients, a little know-how, and somewhere to start.")
+                SGFormSection(title: "Recipe") {
                     TextField("Recipe title", text: $content.title).accessibilityIdentifier("recipe-edit-title")
                     TextField("Description · optional", text: optional(\.description), axis: .vertical)
                 }
-                Section("Ingredients · one per line") { TextEditor(text: $ingredients).frame(minHeight: 100).accessibilityIdentifier("recipe-ingredients") }
-                Section("Instructions · one step per line") { TextEditor(text: $steps).frame(minHeight: 100).accessibilityIdentifier("recipe-steps") }
-                Section("Classification & source") {
+                SGFormSection(title: "Ingredients · one per line") { TextEditor(text: $ingredients).scrollContentBackground(.hidden).frame(minHeight: 100).sgField().accessibilityLabel("Ingredients, one per line").accessibilityIdentifier("recipe-ingredients") }
+                SGFormSection(title: "Instructions · one step per line") { TextEditor(text: $steps).scrollContentBackground(.hidden).frame(minHeight: 100).sgField().accessibilityLabel("Instructions, one step per line").accessibilityIdentifier("recipe-steps") }
+                SGFormSection(title: "Classification & source") {
                     Picker("Course", selection: optional(\.course)) { Text("None").tag(""); ForEach(DishCategory.allCases, id: \.rawValue) { Text($0.label).tag($0.rawValue) } }
                     TextField("Cuisine · optional", text: optional(\.cuisine))
                     TextField("Source / attribution · optional", text: optional(\.source))
                     TextField("HTTPS source URL · optional", text: optional(\.externalURL)).textInputAutocapitalization(.never).autocorrectionDisabled().keyboardType(.URL)
                     Text("Describe the original source here. The recipe creator and the person whose cooking inspired you are tracked separately.").font(.footnote)
                 }
-                Section("Privacy") {
+                SGFormSection(title: "Privacy") {
                     Toggle("Share recipe with Sous Chefs", isOn: $shared).accessibilityIdentifier("recipe-sharing")
                     Text("Off keeps this recipe private. On allows current friends to read these recipe fields. Private cooking notes, scores, tags and photos are never copied.").font(.footnote)
                 }
                 if failed { Text("Couldn’t save. Check the title, source URL and connection. If edited elsewhere, cancel and reload before editing again.").accessibilityIdentifier("recipe-save-error") }
-            }.navigationTitle(recipe == nil ? "Create Recipe" : "Edit Recipe").navigationBarTitleDisplayMode(.inline)
+              }.padding(SGTheme.Space.medium).frame(maxWidth: SGTheme.Size.contentMaximum).frame(maxWidth: .infinity)
+            }.background(SGTheme.ColorToken.background).scrollDismissesKeyboard(.interactively).navigationTitle(recipe == nil ? "Create Recipe" : "Edit Recipe").navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.disabled(saving) }
                     ToolbarItem(placement: .confirmationAction) { Button("Save") { Task { await save() } }.disabled(saving || content.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty).accessibilityIdentifier("recipe-save") }
@@ -220,10 +227,23 @@ struct RecipeSnapshotView: View {
         List {
             Text(cook.snapshot.title).font(.title2.bold())
             if let source = cook.snapshot.source { Text("Source · \(source)") }
-            Section("Ingredients") { ForEach(Array(cook.snapshot.ingredients.enumerated()), id: \.offset) { _, text in Text(text) } }
-            Section("Instructions") { ForEach(Array(cook.snapshot.steps.enumerated()), id: \.offset) { _, text in Text(text) } }
+            Section("Ingredients") { ForEach(Array(cook.snapshot.ingredients.enumerated()), id: \.offset) { _, text in Text(text).font(SGTheme.TypeRole.reading).lineSpacing(6) } }
+            Section("Instructions") { ForEach(Array(cook.snapshot.steps.enumerated()), id: \.offset) { _, text in Text(text).font(SGTheme.TypeRole.reading).lineSpacing(6) } }
             if let id = cook.recipeID { NavigationLink("Current recipe") { RecipeDetailView(id: id) } }
             else { Text("Original recipe is no longer available. This is your historical snapshot.") }
         }.navigationTitle("Recipe used").navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+private struct RecipeSummaryRow: View {
+    let recipe: Recipe
+    var ticket: Bool
+    var body: some View {
+        VStack(alignment: .leading, spacing: SGTheme.Space.small) {
+            SGEyebrow(text: ticket ? "Ticket · Want to cook" : "Recipe")
+            Text(recipe.content.title).font(SGTheme.TypeRole.title).foregroundStyle(SGTheme.ColorToken.primaryText).fixedSize(horizontal: false, vertical: true)
+            if let source = recipe.content.source { Text(source).font(SGTheme.TypeRole.body).foregroundStyle(.secondary) }
+            Text("\(recipe.content.ingredients.count) ingredients · \(recipe.content.steps.count) steps").font(SGTheme.TypeRole.secondary).foregroundStyle(.secondary)
+        }.padding(.vertical, SGTheme.Space.medium).contentShape(Rectangle())
     }
 }

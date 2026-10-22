@@ -17,12 +17,12 @@ struct CookingSharingChoice: View {
     @Binding var selection: CookingSharingSelection
     var body: some View {
         SGFormSection(title: "Sharing") {
-            Toggle("Share with Friends", isOn: Binding(get: { selection.selected }, set: { selection.override = $0 }))
+            Toggle("Share with Sous Chefs", isOn: Binding(get: { selection.selected }, set: { selection.override = $0 }))
                 .foregroundStyle(SGTheme.ColorToken.primaryText)
                 .disabled(selection.loading || selection.configured == false).accessibilityIdentifier("cook-share-with-friends")
             if selection.loading { ProgressView("Loading sharing default") }
             else if selection.configured == false {
-                Text("Set up your social identity in Profile to share. This cook will stay private.")
+                Text("Set up your social identity in My Kitchen to share. This cook will stay private.")
             } else if selection.loadFailed {
                 Text("Default unavailable, so this starts private. You can choose to share; publication will wait for your social profile and connection.")
             }

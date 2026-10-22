@@ -19,12 +19,13 @@ struct SocialFeedView: View {
     @State private var deleting: SocialPost?
     @State private var confirmingDelete = false
     var body: some View {
-        List {
+        SGEditorialList {
+            SGPageIntro(title: "Grub List", subtitle: "What’s cooking in your circle.", eyebrow: "From your Sous Chefs", showsTitle: false).listRowSeparator(.hidden)
             Picker("Posts", selection: $own) {
-                Text("Friends Feed").tag(false); Text("Shared by me").tag(true)
+                Text("Sous Chefs").tag(false); Text("Shared by me").tag(true)
             }.pickerStyle(.segmented).accessibilityIdentifier("feed-scope")
             if request == nil {
-                ContentUnavailableView("Friends Feed", systemImage: "person.2", description: Text("Sign in to connect with friends. Your development cooking library remains private."))
+                ContentUnavailableView("Grub List", systemImage: "person.2", description: Text("Sign in to connect with friends. Your development cooking library remains private."))
             } else if let identity, !identity.isConfigured {
                 Section {
                     Text("Choose your social identity to connect. Your cooking stays private until you share it.")
@@ -37,8 +38,8 @@ struct SocialFeedView: View {
                     Button("Retry") { revision += 1 }.accessibilityIdentifier("feed-retry")
                 } else if !loading && posts.isEmpty {
                     ContentUnavailableView(own ? "Nothing shared yet" : friendCount == 0 ? "Cook, rank, connect" : "Your friends haven’t shared yet", systemImage: "fork.knife",
-                        description: Text(own ? "Share with Friends from a cook or ranking result. Sharing is always your choice." : "Only you and current friends can see the cooking posts you choose to share."))
-                    NavigationLink("Find Friends") { FriendsView() }.accessibilityIdentifier("feed-find-friends")
+                        description: Text(own ? "Share with Sous Chefs from a cook or ranking result. Sharing is always your choice." : "Only you and current friends can see the cooking posts you choose to share."))
+                    NavigationLink("Find Sous Chefs") { FriendsView() }.accessibilityIdentifier("feed-find-friends")
                 }
                 ForEach(posts) { post in
                     SocialFeedCard(post: post) { person = post.author } delete: { deleting = post; confirmingDelete = true }
@@ -47,10 +48,10 @@ struct SocialFeedView: View {
             }
         }
         .listStyle(.plain).background(SGTheme.ColorToken.background)
-        .navigationTitle("Friends Feed").navigationBarTitleDisplayMode(.inline).toolbar(.visible, for: .navigationBar)
+        .navigationTitle("Grub List").navigationBarTitleDisplayMode(.inline).toolbar(.visible, for: .navigationBar)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) { NotificationsLink() }
-            ToolbarItem(placement: .topBarTrailing) { NavigationLink { FriendsView() } label: { Label("Friends", systemImage: "person.2") } }
+            ToolbarItem(placement: .topBarTrailing) { NotificationsLink().labelStyle(.iconOnly) }
+            ToolbarItem(placement: .topBarTrailing) { NavigationLink { FriendsView() } label: { Label("Sous Chefs", systemImage: "person.2") }.labelStyle(.iconOnly) }
         }
         .refreshable { await load() }
         .task(id: "\(isSelected):\(own):\(revision)") {
@@ -123,13 +124,13 @@ struct SocialFeedCard: View {
                 }.buttonStyle(.plain).accessibilityLabel("View \(post.author.displayName)’s profile")
             }
             }
-            Text(post.date, style: .relative).font(.caption).foregroundStyle(.secondary)
-            SocialPhoto(path: post.photoPath).frame(maxWidth: .infinity).frame(height: 240).clipped().clipShape(RoundedRectangle(cornerRadius: 16))
+            Text(post.date, style: .relative).font(SGTheme.TypeRole.secondary).foregroundStyle(.secondary)
+            SocialPhoto(path: post.photoPath).frame(maxWidth: .infinity).frame(height: post.photoPath == nil ? 100 : 320).clipped().clipShape(RoundedRectangle(cornerRadius: SGTheme.Radius.hero))
             Text(post.title).font(SGTheme.TypeRole.title).fixedSize(horizontal: false, vertical: true)
             if let version = post.versionTitle { Text(version).foregroundStyle(.secondary) }
             if let provenance = post.provenance {
                 if provenance.kind == "recreated", let creator = provenance.creator {
-                    Label("Recreated from \(creator.displayName)", systemImage: "arrow.triangle.branch").font(.subheadline)
+                    Label("Ran It Back from \(creator.displayName)", systemImage: "arrow.triangle.branch").font(.subheadline)
                 } else if let people = provenance.people, !people.isEmpty {
                     Text("Cooked with " + people.map(\.displayName).joined(separator: ", ")).font(.subheadline).fixedSize(horizontal: false, vertical: true)
                 }
@@ -142,13 +143,14 @@ struct SocialFeedCard: View {
             if post.moderationState != "active" { Text("Hidden by moderation").foregroundStyle(.secondary) }
             if post.published && post.moderationState == "active" { SocialEngagementView(post: post) }
             if !post.isAuthor && post.published && post.moderationState == "active" {
-                NavigationLink { SharedCookingEntryView(postID: post.id) } label: { Label("Make This", systemImage: "fork.knife") }
+                NavigationLink { SharedCookingEntryView(postID: post.id) } label: { Label("Run It Back", systemImage: "arrow.triangle.branch") }
                     .accessibilityIdentifier("recreate-\(post.id)")
             }
             if post.isAuthor { Button("Delete post", role: .destructive, action: delete).accessibilityIdentifier("feed-delete-\(post.id)") }
             else { SocialReportButton(kind: "post", targetID: post.id) }
         }
-        .padding().background(SGTheme.ColorToken.surface, in: RoundedRectangle(cornerRadius: 20))
+        .padding(.vertical, SGTheme.Space.medium)
+        .overlay(alignment: .bottom) { Divider().padding(.top, SGTheme.Space.medium) }
         .buttonStyle(.borderless)
         .accessibilityElement(children: .contain).accessibilityIdentifier("feed-post-\(post.id)")
     }

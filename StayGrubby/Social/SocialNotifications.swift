@@ -13,10 +13,10 @@ nonisolated struct SocialNotification: Codable, Identifiable, Hashable, Sendable
         switch kind {
         case "request": "sent you a friend request"
         case "accepted": "accepted your friend request"
-        case "invited": "invited you to Cooked Together"
+        case "invited": "tagged you in a shared cook"
         case "joined": "joined your shared cook"
-        case "recreated": "recreated your cooking"
-        case "like": "liked your cooking"
+        case "recreated": "ran back your cooking"
+        case "like": "gave your cooking Hands 🙌"
         case "comment": "commented on your cooking"
         default: "shared cooking activity"
         }
@@ -32,7 +32,7 @@ struct NotificationsLink: View {
     var body: some View {
         if request != nil {
             NavigationLink { SocialNotificationsView() } label: {
-                Label(unread > 0 ? "Notifications, \(unread) unread" : "Notifications", systemImage: unread > 0 ? "bell.badge" : "bell")
+                Label(unread > 0 ? "Order Up!, \(unread) unread" : "Order Up!", systemImage: unread > 0 ? "bell.badge" : "bell")
             }.accessibilityIdentifier("notifications-open")
                 .task(id: revision) { await load() }
                 .onChange(of: phase) { _, next in unread = 0; if next == .active { revision += 1 } }
@@ -58,7 +58,8 @@ struct SocialNotificationsView: View {
     @State private var route: SocialNotification?
     @State private var generation = UUID()
     var body: some View {
-        List {
+        SGEditorialList {
+            SGPageIntro(title: "Order Up!", subtitle: "Your circle, caught up.", eyebrow: "Cooking together", showsTitle: false).listRowSeparator(.hidden)
             if busy && notifications.isEmpty { ProgressView("Loading notifications") }
             if failed {
                 Text("Notifications unavailable. Check your connection and retry.")
@@ -78,11 +79,11 @@ struct SocialNotificationsView: View {
                         }.foregroundStyle(SGTheme.ColorToken.primaryText).multilineTextAlignment(.leading).fixedSize(horizontal: false, vertical: true)
                         Spacer(minLength: 0)
                         if !notice.read { Image(systemName: "circle.fill").font(.caption2).foregroundStyle(SGTheme.ColorToken.accent).accessibilityLabel("Unread") }
-                    }.padding(.vertical, 6).contentShape(Rectangle())
+                    }.padding(.vertical, SGTheme.Space.small).padding(.horizontal, SGTheme.Space.xSmall).background(notice.read ? Color.clear : SGTheme.ColorToken.selected, in: RoundedRectangle(cornerRadius: SGTheme.Radius.field)).contentShape(Rectangle())
                 }.buttonStyle(.borderless).disabled(busy).accessibilityIdentifier("notification-\(notice.id)")
             }
             if hasMore { Button("Load more notifications") { Task { await load(more: true) } }.disabled(busy) }
-        }.navigationTitle("Notifications").navigationBarTitleDisplayMode(.inline)
+        }.navigationTitle("Order Up!").navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Mark All Read") { Task { await load(action: "readAll") } }.disabled(busy || unread == 0) } }
             .task { await load() }.refreshable { await load() }
             .onChange(of: phase) { _, next in generation = UUID(); notifications = []; unread = 0; if next == .active { Task { await load() } } }

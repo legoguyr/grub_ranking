@@ -7,7 +7,7 @@ struct SocialShareAction: View {
     @State private var showing = false
     var body: some View {
         if request != nil {
-            Button { showing = true } label: { Label("Share with Friends", systemImage: "person.2").frame(maxWidth: .infinity) }
+            Button { showing = true } label: { Label("Share with Sous Chefs", systemImage: "person.2").frame(maxWidth: .infinity) }
                 .buttonStyle(SGButtonStyle()).accessibilityIdentifier("share-with-friends")
                 .accessibilityHint("Review and explicitly publish a separate friends-only cooking post.")
                 .sheet(isPresented: $showing) { SocialPostComposer(attempt: attempt, close: { showing = false }) }
@@ -38,15 +38,15 @@ struct SocialPostComposer: View {
     }
     var body: some View {
         NavigationStack {
-            Form {
+            SGEditorialList {
                 if didPublish {
                     Section {
-                        Label("Shared with Friends", systemImage: "checkmark.circle.fill").accessibilityIdentifier("social-share-success")
+                        Label("Shared with Sous Chefs", systemImage: "checkmark.circle.fill").accessibilityIdentifier("social-share-success")
                         Text("Your separate cooking post is available to eligible friends. Your private cooking and ranking are unchanged.")
                         Button("Done", action: close).accessibilityIdentifier("social-share-done")
                     }
                 } else {
-                Section("Share with Friends") {
+                Section("Share with Sous Chefs") {
                     Text("Your cooking stays private unless you publish here. This creates a separate post for your current eligible friends.")
                     Text(model.title).font(SGTheme.TypeRole.headline)
                     if let version = model.versionSubtitle { Text(version).foregroundStyle(.secondary) }
@@ -62,7 +62,7 @@ struct SocialPostComposer: View {
                     } else {
                         Text("Posting as \(identity.handle). If you have no friends yet, only you can see the post until you connect.")
                         if !ready { Text("Wait for cooking data and photos to finish syncing before sharing.") }
-                        Button(busy ? "Sharing…" : "Publish to Friends") { Task { await publish() } }
+                        Button(busy ? "Sharing…" : "Publish to Sous Chefs") { Task { await publish() } }
                             .disabled(busy || !ready).accessibilityIdentifier("social-share-publish")
                     }
                 } else {
@@ -70,10 +70,10 @@ struct SocialPostComposer: View {
                     else { ProgressView("Loading social identity") }
                 }
                 if failed { Text("Couldn’t share. Check your connection and cooking sync, then retry. You can cancel a pending draft and try again.").accessibilityIdentifier("social-share-error") }
-                Text("The separate Share action opens the native image share sheet; it does not publish to Friends.").font(.footnote).foregroundStyle(.secondary)
+                Text("The separate Share action opens the native image share sheet; it does not publish to Sous Chefs.").font(.footnote).foregroundStyle(.secondary)
                 }
             }
-            .navigationTitle("Share with Friends").navigationBarTitleDisplayMode(.inline)
+            .navigationTitle("Share with Sous Chefs").navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { if !didPublish { Button("Cancel") { Task { await cancel() } }.disabled(busy) } } }
             .interactiveDismissDisabled(busy).task { await load() }
             .sheet(isPresented: $editingIdentity) {

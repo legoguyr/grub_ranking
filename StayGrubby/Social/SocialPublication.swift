@@ -242,8 +242,8 @@ struct SocialPublicationStatus: View {
         if let coordinator, let state = coordinator.status(itemID) {
             VStack(alignment: .leading, spacing: 8) {
                 switch state {
-                case .shared: Label("Shared with Friends", systemImage: "checkmark.circle").accessibilityIdentifier("automatic-share-success")
-                case .sharing: ProgressView("Sharing with Friends…")
+                case .shared: Label("Shared with Sous Chefs", systemImage: "checkmark.circle").accessibilityIdentifier("automatic-share-success")
+                case .sharing: ProgressView("Sharing with Sous Chefs…")
                 case .review:
                     Text("Your score is now unlocked. Review this pending share before publishing.")
                     if let attempt = coordinator.pendingAttempts.first(where: { $0.rankedItemID == itemID }) {
@@ -251,7 +251,7 @@ struct SocialPublicationStatus: View {
                     }
                     Button("Keep this cook private") { Task { await coordinator.keepPrivate(itemID) } }
                 case .pending, .failed:
-                    Text("Your cook and ranking are saved. Sharing with Friends is pending.").accessibilityIdentifier("automatic-share-pending")
+                    Text("Your cook and ranking are saved. Sharing with Sous Chefs is pending.").accessibilityIdentifier("automatic-share-pending")
                     Button("Retry sharing") { coordinator.retry() }.accessibilityIdentifier("automatic-share-retry")
                     Button("Keep this cook private") { Task { await coordinator.keepPrivate(itemID) } }
                 }
