@@ -1,16 +1,21 @@
 import SwiftUI
 
-private enum FriendsSection: String, CaseIterable, Identifiable {
+enum FriendsSection: String, CaseIterable, Identifiable {
     case friends, incoming, outgoing, search, blocked
     var id: String { rawValue }
     var title: String {
-        switch self { case .friends: "Friends"; case .incoming: "Incoming Requests"; case .outgoing: "Outgoing Requests"; case .search: "Find Friends"; case .blocked: "Blocked Users" }
+        switch self { case .friends: "Sous Chefs"; case .incoming: "Requests"; case .outgoing: "Sent Requests"; case .search: "Find Sous Chefs"; case .blocked: "Blocked Accounts" }
     }
 }
 
 struct FriendsView: View {
     @Environment(\.socialRequest) private var request
-    @State private var section = FriendsSection.friends
+    let administrative: FriendsSection?
+    @State private var section: FriendsSection
+    init(section: FriendsSection = .friends) {
+        administrative = [.outgoing, .blocked].contains(section) ? section : nil
+        _section = State(initialValue: section)
+    }
     @State private var query = ""
     @State private var identity: SocialIdentity?
     @State private var page = SocialPeoplePage(people: [])
@@ -29,9 +34,11 @@ struct FriendsView: View {
                     Button("Set up social identity") { editingIdentity = true }.accessibilityIdentifier("friends-setup")
                 }
             } else {
-                Picker("Show", selection: $section) {
-                    ForEach(FriendsSection.allCases) { Text($0.title).tag($0) }
-                }.accessibilityIdentifier("friends-section")
+                if administrative == nil {
+                    Picker("Show", selection: $section) {
+                        ForEach([FriendsSection.friends, .search, .incoming]) { Text($0.title).tag($0) }
+                    }.pickerStyle(.segmented).accessibilityIdentifier("friends-section")
+                }
                 if section == .search {
                     TextField("Search @username", text: $query).textInputAutocapitalization(.never).autocorrectionDisabled()
                         .submitLabel(.search).accessibilityIdentifier("friends-search")
@@ -45,7 +52,7 @@ struct FriendsView: View {
                 if !loading && error == nil && page.people.isEmpty {
                     ContentUnavailableView(section == .search ? "Find your cooking friends" : "No \(section.title.lowercased()) yet", systemImage: "person.2",
                         description: Text(section == .search ? "Enter at least two username characters." : "Friendships are mutual. Your private cooking library stays yours."))
-                    if section == .friends { Button("Find Friends") { section = .search }.accessibilityIdentifier("friends-find") }
+                    if section == .friends { Button("Find Sous Chefs") { section = .search }.accessibilityIdentifier("friends-find") }
                 }
                 ForEach(page.people) { person in
                     Button { selectedPerson = person } label: {
@@ -61,7 +68,7 @@ struct FriendsView: View {
                 if page.nextCursor != nil { Button("Load more people") { Task { await load(more: true) } }.disabled(loading) }
             }
         }
-        .navigationTitle("Friends").navigationBarTitleDisplayMode(.inline).toolbar(.visible, for: .navigationBar)
+        .navigationTitle(administrative?.title ?? "Sous Chefs").navigationBarTitleDisplayMode(.inline).toolbar(.visible, for: .navigationBar)
         .scrollDismissesKeyboard(.interactively).refreshable { await load() }
         .task(id: taskKey) {
             page = .init(people: []); error = nil
@@ -167,7 +174,7 @@ struct SocialFriendsLink: View {
     @Environment(\.socialRequest) private var request
     var body: some View {
         if request != nil {
-            NavigationLink("Friends") { FriendsView() }
+            NavigationLink("Sous Chefs") { FriendsView() }
                 .buttonStyle(SGButtonStyle()).accessibilityIdentifier("friends-open")
         }
     }

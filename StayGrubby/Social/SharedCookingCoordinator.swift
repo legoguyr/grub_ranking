@@ -23,13 +23,13 @@ import SwiftData
         generation = UUID(); task?.cancel(); task = nil; again = false
         context = nil; root = nil; owner = nil; request = nil; sync = nil; intents = []; failed = false; writable = true
     }
-    func record(itemID: UUID, participants: [UUID], originID: UUID?) throws {
-        guard !participants.isEmpty || originID != nil else { return }
+    func record(itemID: UUID, participants: [UUID], originID: UUID?, recipeOriginID: UUID? = nil) throws {
+        guard !participants.isEmpty || originID != nil || recipeOriginID != nil else { return }
         guard participants.count <= 8, Set(participants).count == participants.count else { throw AccountFoundationError.invalidResolution }
         if let index = intents.firstIndex(where: { $0.id == itemID }) {
             if ((try? context?.fetch(FetchDescriptor<CookingAttempt>())) ?? []).contains(where: { $0.rankedItemID == itemID }) { return }
-            intents[index] = .init(id: itemID, eventID: intents[index].eventID, participants: participants, originID: originID)
-        } else { intents.append(.init(id: itemID, eventID: itemID, participants: participants, originID: originID)) }
+            intents[index] = .init(id: itemID, eventID: intents[index].eventID, participants: participants, originID: originID, recipeOriginID: recipeOriginID)
+        } else { intents.append(.init(id: itemID, eventID: itemID, participants: participants, originID: originID, recipeOriginID: recipeOriginID)) }
         try persist()
     }
     var pendingSavedCooks: [CookingAttempt] {
@@ -66,6 +66,10 @@ import SwiftData
                     _ = try await request("social_cooking", "cancel", .init(eventID: intent.eventID))
                     guard token == generation, !Task.isCancelled else { return }
                 }
+                if let recipe = intent.recipeOriginID {
+                    _ = try await request("recipes", "complete", .init(originID: recipe))
+                    guard token == generation, !Task.isCancelled else { return }
+                }
                 if let origin = intent.originID { _ = try await request("social_cooking", "complete", .init(originID: origin)) }
                 guard token == generation, !Task.isCancelled else { return }
                 if intent.cancelRequested != true && intents.first(where: { $0.id == intent.id })?.cancelRequested == true { continue }
@@ -98,8 +102,8 @@ struct SharedCookingPending: View {
     var body: some View {
         if let coordinator, coordinator.pendingSavedCooks.contains(where: { itemID == nil || $0.rankedItemID == itemID }) {
             VStack(alignment: .leading, spacing: 8) {
-                Text("Your cook and ranking are saved. Shared Cooking details are pending.").font(.footnote)
-                Button("Retry Shared Cooking") { coordinator.retry() }.accessibilityIdentifier("shared-cooking-retry")
+                Text("Your cook and ranking are saved. Cooking attribution or invitations are pending.").font(.footnote)
+                Button("Retry cooking details") { coordinator.retry() }.accessibilityIdentifier("shared-cooking-retry")
                 ForEach(coordinator.intents.filter { intent in !intent.participants.isEmpty && (itemID == nil || intent.id == itemID) && coordinator.pendingSavedCooks.contains(where: { $0.rankedItemID == intent.id }) }) { intent in
                     Button("Cancel pending invitations", role: .destructive) { Task { await coordinator.cancelInvitations(intent.id) } }
                 }

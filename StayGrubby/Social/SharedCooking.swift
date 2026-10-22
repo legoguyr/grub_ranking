@@ -29,6 +29,24 @@ nonisolated struct SocialCookingClaim: Codable, Identifiable, Sendable {
     let kind: String
     let completed: Bool
     let metadata: SharedCookingMetadata
+    @MainActor func draft() -> CookingDraft {
+        var value = metadata.draft()
+        if let recipeSnapshot {
+            value.cuisine = recipeSnapshot.cuisine.flatMap { CuisineCatalog.resolve($0) }
+            var sourceDraft = DishSourceDraft()
+            if let url = recipeSnapshot.externalURL {
+                sourceDraft.type = .onlineRecipe; sourceDraft.onlineURL = url
+                sourceDraft.onlineWebsite = recipeSnapshot.source ?? URL(string: url)?.host ?? ""
+                sourceDraft.onlineRecipeName = recipeSnapshot.title
+                value.source = sourceDraft
+            } else if let source = recipeSnapshot.source {
+                sourceDraft.type = .other; sourceDraft.otherName = source; value.source = sourceDraft
+            }
+        }
+        return value
+    }
+    var recipeOriginID: UUID? = nil
+    var recipeSnapshot: RecipeContent? = nil
 }
 nonisolated struct SharedCookingEvent: Codable, Identifiable, Sendable {
     let id: UUID
@@ -59,6 +77,7 @@ nonisolated struct CookingSocialIntent: Codable, Equatable, Identifiable, Sendab
     let participants: [UUID]
     let originID: UUID?
     var cancelRequested: Bool? = nil
+    var recipeOriginID: UUID? = nil
 }
 nonisolated struct CookingSocialJournal: Codable, Sendable {
     let version: Int

@@ -6,7 +6,7 @@ final class SocialUXUITests: StayGrubbyUITestCase {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-test-store", UUID().uuidString, "--social-review", "--social-review-ready", "--social-review-avatar-selection", "--test-dark"]
         app.launchWithReviewOptions(); XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 15))
-        app.tabBars.buttons["Profile"].tap()
+        app.openAccountProfileSettings()
         let edit = app.buttons["social-identity-edit"]
         XCTAssertTrue(edit.waitForExistence(timeout: 8)); openIdentity(app, link: edit)
         let preview = app.descendants(matching: .any).matching(identifier: "avatar-preview").firstMatch
@@ -25,7 +25,7 @@ final class SocialUXUITests: StayGrubbyUITestCase {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-test-store", UUID().uuidString, "--social-review", "--social-review-ready", "--test-light"]
         app.launchWithReviewOptions(); XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 15))
-        app.tabBars.buttons["Profile"].tap()
+        app.openAccountProfileSettings()
         let settings = app.buttons["social-settings-open"]
         XCTAssertTrue(settings.waitForExistence(timeout: 8)); openSettings(app, link: settings)
         let toggle = app.switches["social-settings-default"]
@@ -45,7 +45,7 @@ final class SocialUXUITests: StayGrubbyUITestCase {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-test-store", UUID().uuidString, "--social-review", "--test-light", "--test-large-type"]
         app.launchWithReviewOptions(); XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 15))
-        app.tabBars.buttons["Profile"].tap(); let edit = app.buttons["social-identity-edit"]
+        app.openAccountProfileSettings(); let edit = app.buttons["social-identity-edit"]
         XCTAssertTrue(edit.waitForExistence(timeout: 8)); openIdentity(app, link: edit)
         let name = app.textFields["social-display-name"]
         for _ in 0..<4 { if name.isHittable { break }; app.swipeUp() }

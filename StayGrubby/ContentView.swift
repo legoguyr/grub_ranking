@@ -20,6 +20,7 @@ struct ContentView: View {
             .tabItem { Label("Profile", systemImage: "person") }.tag(StayGrubbyTab.profile)
         }
         .tint(SGTheme.ColorToken.accent)
+        .modifier(AppLinkPresentation())
         .modifier(SocialPublicationHost())
         #if DEBUG
         .modifier(SocialReviewModifier())
@@ -33,6 +34,6 @@ struct ContentView: View {
 enum StayGrubbyTab: Hashable { case feed, rankings, profile }
 
 #Preview {
-    ContentView().environment(AccountSessionCoordinator()).modelContainer(try! ModelContainer(for: AppPersistence.schema,
+    ContentView().environment(AppLinkRouter()).environment(AccountSessionCoordinator()).modelContainer(try! ModelContainer(for: AppPersistence.schema,
         configurations: [ModelConfiguration(isStoredInMemoryOnly: true)]))
 }

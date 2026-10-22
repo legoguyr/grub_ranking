@@ -17,4 +17,5 @@ nonisolated struct SocialPerson: Codable, Hashable, Identifiable, Sendable {
 nonisolated struct SocialPeoplePage: Codable, Sendable {
     var people: [SocialPerson]
     var nextCursor: String?
+    var isOwn: Bool? = nil
 }

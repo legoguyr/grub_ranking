@@ -11,6 +11,9 @@ import SwiftUI
     private var avatarDraft: String?
     var posts: [SocialPost] = []
     var comments: [UUID: [SocialComment]] = [:]
+    var recipes: [UUID: Recipe] = [:]
+    var ticketDates: [UUID: Double] = [:]
+    var recipeClaims: [UUID: SocialCookingClaim] = [:]
     var sharedEvents: [UUID: SharedCookingEvent] = [:]
     var cookingClaims: [String: SocialCookingClaim] = [:]
     var notices: [SocialNotification] = []
@@ -23,6 +26,11 @@ import SwiftUI
     ]
     init() {
         if ProcessInfo.processInfo.arguments.contains("--social-review-ready") { identity = .init(displayName: "Review Cook", username: "review_cook", discoverable: false, automaticallyShareNewDishes: ProcessInfo.processInfo.arguments.contains("--social-review-share-default")) }
+        if ProcessInfo.processInfo.arguments.contains("--recipes-review") {
+            identity.discoverable = true
+            let id = UUID(uuidString: "60000000-0000-0000-0000-000000000001")!
+            recipes[id] = Recipe(id: id, isOwner: true, content: RecipeContent(title: "Lemon Soup Recipe", ingredients: ["1 lemon", "2 cups stock"], steps: ["Simmer gently"], course: "soup", cuisine: "Italian", source: "A recipe author"), visibility: "private", revision: 1, createdAt: 100, updatedAt: 100, saved: false)
+        }
         if ProcessInfo.processInfo.arguments.contains("--shared-review") {
             let eventID = UUID(uuidString: "40000000-0000-0000-0000-000000000001")!
             let own = SocialPerson(id: UUID(uuidString: "10000000-0000-0000-0000-000000000099")!, displayName: "Review Cook", username: "review_cook", relationship: .none)
@@ -39,6 +47,46 @@ import SwiftUI
     func request(_ endpoint: String, _ action: String, _ payload: SocialPayload) async throws -> Data {
         // Opt-in diagnostics for isolated fixtures only; never log payloads/identities.
         if ProcessInfo.processInfo.arguments.contains("--social-review-trace") { NSLog("SOCIAL_REVIEW %@ %@", endpoint, action) }
+        if endpoint == "profile_link" {
+            guard !ProcessInfo.processInfo.arguments.contains("--profile-link-private") else { throw URLError(.resourceUnavailable) }
+            if payload.username == identity.username, identity.discoverable {
+                let own = SocialPerson(id: UUID(uuidString: "10000000-0000-0000-0000-000000000099")!, displayName: identity.displayName, username: identity.username!, relationship: .none)
+                return try JSONEncoder().encode(SocialPeoplePage(people: [own], isOwn: true))
+            }
+            guard let person = people.first(where: { $0.username == payload.username && $0.relationship != .blocked }) else { throw URLError(.resourceUnavailable) }
+            return try JSONEncoder().encode(SocialPeoplePage(people: [person]))
+        }
+        if endpoint == "recipes" {
+            if action == "list" { return try JSONEncoder().encode(RecipesPage(recipes: Array(recipes.values))) }
+            if action == "tickets" { return try JSONEncoder().encode(TicketsPage(tickets: ticketDates.map { RecipeTicket(id: $0.key, createdAt: $0.value, recipe: recipes[$0.key]) })) }
+            if action == "provenance" {
+                let values = recipeClaims.values.filter { $0.itemID == payload.targetID && $0.completed }.compactMap { c -> RecipeCookSnapshot? in
+                    guard let snapshot = c.recipeSnapshot else { return nil }
+                    return RecipeCookSnapshot(id: c.id, recipeID: recipes.values.first { $0.content == snapshot }?.id, snapshot: snapshot, revision: 1)
+                }
+                return try JSONEncoder().encode(RecipeCooksPage(cooks: values))
+            }
+            if action == "complete", let id = payload.originID, let previous = recipeClaims[id] {
+                recipeClaims[id] = .init(id: id, itemID: previous.itemID, kind: previous.kind, completed: true, metadata: previous.metadata, recipeOriginID: id, recipeSnapshot: previous.recipeSnapshot)
+                return Data("{}".utf8)
+            }
+            guard let id = payload.recipeID else { throw URLError(.badURL) }
+            if action == "save", let content = payload.recipe {
+                let value = Recipe(id: id, isOwner: true, content: content, visibility: payload.visibility ?? "private", revision: (recipes[id]?.revision ?? 0) + 1, createdAt: recipes[id]?.createdAt ?? 100, updatedAt: 200, saved: ticketDates[id] != nil)
+                recipes[id] = value; return try JSONEncoder().encode(value)
+            }
+            if action == "delete" { recipes[id] = nil; ticketDates[id] = nil; return Data("{}".utf8) }
+            if action == "unticket" { ticketDates[id] = nil; recipes[id]?.saved = false; return Data("{}".utf8) }
+            guard var recipe = recipes[id] else { throw URLError(.resourceUnavailable) }
+            if action == "ticket" { ticketDates[id] = ticketDates[id] ?? 100; recipe.saved = true; recipes[id] = recipe }
+            if action == "begin", let reservation = payload.originID {
+                if recipeClaims[reservation] == nil {
+                    recipeClaims[reservation] = .init(id: reservation, itemID: UUID(), kind: "recipe", completed: false, metadata: .init(title: recipe.content.title, course: recipe.content.course), recipeOriginID: reservation, recipeSnapshot: recipe.content)
+                }
+                return try JSONEncoder().encode(recipeClaims[reservation])
+            }
+            return try JSONEncoder().encode(recipe)
+        }
         if endpoint == "social_notifications" {
             if action == "read" || action == "readAll" {
                 notices = notices.map { n in SocialNotification(id: n.id, kind: n.kind, actor: n.actor, targetID: n.targetID, postID: n.postID, createdAt: n.createdAt, read: n.read || action == "readAll" || n.id == payload.targetID) }
@@ -83,7 +131,11 @@ import SwiftUI
             if action == "recreate", let post = posts.first(where: { $0.id == payload.postID }) {
                 guard people.contains(where: { $0.id == post.author.id && $0.relationship == .friends }) else { throw URLError(.userAuthenticationRequired) }
                 let key = post.id.uuidString
-                if cookingClaims[key] == nil { cookingClaims[key] = .init(id: UUID(), itemID: UUID(), kind: "recreated", completed: false, metadata: .init(title: post.title, course: "main")) }
+                if cookingClaims[key] == nil {
+                    var claim = SocialCookingClaim(id: UUID(), itemID: UUID(), kind: "recreated", completed: false, metadata: .init(title: post.title, course: "main"))
+                    if let id = post.recipeID, let recipe = recipes[id] { claim.recipeOriginID = claim.id; claim.recipeSnapshot = recipe.content; recipeClaims[claim.id] = claim }
+                    cookingClaims[key] = claim
+                }
                 return try JSONEncoder().encode(cookingClaims[key])
             }
             throw URLError(.resourceUnavailable)
@@ -122,6 +174,7 @@ import SwiftUI
                 if let index = posts.firstIndex(where: { $0.id == seed.id }) { posts[index].commentCount = 1 }
                 comments[seed.id] = [SocialComment(id: UUID(uuidString: "30000000-0000-0000-0000-000000000001")!, author: people[0], body: "A friendly cooking comment", createdAt: Date().timeIntervalSince1970, canDelete: false, isAuthor: false)]
             }
+            if ProcessInfo.processInfo.arguments.contains("--recipes-review-feed"), let id = recipes.keys.first, let index = posts.firstIndex(where: { !$0.isAuthor }) { posts[index].recipeID = id }
             let visible = posts.filter { post in post.isAuthor || people.contains(where: { $0.id == post.author.id && $0.relationship == .friends }) }
             if action == "post" { return try JSONEncoder().encode(SocialPostsPage(posts: visible.filter { $0.id == payload.postID })) }
             return try JSONEncoder().encode(SocialPostsPage(posts: visible))
@@ -166,6 +219,7 @@ import SwiftUI
 }
 struct SocialReviewModifier: ViewModifier {
     @State private var review = SocialReview()
+    @Environment(AppLinkRouter.self) private var links
     func body(content: Content) -> some View {
         if DebugReviewConfiguration.current.storeID != nil && ProcessInfo.processInfo.arguments.contains("--social-review") {
             content.environment(\.socialMedia, { action in
@@ -174,6 +228,10 @@ struct SocialReviewModifier: ViewModifier {
                 if case .avatarRemove(let paths) = action { for path in paths { review.avatars[path] = nil } }
                 return Data()
             }).environment(\.socialRequest, { endpoint, action, payload in try await review.request(endpoint, action, payload) })
+                .task {
+                    let arguments = ProcessInfo.processInfo.arguments
+                    if let index = arguments.firstIndex(of: "--review-profile-url"), arguments.indices.contains(index + 1), let url = URL(string: arguments[index + 1]) { links.receive(url) }
+                }
         } else { content }
     }
 }

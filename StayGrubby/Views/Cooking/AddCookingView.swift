@@ -28,7 +28,7 @@ struct AddCookingView: View {
 
     init(list: RankingList, dish: Dish? = nil, origin: SocialCookingClaim? = nil, onResultClose: @escaping () -> Void = {}) {
         self.list = list; self.dish = dish; self.origin = origin; self.onResultClose = onResultClose
-        _draft = State(initialValue: origin?.metadata.draft() ?? dish.map { CookingDraft(dish: $0) } ?? CookingDraft())
+        _draft = State(initialValue: origin?.draft() ?? dish.map { CookingDraft(dish: $0) } ?? CookingDraft())
     }
     private var displayName: String {
         "\(draft.cleanDishName) — \(draft.cleanTitle ?? "Version \((dish?.attempts.map(\.sequenceNumber).max() ?? 0) + 1)")"
@@ -113,7 +113,7 @@ struct AddCookingView: View {
             let before = RankingCompletionSnapshot.capture(from: list)
             if !cookedWith.isEmpty || origin != nil {
                 guard let sharedCooking else { throw AccountFoundationError.accountNotResolved }
-                try sharedCooking.record(itemID: session.itemID, participants: cookedWith.sorted { $0.uuidString < $1.uuidString }, originID: origin?.id)
+                try sharedCooking.record(itemID: session.itemID, participants: cookedWith.sorted { $0.uuidString < $1.uuidString }, originID: origin?.kind == "recipe" ? nil : origin?.id, recipeOriginID: origin?.recipeOriginID)
             }
             if sharingChoice == true {
                 sharingUnavailable = publication?.record(itemID: session.itemID, includePhoto: draft.hasPhoto) != true

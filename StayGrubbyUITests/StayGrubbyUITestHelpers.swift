@@ -62,3 +62,17 @@ extension XCUIApplication {
         XCTAssertTrue(rankingSearchField.waitForExistence(timeout: 10))
     }
 }
+
+extension XCUIApplication {
+    @MainActor func openAccountProfileSettings() {
+        for _ in 0..<3 {
+            tabBars.buttons["Profile"].tap()
+            if buttons["settings-open"].waitForExistence(timeout: 3) { break }
+        }
+        XCTAssertTrue(buttons["settings-open"].waitForExistence(timeout: 8), debugDescription)
+        buttons["settings-open"].tap()
+        XCTAssertTrue(buttons["settings-account"].waitForExistence(timeout: 8), debugDescription)
+        buttons["settings-account"].tap()
+        XCTAssertTrue(buttons["social-identity-edit"].waitForExistence(timeout: 8), debugDescription)
+    }
+}

@@ -85,14 +85,17 @@ struct SharedCookingEntryView: View {
                         }
                     }
                 }
-                if let post { Text(post.title).font(.title2.bold()); Text("Recreate from \(post.author.displayName)’s cooking") }
+                if let post {
+                    Text(post.title).font(.title2.bold()); Text("Run It Back from \(post.author.displayName)’s cooking")
+                    if let recipeID = post.recipeID { NavigationLink("View recipe") { RecipeDetailView(id: recipeID) } }
+                }
                 if let existing {
                     NavigationLink("View my saved cook") { AttemptDetailView(attempt: existing) }
                 } else if completed { Text("Already added to your cooking. Let your account finish restoring to see it here.") }
                 else if event?.isOwner != true && (event != nil || post != nil) {
                     Text("Review the details and rank this cook in your own library. Scores, comparisons, private notes and photos are never copied.")
                     if event != nil { Text("Joining confirms you cooked together. Participation may appear to mutual friends when either cook is shared.").font(.footnote).foregroundStyle(.secondary) }
-                    Button(event != nil ? "Add to My Cooking" : "Make This") { Task { await begin() } }
+                    Button(event != nil ? "Add to My Cooking" : "Run It Back") { Task { await begin() } }
                         .accessibilityIdentifier("shared-begin").disabled(busy)
                     if event != nil { Button("Decline invitation", role: .destructive) { Task { await decline() } }.accessibilityIdentifier("shared-decline").disabled(busy) }
                 }
@@ -134,7 +137,7 @@ struct SharedCookingEntryView: View {
             if existing != nil || next.completed {
                 completed = true
                 if existing != nil && !next.completed {
-                    try sharedCooking?.record(itemID: next.itemID, participants: [], originID: next.id)
+                    try sharedCooking?.record(itemID: next.itemID, participants: [], originID: next.id, recipeOriginID: next.recipeOriginID)
                     sharedCooking?.retry()
                 }
             }
@@ -171,6 +174,7 @@ struct CookingProvenanceView: View {
                     ForEach(page.events) { event in NavigationLink("Cooked Together · participants") { SharedCookingEntryView(eventID: event.id) } }
                 }
                 if failed { Button("Retry cooking provenance") { Task { await load() } }.font(.footnote) }
+                RecipeCookingProvenance(itemID: itemID)
                 SharedCookingPending(itemID: itemID)
             }.task(id: itemID) { await load() }
                 .onReceive(NotificationCenter.default.publisher(for: .socialContentChanged)) { _ in Task { await load() } }

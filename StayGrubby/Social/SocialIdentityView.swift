@@ -75,7 +75,7 @@ struct SocialIdentityEditor: View {
                 Section {
                     Toggle("Appear in Find Friends", isOn: $discoverable).accessibilityIdentifier("social-discoverable")
                     Text("Off by default. Turning this off does not remove existing friends or change your cooking library.")
-                    Text("When you change your username, the old name is reserved for you for 30 days.")
+                    Text("When you change your username, previous share links continue to identify your account. Published usernames cannot be taken by another account.")
                 }
                 Section("Share your cooking?") {
                     Toggle("Automatically Share New Dishes", isOn: $automaticallyShare).accessibilityIdentifier("social-sharing-default")

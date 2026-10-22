@@ -55,4 +55,7 @@ nonisolated struct SocialPayload: Codable, Sendable {
     var originID: UUID?
     var participantIDs: [UUID]?
     var includeAttribution: Bool?
+    var recipeID: UUID?
+    var recipe: RecipeContent?
+    var visibility: String?
 }

@@ -6,10 +6,13 @@ import UIKit
 
 @main
 struct StayGrubbyApp: App {
+    @State private var links = AppLinkRouter()
     @State private var accountSession = AccountSessionCoordinator()
     var body: some Scene {
         WindowGroup {
-            AccountApplicationRoot().environment(accountSession).modifier(DebugPresentationOverrides())
+            AccountApplicationRoot().environment(accountSession).environment(links).modifier(DebugPresentationOverrides())
+                .onOpenURL { links.receive($0) }
+                .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { if let url = $0.webpageURL { links.receive(url) } }
         }
     }
 }

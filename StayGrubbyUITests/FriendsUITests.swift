@@ -9,11 +9,18 @@ final class FriendsUITests: StayGrubbyUITestCase {
         XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 15)); app.tabBars.buttons["Profile"].tap()
         let friends = app.buttons["friends-open"]
         XCTAssertTrue(friends.waitForExistence(timeout: 10)); friends.tap()
-        XCTAssertTrue(app.navigationBars["Friends"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Sous Chefs"].waitForExistence(timeout: 5))
         return app
     }
     @MainActor private func section(_ title: String, in app: XCUIApplication) {
-        app.buttons["friends-section"].tap(); app.buttons[title].firstMatch.tap()
+        if ["Blocked Accounts", "Sent Requests"].contains(title) {
+            for _ in 0..<3 {
+                if app.buttons["settings-open"].isHittable { break }
+                app.navigationBars.buttons.element(boundBy: 0).tap()
+            }
+            XCTAssertTrue(app.buttons["settings-open"].waitForExistence(timeout: 5)); app.buttons["settings-open"].tap()
+            XCTAssertTrue(app.buttons[title].waitForExistence(timeout: 5)); app.buttons[title].tap()
+        } else { app.segmentedControls.buttons[title].tap() }
     }
     @MainActor func testFriendsRequestsAndBlockingUseMinimalProfiles() throws {
         let app = launch(["--test-dark"])
@@ -23,29 +30,29 @@ final class FriendsUITests: StayGrubbyUITestCase {
         XCTAssertFalse(app.staticTexts["Your Top 3"].exists)
         XCTAssertFalse(app.buttons["Edit Cook"].exists)
         app.buttons["Remove Friend"].tap(); app.buttons["Remove Friendship"].tap()
-        XCTAssertTrue(app.navigationBars["Friends"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Sous Chefs"].waitForExistence(timeout: 5))
         XCTAssertFalse(friend.exists)
-        section("Incoming Requests", in: app)
+        section("Requests", in: app)
         let incoming = app.buttons["friend-person-incoming_cook"]
         XCTAssertTrue(incoming.waitForExistence(timeout: 5)); incoming.tap()
         app.buttons["friend-action-accept"].tap()
         XCTAssertTrue(app.buttons["Remove Friend"].waitForExistence(timeout: 5))
         app.buttons["Block"].tap(); app.buttons["Block Person"].tap()
-        XCTAssertTrue(app.navigationBars["Friends"].waitForExistence(timeout: 5))
-        section("Blocked Users", in: app)
+        XCTAssertTrue(app.navigationBars["Sous Chefs"].waitForExistence(timeout: 5))
+        section("Blocked Accounts", in: app)
         let blocked = app.buttons["friend-person-incoming_cook"]
         XCTAssertTrue(blocked.waitForExistence(timeout: 5)); blocked.tap()
         app.buttons["friend-action-unblock"].tap()
-        XCTAssertTrue(app.navigationBars["Friends"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Blocked Accounts"].waitForExistence(timeout: 5))
         XCTAssertFalse(blocked.exists)
-        section("Outgoing Requests", in: app)
+        section("Sent Requests", in: app)
         let outgoing = app.buttons["friend-person-outgoing_cook"]
         XCTAssertTrue(outgoing.waitForExistence(timeout: 5)); outgoing.tap(); app.buttons["friend-action-cancel"].tap()
-        XCTAssertTrue(app.navigationBars["Friends"].waitForExistence(timeout: 5)); XCTAssertFalse(outgoing.exists)
+        XCTAssertTrue(app.navigationBars["Sent Requests"].waitForExistence(timeout: 5)); XCTAssertFalse(outgoing.exists)
     }
     @MainActor func testSearchAtLightAccessibilitySize() throws {
         let app = launch(["--test-light", "--test-large-type"])
-        section("Find Friends", in: app)
+        section("Find Sous Chefs", in: app)
         let field = app.textFields["friends-search"]
         XCTAssertTrue(field.waitForExistence(timeout: 5)); field.tap()
         let focus = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hasKeyboardFocus == true"), object: field)

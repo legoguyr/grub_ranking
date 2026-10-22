@@ -15,7 +15,7 @@ final class SocialIdentityUITests: StayGrubbyUITestCase {
         app.launchArguments = ["--ui-test-store", UUID().uuidString, "--social-review", "--test-dark"]
         app.launchWithReviewOptions()
         XCTAssertTrue(app.rankingHeader.waitForExistence(timeout: 15))
-        app.tabBars.buttons["Profile"].tap()
+        app.openAccountProfileSettings()
         let edit = app.buttons["social-identity-edit"]
         XCTAssertTrue(edit.waitForExistence(timeout: 10)); edit.tap()
         let name = app.textFields["social-display-name"], username = app.textFields["social-username"]

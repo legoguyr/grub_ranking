@@ -35,7 +35,9 @@ struct AccountView: View {
                 identity
                 SocialPendingShares()
                 SharedCookingPending()
-                SocialIdentitySection()
+                ShareMyKitchen()
+                NavigationLink("Recipes & Tickets 🎟️") { RecipeLibraryView() }.buttonStyle(SGButtonStyle()).accessibilityIdentifier("recipes-open")
+                NavigationLink("Settings") { KitchenSettings { accountUtilities } }.buttonStyle(SGButtonStyle()).accessibilityIdentifier("settings-open")
                 SocialFriendsLink()
                 NotificationsLink()
                 ProfileCookingContent(snapshot: snapshot, ranking: ranking)
