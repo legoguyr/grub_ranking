@@ -77,19 +77,13 @@ Chronological friends feed and explicit cooking snapshots are implemented, newes
 
 Optional profile photos/initials, normal Social settings, account-synced sharing defaults, social setup choice and per-entry New Dish/New Version sharing are implemented and deployed. Legacy/unset defaults OFF; each new entry can override. The completed-cook outbox reuses explicit social snapshots, preserves private ranking on failure, supports retry and pauses for review if scores unlock while a formerly locked share remains pending. Edit/re-rank/restore do not create sharing intent. Native image sharing remains separate.
 
-Following direct owner approval, two additive migrations and the avatar-aware account-deletion function update are deployed. All 18 migration hashes align; three photo buckets remain private, all 24 application tables retain RLS and original private-data fingerprints remain unchanged. Physical review remains before a separately approved upload. See [Social UX implementation/review](SOCIAL_UX_REVIEW.md). Publish the updated canonical policy and review App Privacy for profile photos before broader distribution. No next-phase functionality is included.
+At the Social UX closeout, two additive migrations and the avatar-aware account-deletion function update were deployed with 18 aligned hashes and 24 RLS tables. The subsequent Shared Cooking phase adds its separate provenance/notification foundation (see section 6). Three photo buckets remain private and original private-data fingerprints remain preserved. Physical review remains before a separately approved upload. See [Social UX implementation/review](SOCIAL_UX_REVIEW.md). Publish the updated canonical policy and review App Privacy for profile photos before broader distribution. No next-phase functionality is included.
 
 ## 6. Shared Cooking + Social Part 2 + In-App Notifications
 
-Tagging friends needs permission, notification, removal, approval where applicable and who-may-tag controls. No automatic unwanted publication on the tagged user's profile.
+Shared Cooking/Recreated/in-app notifications are implemented, with final integrated verification recorded in [SHARED_SOCIAL_REVIEW.md](SHARED_SOCIAL_REVIEW.md). Up to eight current friends can be invited through Cooked With after the owner's independent saved/ranked cook. Recipients explicitly Add to My Cooking or decline; claims reserve stable personal item IDs without creating cooking history. The normal editable new-cook/ranking flow creates their own attempt/item/evidence. Make This carries only consented safe metadata from accessible social posts. Retries/duplicate claims never merge rankings or copy scores. Sharing defaults/per-entry overrides still decide independent Feed publication.
 
-- **RANK THIS DISH:** recipient-owned cooking history/entry, safe reused metadata and normal personal ranking; never copy the original score/evidence.
-- **CREATE MY OWN POST:** independent photos, notes, versions, Source and ranking; optional provenance/reference to original.
-- **DISMISS:** create nothing.
-
-Distinguish **COOKED TOGETHER** (same real-world experience, independently ranked) and **RECREATED** (new experience inspired by another), without initially building two giant systems.
-
-Reliable in-app notifications precede push: requests/acceptance, tags, likes/comments and relevant shared-cooking interactions. Include bell/unread indicator, read state, deep links, deduplication, deleted-content handling and blocking/privacy enforcement. A notification never grants access to private content.
+Notifications cover requests/acceptance, invitations/joining, completed recreations, likes and comments. Native bell/list/read state/Mark All Read, bounded chronological pages and authorized destinations respect current friendship/block/moderation/source access. Participant consent, pending removal/cancellation, deletion/nullification and private-history preservation are enforced server-side. Physical multi-account review remains separate from automated/Simulator verification. Push, public routes, Shared Cooking analytics and future recipe systems are not implemented.
 
 ## 7. Personal History + Stats
 
@@ -111,9 +105,9 @@ Public profile links (`staygrubby.com/@username`), Universal Links and QR profil
 
 ## 9. Public Web Sharing
 
-Intentional mobile-friendly public URLs for permitted dishes/posts/recipes/rankings/collections. Potential content: title/photo, attribution/source, intentionally public score, Save/Want to Cook, Make This, eligible counters and Open/Install StayGrubby.
+Future public StayGrubby web links are routing/deep-link surfaces into the native app, not a public recipe/content website. Stable intentionally shareable profile/post/dish/Shared Cooking/Recreated/recipe identifiers should open the exact native destination through a later Universal-Link layer; when the app is absent, a minimal branded interstitial should primarily offer Open/Download StayGrubby.
 
-Nothing becomes public automatically. Coordinate with stable Recipe identity/provenance/privacy; then do not unnecessarily delay basic public sharing. Native local image sharing stays independent.
+Do not turn the website into a browsable recipe catalog, public web Feed, cooking-history site, SEO publication platform or native-app replacement. Nothing becomes public automatically; later resolvers must enforce explicit publication/privacy. Native local image sharing stays independent. No URLs, Universal Links, Associated Domains, QR or landing routes are implemented by the Shared Cooking phase.
 
 ## 10. Social + Recipe Expansion / Send to Friend
 

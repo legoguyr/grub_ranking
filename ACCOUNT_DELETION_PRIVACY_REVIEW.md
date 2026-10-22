@@ -140,3 +140,8 @@ The complete release-foundation change set contains **42 files** (23 tracked mod
 - `supabase/functions/delete-account/deno.lock`
 - `supabase/functions/delete-account/index.ts`
 - `supabase/migrations/20261020141022_account_deletion_foundation.sql`
+
+
+## Shared Cooking and notification deletion integration
+
+The Shared Cooking phase adds four closed/RLS social tables, documented in SHARED_SOCIAL_REVIEW.md. Deleting the event owner cascades shared_cooks and shared_participants. A surviving recipient owns their cooking_origins row: event/post/creator references use ON DELETE SET NULL, preserving their independent private attempt/item/comparisons. Deleting the recipient removes their own origin/participant rows. Notification actor/recipient foreign keys cascade, and all reads/counts reject inaccessible/deleted targets. Existing three-bucket cleanup and delete-account v4 remain unchanged; no new bucket, Apple proof/revocation behavior, secret or real-account deletion test is introduced. Disposable tests verify source-owner erasure leaves the recipient private fingerprint unchanged.

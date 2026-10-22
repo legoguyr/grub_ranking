@@ -274,3 +274,8 @@ Final read-only demo audit again matched the complete original manifest and all 
 ## Subsequent Social UX enhancement
 
 The following approved run adds optional profile photos, account sharing defaults/social setup and per-new-cook sharing, documented separately in [SOCIAL_UX_REVIEW.md](SOCIAL_UX_REVIEW.md). Its local implementation does not change the historical verification/checkpoints above. Following direct owner approval, both hosted avatar/default migrations and the avatar-cleanup function update are deployed and verified: 18 aligned migrations and delete-account v4; original private fingerprints remain unchanged. Shared Cooking and all later phases remain unimplemented.
+
+
+## Subsequent Shared Cooking / Recreated / Notifications phase
+
+The next approved run begins at d42b0ed on main, retaining all historical Social V1/UX checkpoints. Its separate UUID provenance, participant consent, independent personal ranking and canonical notification model are documented in [SHARED_SOCIAL_REVIEW.md](SHARED_SOCIAL_REVIEW.md). It does not repeat or replace the historical test totals above. Later roadmap phases remain unimplemented.

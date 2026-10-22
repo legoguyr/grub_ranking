@@ -62,6 +62,10 @@ try {
  await actor(0);check((await rpc('social_notifications','page')).notifications.filter(n=>n.kind==='recreated').length===1,'Completed explicit recreation notifies original creator once');
  check((await rpc('social_feed','post',{postID:ownPost})).posts[0].provenance.creator.id===users[0].id,'Original creator sees truthful safe recreation provenance');
  await actor(0);await rpc('social_people','block',{peerID:users[1].id});
+ await rejects(()=>rpc('social_cooking','create',{eventID:randomUUID(),attemptID:a.attempts[4],participantIDs:[users[1].id],confirmed:true}));
+ await rpc('social_people','unblock',{peerID:users[1].id});
+ await rejects(()=>rpc('social_cooking','create',{eventID:randomUUID(),attemptID:a.attempts[4],participantIDs:[users[1].id],confirmed:true}));
+ await rpc('social_people','block',{peerID:users[1].id});
  await actor(1);await rejects(()=>rpc('social_cooking','event',{eventID:eid}));await rejects(()=>rpc('social_cooking','recreate',{postID}));
  check(!(await rpc('social_notifications','page')).notifications.some(n=>n.actor.id===users[0].id),'Blocking removes inaccessible notification targets');
  check((await rpc('social_cooking','own',{targetID:origin.itemID})).origins[0].creator==null,'Personal provenance does not leak blocked identity');
