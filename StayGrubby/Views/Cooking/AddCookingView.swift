@@ -7,9 +7,11 @@ struct AddCookingView: View {
     @Environment(\.cookingMediaRoot) private var mediaRoot
     @Environment(\.socialRequest) private var socialRequest
     @Environment(\.socialPublication) private var publication
+    @Environment(\.sharedCooking) private var sharedCooking
     @Query private var attempts: [CookingAttempt]
     let list: RankingList
     let dish: Dish?
+    let origin: SocialCookingClaim?
     let onResultClose: () -> Void
     @State private var draft: CookingDraft
     @State private var sharing = CookingSharingSelection()
@@ -22,10 +24,11 @@ struct AddCookingView: View {
     @State private var saving = false
     @State private var saveFailed = false
     @State private var completionSnapshot: RankingCompletionSnapshot?
+    @State private var cookedWith = Set<UUID>()
 
-    init(list: RankingList, dish: Dish? = nil, onResultClose: @escaping () -> Void = {}) {
-        self.list = list; self.dish = dish; self.onResultClose = onResultClose
-        _draft = State(initialValue: dish.map { CookingDraft(dish: $0) } ?? CookingDraft())
+    init(list: RankingList, dish: Dish? = nil, origin: SocialCookingClaim? = nil, onResultClose: @escaping () -> Void = {}) {
+        self.list = list; self.dish = dish; self.origin = origin; self.onResultClose = onResultClose
+        _draft = State(initialValue: origin?.metadata.draft() ?? dish.map { CookingDraft(dish: $0) } ?? CookingDraft())
     }
     private var displayName: String {
         "\(draft.cleanDishName) — \(draft.cleanTitle ?? "Version \((dish?.attempts.map(\.sequenceNumber).max() ?? 0) + 1)")"
@@ -38,6 +41,7 @@ struct AddCookingView: View {
                                              onClose: { onResultClose(); dismiss() })
                         .safeAreaInset(edge: .top) {
                             if sharingUnavailable { Text("Your cook is saved privately. Sharing couldn’t be queued; use Share with Friends below to retry.").font(.footnote).padding() }
+                            SharedCookingPending(itemID: savedAttempt.rankedItemID)
                         }
                 } else if let session {
                     if let opponent = list.items.first(where: { $0.id == session.nextOpponent }) {
@@ -61,10 +65,10 @@ struct AddCookingView: View {
                     }
                 } else if choosingReaction {
                     InitialReactionView(name: displayName) { reaction in
-                        session = RankingEngine(itemID: UUID(), orderedIDs: list.orderedItems.map(\.id), reaction: reaction)
+                        session = RankingEngine(itemID: origin?.itemID ?? UUID(), orderedIDs: list.orderedItems.map(\.id), reaction: reaction)
                     }
                 } else {
-                    CookingFormScroll(draft: $draft, existingDish: dish != nil, sharingSelection: socialRequest == nil ? nil : $sharing)
+                    CookingFormScroll(draft: $draft, existingDish: dish != nil, sharingSelection: socialRequest == nil ? nil : $sharing, cookedWith: socialRequest != nil && sharing.configured == true ? $cookedWith : nil)
                 }
             }
             .navigationTitle(savedAttempt != nil ? "Ranking Result" : session == nil ? (dish == nil ? "New Dish" : "New Version") : "Rank this cook")
@@ -107,13 +111,20 @@ struct AddCookingView: View {
         defer { saving = false }
         do {
             let before = RankingCompletionSnapshot.capture(from: list)
+            if !cookedWith.isEmpty || origin != nil {
+                guard let sharedCooking else { throw AccountFoundationError.accountNotResolved }
+                try sharedCooking.record(itemID: session.itemID, participants: cookedWith.sorted { $0.uuidString < $1.uuidString }, originID: origin?.id)
+            }
             if sharingChoice == true {
                 sharingUnavailable = publication?.record(itemID: session.itemID, includePhoto: draft.hasPhoto) != true
+            } else {
+                try publication?.cancelUnsavedCreation(session.itemID)
             }
             savedAttempt = try CookingStore.create(draft: draft, existingDish: dish, session: session, context: context, mediaDirectory: mediaRoot)
             completionSnapshot = before
             if let savedAttempt { publication?.privateSaveFinished(savedAttempt) }
             publication?.retry()
+            sharedCooking?.retry()
         }
         catch { saveFailed = true; self.error = error.localizedDescription }
     }

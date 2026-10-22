@@ -51,4 +51,8 @@ nonisolated struct SocialPayload: Codable, Sendable {
     var assetID: UUID?
     var avatarPath: String?
     var automaticallyShareNewDishes: Bool?
+    var eventID: UUID?
+    var originID: UUID?
+    var participantIDs: [UUID]?
+    var includeAttribution: Bool?
 }

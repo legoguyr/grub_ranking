@@ -14,7 +14,7 @@ import SwiftUI
                         request: SocialRequest, media: SocialMediaRequest?,
                         prepared: (SocialPost) throws -> Void = { _ in }) async throws -> SocialPost {
         let response = try await request("social_content", "prepare", .init(postID: postID, attemptID: attemptID,
-            expectedRevision: revision, confirmed: true, includePhoto: includePhoto))
+            expectedRevision: revision, confirmed: true, includePhoto: includePhoto, includeAttribution: true))
         guard let post = try JSONDecoder().decode(SocialPostsPage.self, from: response).posts.first else { throw AccountFoundationError.invalidResolution }
         try Task.checkCancellation(); try prepared(post)
         if post.published { return post }
@@ -93,10 +93,26 @@ nonisolated struct SocialPublicationJournal: Codable, Sendable {
     /// Called only by genuine new-cook creation; never by edit, re-rank, hydration or restore.
     @discardableResult func record(itemID: UUID, includePhoto: Bool) -> Bool {
         guard owner != nil else { return false }
-        guard !intents.contains(where: { $0.id == itemID }), !completed.contains(itemID) else { return true }
+        if let index = intents.firstIndex(where: { $0.id == itemID }) {
+            if ((try? context?.fetch(FetchDescriptor<CookingAttempt>())) ?? []).contains(where: { $0.rankedItemID == itemID }) { return true }
+            // A resumed origin reuses its reserved UUID; its unsaved choice may have changed.
+            let old = intents[index]
+            intents[index] = .init(id: itemID, postID: old.postID, includePhoto: includePhoto, createdAt: old.createdAt)
+            do { try persist() } catch { storageFailed = true; failed.insert(itemID) }
+            return true
+        }
+        guard !completed.contains(itemID) else { return true }
         intents.append(.init(id: itemID, postID: itemID, includePhoto: includePhoto, createdAt: .now))
         do { try persist() } catch { storageFailed = true; failed.insert(itemID) }
         return true
+    }
+    func cancelUnsavedCreation(_ itemID: UUID) throws {
+        guard intents.contains(where: { $0.id == itemID }), owner != nil, let context,
+              !(try context.fetch(FetchDescriptor<CookingAttempt>())).contains(where: { $0.rankedItemID == itemID }) else { return }
+        let previous = intents
+        intents.removeAll { $0.id == itemID }
+        do { try persist(); failed.remove(itemID); reviewRequired.remove(itemID) }
+        catch { intents = previous; storageFailed = true; throw error }
     }
     func privateSaveFinished(_ attempt: CookingAttempt) {
         guard let index = intents.firstIndex(where: { $0.id == attempt.rankedItemID }) else { return }
@@ -196,8 +212,9 @@ struct SocialPublicationHost: ViewModifier {
     @Environment(\.cookingSyncCoordinator) private var sync
     @Environment(\.scenePhase) private var phase
     @State private var coordinator = SocialPublicationCoordinator()
+    @State private var sharedCooking = SharedCookingCoordinator()
     func body(content: Content) -> some View {
-        content.environment(\.socialPublication, coordinator)
+        content.environment(\.socialPublication, coordinator).environment(\.sharedCooking, sharedCooking)
             .task(id: root) {
                 guard let root, let request else { return }
                 var owner = try? SyncJournal.binding(context)?.accountID
@@ -208,12 +225,13 @@ struct SocialPublicationHost: ViewModifier {
                 #endif
                 guard let owner else { return }
                 coordinator.connect(context: context, root: root, accountID: owner, request: request, media: media, sync: sync)
-                defer { coordinator.disconnect() }
+                sharedCooking.connect(context: context, root: root, owner: owner, request: request, sync: sync)
+                defer { coordinator.disconnect(); sharedCooking.disconnect() }
                 try? await Task.sleep(for: .seconds(31_536_000))
             }
-            .onChange(of: sync?.status) { _, _ in coordinator.retry() }
-            .onChange(of: phase) { _, next in if next == .active { coordinator.retry() } }
-            .onReceive(NotificationCenter.default.publisher(for: .cookingSyncWorkCommitted)) { _ in coordinator.retry() }
+            .onChange(of: sync?.status) { _, _ in coordinator.retry(); sharedCooking.retry() }
+            .onChange(of: phase) { _, next in if next == .active { coordinator.retry(); sharedCooking.retry() } }
+            .onReceive(NotificationCenter.default.publisher(for: .cookingSyncWorkCommitted)) { _ in coordinator.retry(); sharedCooking.retry() }
     }
 }
 

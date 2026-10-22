@@ -23,6 +23,7 @@ struct AttemptDetailView: View {
                 header
                 actionButtons
                 SocialShareAction(attempt: attempt)
+                CookingProvenanceView(itemID: attempt.rankedItemID)
                 metadata
                 if let source = attempt.dish?.source {
                     VStack(alignment: .leading, spacing: SGTheme.Space.small) {

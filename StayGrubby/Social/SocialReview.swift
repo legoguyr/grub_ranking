@@ -11,6 +11,9 @@ import SwiftUI
     private var avatarDraft: String?
     var posts: [SocialPost] = []
     var comments: [UUID: [SocialComment]] = [:]
+    var sharedEvents: [UUID: SharedCookingEvent] = [:]
+    var cookingClaims: [String: SocialCookingClaim] = [:]
+    var notices: [SocialNotification] = []
     var people: [SocialPerson] = [
         SocialPerson(id: UUID(uuidString: "10000000-0000-0000-0000-000000000001")!, displayName: "Friendly Cook", username: "friend_cook", relationship: .friends),
         SocialPerson(id: UUID(uuidString: "10000000-0000-0000-0000-000000000002")!, displayName: "Incoming Cook", username: "incoming_cook", relationship: .incoming),
@@ -20,12 +23,71 @@ import SwiftUI
     ]
     init() {
         if ProcessInfo.processInfo.arguments.contains("--social-review-ready") { identity = .init(displayName: "Review Cook", username: "review_cook", discoverable: false, automaticallyShareNewDishes: ProcessInfo.processInfo.arguments.contains("--social-review-share-default")) }
+        if ProcessInfo.processInfo.arguments.contains("--shared-review") {
+            let eventID = UUID(uuidString: "40000000-0000-0000-0000-000000000001")!
+            let own = SocialPerson(id: UUID(uuidString: "10000000-0000-0000-0000-000000000099")!, displayName: "Review Cook", username: "review_cook", relationship: .none)
+            sharedEvents[eventID] = .init(id: eventID, owner: people[0], metadata: .init(title: "Lemon Chicken Together", course: "main"), isOwner: false, participants: [.init(person: own, state: "pending")])
+            for (index, kind) in ["invited", "request", "accepted", "like", "comment", "recreated"].enumerated() {
+                let actor = kind == "request" ? people[1] : people[0]
+                let target = kind == "invited" ? eventID : kind == "request" || kind == "accepted" ? actor.id : UUID(uuidString: "20000000-0000-0000-0000-000000000001")!
+                notices.append(.init(id: UUID(uuidString: "50000000-0000-0000-0000-00000000000\(index + 1)")!, kind: kind, actor: actor, targetID: target, postID: ["like", "comment", "recreated"].contains(kind) ? target : nil, createdAt: Date().timeIntervalSince1970 - Double(index), read: false))
+            }
+        }
     }
     private var feedFailures = ProcessInfo.processInfo.arguments.contains("--social-review-feed-error") ? 1 : 0
     private var feedSeeded = false
     func request(_ endpoint: String, _ action: String, _ payload: SocialPayload) async throws -> Data {
         // Opt-in diagnostics for isolated fixtures only; never log payloads/identities.
         if ProcessInfo.processInfo.arguments.contains("--social-review-trace") { NSLog("SOCIAL_REVIEW %@ %@", endpoint, action) }
+        if endpoint == "social_notifications" {
+            if action == "read" || action == "readAll" {
+                notices = notices.map { n in SocialNotification(id: n.id, kind: n.kind, actor: n.actor, targetID: n.targetID, postID: n.postID, createdAt: n.createdAt, read: n.read || action == "readAll" || n.id == payload.targetID) }
+            }
+            let visible = notices.filter { n in people.contains { $0.id == n.actor.id && $0.relationship != .blocked && $0.relationship != .none && (n.kind != "request" || $0.relationship == .incoming) } }
+            return try JSONEncoder().encode(SocialNotificationsPage(notifications: visible.filter { n in payload.beforeTime == nil || n.createdAt < payload.beforeTime! }.prefix(25).map { $0 }, unread: visible.filter { !$0.read }.count))
+        }
+        if endpoint == "social_cooking" {
+            if action == "own" {
+                let origins = cookingClaims.values.filter { $0.itemID == payload.targetID }.map { c in CookingProvenance(id: c.id, kind: c.kind, itemID: c.itemID, completed: c.completed, creator: people[0].relationship == .friends ? people[0] : nil, eventID: nil) }
+                return try JSONEncoder().encode(CookingProvenancePage(origins: origins, events: sharedEvents.values.filter { $0.isOwner && $0.id == payload.targetID }))
+            }
+            if action == "complete", let key = cookingClaims.first(where: { $0.value.id == payload.originID })?.key, let c = cookingClaims[key] {
+                cookingClaims[key] = .init(id: c.id, itemID: c.itemID, kind: c.kind, completed: true, metadata: c.metadata)
+                if let eid = UUID(uuidString: key), let event = sharedEvents[eid] {
+                    sharedEvents[eid] = .init(id: eid, owner: event.owner, metadata: event.metadata, isOwner: event.isOwner,
+                        participants: event.participants.map { .init(person: $0.person, state: "joined") })
+                }
+                return try JSONEncoder().encode(cookingClaims[key])
+            }
+            if action == "create", let eid = payload.eventID {
+                if sharedEvents[eid] == nil {
+                    let owner = SocialPerson(id: UUID(uuidString: "10000000-0000-0000-0000-000000000099")!, displayName: identity.displayName, username: identity.username ?? "review_cook", relationship: .none)
+                    sharedEvents[eid] = .init(id: eid, owner: owner, metadata: .init(title: "Your saved shared cook", course: "main"), isOwner: true, participants: people.filter { payload.participantIDs?.contains($0.id) == true }.map { .init(person: $0, state: "pending") })
+                }
+                return try JSONEncoder().encode(sharedEvents[eid])
+            }
+            if let eid = payload.eventID, let event = sharedEvents[eid] {
+                guard event.isOwner || people[0].relationship == .friends else { throw URLError(.userAuthenticationRequired) }
+                if action == "decline" { sharedEvents[eid] = nil; notices.removeAll { $0.targetID == eid }; return Data("{}".utf8) }
+                if action == "event" { return try JSONEncoder().encode(event) }
+                if action == "remove" {
+                    sharedEvents[eid] = .init(id: eid, owner: event.owner, metadata: event.metadata, isOwner: event.isOwner, participants: event.participants.map { .init(person: $0.person, state: $0.id == payload.peerID ? "removed" : $0.state) })
+                    return try JSONEncoder().encode(sharedEvents[eid])
+                }
+                if action == "claim" {
+                    let key = eid.uuidString
+                    if cookingClaims[key] == nil { cookingClaims[key] = .init(id: UUID(), itemID: UUID(), kind: "together", completed: false, metadata: event.metadata) }
+                    return try JSONEncoder().encode(cookingClaims[key])
+                }
+            }
+            if action == "recreate", let post = posts.first(where: { $0.id == payload.postID }) {
+                guard people.contains(where: { $0.id == post.author.id && $0.relationship == .friends }) else { throw URLError(.userAuthenticationRequired) }
+                let key = post.id.uuidString
+                if cookingClaims[key] == nil { cookingClaims[key] = .init(id: UUID(), itemID: UUID(), kind: "recreated", completed: false, metadata: .init(title: post.title, course: "main")) }
+                return try JSONEncoder().encode(cookingClaims[key])
+            }
+            throw URLError(.resourceUnavailable)
+        }
         if endpoint == "social_avatar" {
             if action == "prepare" { let path = "10000000-0000-0000-0000-000000000099/" + (payload.assetID ?? UUID()).uuidString.lowercased() + ".jpg"; avatarDraft = path; return try JSONEncoder().encode(["path": path]) }
             if action == "publish" { identity.avatarPath = payload.avatarPath }
@@ -60,8 +122,8 @@ import SwiftUI
                 if let index = posts.firstIndex(where: { $0.id == seed.id }) { posts[index].commentCount = 1 }
                 comments[seed.id] = [SocialComment(id: UUID(uuidString: "30000000-0000-0000-0000-000000000001")!, author: people[0], body: "A friendly cooking comment", createdAt: Date().timeIntervalSince1970, canDelete: false, isAuthor: false)]
             }
-            if action == "post" { return try JSONEncoder().encode(SocialPostsPage(posts: posts.filter { $0.id == payload.postID })) }
             let visible = posts.filter { post in post.isAuthor || people.contains(where: { $0.id == post.author.id && $0.relationship == .friends }) }
+            if action == "post" { return try JSONEncoder().encode(SocialPostsPage(posts: visible.filter { $0.id == payload.postID })) }
             return try JSONEncoder().encode(SocialPostsPage(posts: visible))
         }
         if endpoint == "social_content" {

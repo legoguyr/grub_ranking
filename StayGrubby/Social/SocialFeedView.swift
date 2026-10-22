@@ -48,7 +48,10 @@ struct SocialFeedView: View {
         }
         .listStyle(.plain).background(SGTheme.ColorToken.background)
         .navigationTitle("Friends Feed").navigationBarTitleDisplayMode(.inline).toolbar(.visible, for: .navigationBar)
-        .toolbar { ToolbarItem(placement: .topBarTrailing) { NavigationLink { FriendsView() } label: { Label("Friends", systemImage: "person.2") } } }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) { NotificationsLink() }
+            ToolbarItem(placement: .topBarTrailing) { NavigationLink { FriendsView() } label: { Label("Friends", systemImage: "person.2") } }
+        }
         .refreshable { await load() }
         .task(id: "\(isSelected):\(own):\(revision)") {
             guard isSelected else { generation = UUID(); posts = []; return }
@@ -124,6 +127,13 @@ struct SocialFeedCard: View {
             SocialPhoto(path: post.photoPath).frame(maxWidth: .infinity).frame(height: 240).clipped().clipShape(RoundedRectangle(cornerRadius: 16))
             Text(post.title).font(SGTheme.TypeRole.title).fixedSize(horizontal: false, vertical: true)
             if let version = post.versionTitle { Text(version).foregroundStyle(.secondary) }
+            if let provenance = post.provenance {
+                if provenance.kind == "recreated", let creator = provenance.creator {
+                    Label("Recreated from \(creator.displayName)", systemImage: "arrow.triangle.branch").font(.subheadline)
+                } else if let people = provenance.people, !people.isEmpty {
+                    Text("Cooked with " + people.map(\.displayName).joined(separator: ", ")).font(.subheadline).fixedSize(horizontal: false, vertical: true)
+                }
+            }
             if let score = post.scoreText {
                 Text("\(score) / 10").font(SGTheme.TypeRole.title).foregroundStyle(SGTheme.ScoreColor.color(forDisplayedScore: score))
             } else { Label("Score locked", systemImage: "lock").font(.subheadline).foregroundStyle(.secondary) }
@@ -131,6 +141,10 @@ struct SocialFeedCard: View {
             if !post.published { Text("Unpublished photo draft").foregroundStyle(.secondary) }
             if post.moderationState != "active" { Text("Hidden by moderation").foregroundStyle(.secondary) }
             if post.published && post.moderationState == "active" { SocialEngagementView(post: post) }
+            if !post.isAuthor && post.published && post.moderationState == "active" {
+                NavigationLink { SharedCookingEntryView(postID: post.id) } label: { Label("Make This", systemImage: "fork.knife") }
+                    .accessibilityIdentifier("recreate-\(post.id)")
+            }
             if post.isAuthor { Button("Delete post", role: .destructive, action: delete).accessibilityIdentifier("feed-delete-\(post.id)") }
             else { SocialReportButton(kind: "post", targetID: post.id) }
         }

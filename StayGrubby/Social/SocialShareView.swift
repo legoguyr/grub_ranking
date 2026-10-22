@@ -53,7 +53,7 @@ struct SocialPostComposer: View {
                     if let score = model.scoreText { Text("\(score) / 10").foregroundStyle(SGTheme.ScoreColor.color(forDisplayedScore: score)) }
                     else { Text("Your score is locked and will not be shared.").accessibilityIdentifier("social-share-score-locked") }
                     if attempt.primaryImage != nil { Toggle("Include this food photo", isOn: $includePhoto).accessibilityIdentifier("social-share-photo") }
-                    Text("Notes, tags, allergens, Source, comparisons and personal rank are not shared. Existing shared snapshots stay unchanged until deleted.")
+                    Text("Includes Course, Cuisine and public cookbook/restaurant/online attribution. Private notes, tags, allergens, Friend/Family details, comparisons and personal rank are not shared. Existing shared snapshots stay unchanged until deleted.")
                         .font(.footnote).foregroundStyle(.secondary)
                 }
                 if let identity {
