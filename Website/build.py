@@ -1,5 +1,7 @@
 """Build only public static assets, using the app's canonical policy and wordmark."""
 import argparse
+import json
+from urllib.parse import urlparse
 import hashlib
 import html
 from pathlib import Path
@@ -56,14 +58,34 @@ def page(title, route, content, extra_class=""):
 '''
 
 
-def build(output):
+def distribution_url(value):
+    if not value:
+        return None
+    parsed = urlparse(value)
+    if (parsed.scheme != 'https' or parsed.username or parsed.password or parsed.port or parsed.query or parsed.fragment
+        or not ((parsed.netloc == 'testflight.apple.com' and re.fullmatch(r'/join/[A-Za-z0-9]+', parsed.path))
+                or (parsed.netloc == 'apps.apple.com' and re.fullmatch(r'/[A-Za-z]{2}/app/[^/]+/id[0-9]+', parsed.path)))):
+        raise ValueError('Use the actual Apple External TestFlight or App Store URL')
+    return value
+
+
+def build(output, distribution=None):
     output.mkdir(parents=True, exist_ok=True)
     allowed = {"index.html", "privacy.html", "support.html", "404.html", "_headers",
-               "assets/site.css", "assets/wordmark.png"}
+               "assets/site.css", "assets/wordmark.png", "kitchen.html", "_redirects", ".well-known/apple-app-site-association"}
     unexpected = {str(p.relative_to(output)) for p in output.rglob("*") if p.is_file()} - allowed
     if unexpected:
         raise ValueError("Refusing to publish unexpected files: " + ", ".join(sorted(unexpected)))
     (output / "assets").mkdir(exist_ok=True)
+    configured = json.loads((ROOT / "Website/distribution.json").read_text())
+    destination = distribution_url(distribution if distribution is not None else configured.get("url"))
+    cta = ('<a class="button" href="' + html.escape(destination, quote=True) + '">Get StayGrubby</a>') if destination else '<p>External beta access is not open yet. Ask the person who shared this link for access.</p>'
+    kitchen = '<article class="policy"><p class="eyebrow">#stayGRUBBY</p><h1>A Kitchen is waiting in StayGrubby.</h1><p>Open this link on your iPhone with StayGrubby installed. Profiles are viewed only inside the app, after sign-in and privacy checks.</p>' + cta + '<p>If the app is already installed, open the original shared link from Messages or Mail. You can also press and hold it and choose Open in StayGrubby when iOS offers that action.</p></article>'
+    (output / "kitchen.html").write_text(page("Open a Kitchen — StayGrubby", "/kitchen", kitchen, "reading").replace("<title>", '<meta name="robots" content="noindex,nofollow"><title>', 1), encoding="utf-8")
+    (output / "_redirects").write_text('/@* /kitchen.html 200\n', encoding="utf-8")
+    (output / ".well-known").mkdir(exist_ok=True)
+    association = {"applinks": {"details": [{"appIDs": ["5DSB36G7LZ.com.guyrettig.StayGrubby"], "components": [{"/": "/@*", "comment": "Profile share links; app validates exact usernames and authorizes before display"}]}]}}
+    (output / ".well-known/apple-app-site-association").write_text(json.dumps(association, separators=(',', ':')), encoding="utf-8")
     text = POLICY.read_text(encoding="utf-8")
     assert "Effective date: October 21, 2026" in text
     landing = '''<section class="hero">

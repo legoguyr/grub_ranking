@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from urllib.parse import urlparse
 
-from build import build, POLICY, LOGO
+from build import build, POLICY, LOGO, distribution_url
 
 
 class Document(HTMLParser):
@@ -40,7 +40,7 @@ class SiteTests(unittest.TestCase):
 
     def test_publish_directory_is_an_exact_public_allowlist(self):
         self.assertEqual({str(p.relative_to(self.output)) for p in self.output.rglob("*") if p.is_file()},
-            {"index.html", "privacy.html", "support.html", "404.html", "assets/site.css", "assets/wordmark.png", "_headers"})
+            {"index.html", "privacy.html", "support.html", "404.html", "assets/site.css", "assets/wordmark.png", "_headers", "kitchen.html", "_redirects", ".well-known/apple-app-site-association"})
         self.assertEqual((self.output / "assets/wordmark.png").read_bytes(), LOGO.read_bytes())
 
     def test_policy_is_rendered_from_the_complete_canonical_document(self):
@@ -82,6 +82,21 @@ class SiteTests(unittest.TestCase):
                         if "." not in Path(path).name:
                             path += ".html"
                         self.assertTrue((self.output / path).is_file(), value)
+
+    def test_profile_landing_and_association_are_static_and_private(self):
+        import json
+        association = json.loads((self.output / '.well-known/apple-app-site-association').read_text())
+        self.assertEqual(association['applinks']['details'][0]['appIDs'], ['5DSB36G7LZ.com.guyrettig.StayGrubby'])
+        self.assertEqual((self.output / '_redirects').read_text(), '/@* /kitchen.html 200\n')
+        landing = (self.output / 'kitchen.html').read_text()
+        for forbidden in ['supabase', '<script', '<form', 'testflight.apple.com/join/', 'apps.apple.com']:
+            self.assertNotIn(forbidden, landing)
+        self.assertIn('after sign-in and privacy checks', landing)
+        self.assertIn('not open yet', landing)
+        self.assertIn('name="robots" content="noindex,nofollow"', landing)
+        self.assertEqual(distribution_url('https://testflight.apple.com/join/EXAMPLE1'), 'https://testflight.apple.com/join/EXAMPLE1')
+        for bad in ['http://testflight.apple.com/join/A', 'https://testflight.apple.com.evil/join/A', 'https://user@testflight.apple.com/join/A', 'javascript:bad', 'https://example.com']:
+            with self.assertRaises(ValueError): distribution_url(bad)
 
     def test_security_headers_and_no_remote_dependencies(self):
         headers = (self.output / "_headers").read_text()

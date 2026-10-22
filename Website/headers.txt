@@ -4,3 +4,13 @@
   Referrer-Policy: no-referrer
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
   Strict-Transport-Security: max-age=31536000
+
+/.well-known/apple-app-site-association
+  Content-Type: application/json
+  Cache-Control: public, max-age=3600
+
+/kitchen
+  X-Robots-Tag: noindex, nofollow
+
+/@*
+  X-Robots-Tag: noindex, nofollow
