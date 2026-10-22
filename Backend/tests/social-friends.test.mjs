@@ -20,7 +20,7 @@ try{
  await actor(0);check((await rpc('social_people','friends')).people.length===1,'Undiscoverable friend remains identifiable');
  check(!(await rpc('social_people','search',{query:'cook_1'})).people.length,'Undiscoverable friend hidden in normal search');
  const person=(await rpc('social_people','profile',peer(1))).people[0];
- check(Object.keys(person).sort().join(',')==='displayName,id,relationship,username','Minimal social-safe DTO');
+ check(Object.keys(person).sort().join(',')==='avatarPath,displayName,id,relationship,username','Minimal social-safe DTO');
  await rpc('social_people','block',peer(1));
  check((await rpc('social_people','friends')).people.length===0,'Block removes friendship');
  await rejects(()=>rpc('social_people','request',peer(1)));

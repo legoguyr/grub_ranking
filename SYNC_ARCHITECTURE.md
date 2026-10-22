@@ -155,3 +155,9 @@ Final build/normal guest launch succeeded with zero reported build warnings/erro
 ## Cuisine extension
 
 DishTransfer carries optional `cuisine: {id, label}`; old snapshots omit it safely. New writes encode explicit JSON null for removal; backend updates from old clients that omit the field preserve existing Cuisine. The additive Dish-only migration retains account ownership/RLS, tombstones, restricted writes and snapshot numeric fidelity. Equivalent missing/null optional fields compare as decoded canonical graphs at an unchanged revision; actual changed values still reject revision collisions. No evidence/score transformation or new sync entity is introduced. See CUISINE_REVIEW.md.
+
+## Recipe/Tickets account data
+
+Recipes and Tickets are a separate cloud-backed account workspace behind `api.recipes`; they do not change the private `CookingGraph`, SwiftData schema or atomic cooking sync protocol. After account restore/sign-in, native screens fetch the same owner-scoped canonical Recipe/Ticket records. Recipe management currently needs a network connection; it does not claim the offline caching/edit guarantees of private cooking.
+
+Recipe → Cook uses an account-owned reservation and immutable snapshot/revision, then the unchanged private cooking transaction/ranking flow. `SharedCookingOutbox.json` adds an optional `recipeOriginID` (legacy journal decoding remains supported). The owner-bound durable worker completes it only when a matching saved cook exists and structured sync is ready; retries never create private cooks. Ordinary account erasure cascades owned Recipe/Ticket/origin records, nullifies cross-account Recipe references and keeps the survivor's independently ranked private history. No new photo transport or bucket is involved. Details and evidence: [RECIPE_TICKETS_SHARING_REVIEW.md](RECIPE_TICKETS_SHARING_REVIEW.md).

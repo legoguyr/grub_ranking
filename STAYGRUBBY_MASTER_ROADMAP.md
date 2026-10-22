@@ -59,7 +59,7 @@ Release-foundation owner closeout: public staygrubby.com HTTPS/routing and App S
 
 ## 3. Profiles + Friends
 
-Social identity is implemented: optional display name, unique editable @username, 30-day old-handle reservation and discoverability off by default. Mutual friendship, blocking, minimal social profile lookup and Friends UI are implemented; the bounded chronological Friends Feed is enabled. See [social review](SOCIAL_DEVELOPMENT_REVIEW.md).
+Social identity is implemented: optional display name, unique editable @username, permanent anti-recycling profile-link reservations in addition to the original temporary handle reservation and discoverability off by default. Mutual friendship, blocking, minimal social profile lookup and Friends UI are implemented; the bounded chronological Friends Feed is enabled. See [social review](SOCIAL_DEVELOPMENT_REVIEW.md).
 
 Dedicated Friends experience/navigation. Prioritize **mutual friendship**, not followers: username search, requests, accept/decline, friends list/removal, minimal friend profiles and explicitly shared cooking posts. A profile does not publish private history. One-way following comes later for creators/chefs.
 
@@ -101,7 +101,9 @@ Preserve original StayGrubby creator, website, cookbook/publisher or external so
 
 Eventually show distinct eligible users who saved/made and friends who made, rather than raw attempt counts. Private/deleted/ineligible activity must not leak. Counters are informational and never affect personal ranking.
 
-Public profile links (`staygrubby.com/@username`), Universal Links and QR profile sharing remain intentionally deferred; usernames and minimal friend profiles do not implement these systems.
+The Recipes/Tickets/shareable-foundation cycle implements manual Recipe identity, private/friends recipe visibility, account-owned Tickets, editable Recipe → existing cooking/ranking, historical recipe snapshots and independent Run It Back provenance. See [RECIPE_TICKETS_SHARING_REVIEW.md](RECIPE_TICKETS_SHARING_REVIEW.md) for verification and remaining release gates. Recipe photos, discovery counters, scraping, parsing, nutrition and AI are not included.
+
+Profile links (`staygrubby.com/@username`) now have a native authenticated resolver, durable account identity, permanent anti-recycling slug reservations, native sharing and an app-only static fallback/AASA prepared from the existing signing identity. Hosted website publication and device association verification must be checked in the review; repository configuration alone is not end-to-end Universal Link approval. QR remains deferred.
 
 ## 9. Public Web Sharing
 
@@ -136,3 +138,7 @@ AI-assisted recipe/photo analysis may suggest characteristics; images alone neve
 [RANKING_MODEL.md](RANKING_MODEL.md), [COOKING_MODEL.md](COOKING_MODEL.md), [ACCOUNT_ARCHITECTURE.md](ACCOUNT_ARCHITECTURE.md), [SYNC_ARCHITECTURE.md](SYNC_ARCHITECTURE.md), [MEDIA_SYNC_ARCHITECTURE.md](MEDIA_SYNC_ARCHITECTURE.md), [UI_ARCHITECTURE.md](UI_ARCHITECTURE.md), [V1_SHARING_ARCHITECTURE.md](V1_SHARING_ARCHITECTURE.md), [TESTFLIGHT_READINESS_REVIEW.md](TESTFLIGHT_READINESS_REVIEW.md).
 
 Keep future planning canonical here. Specialized documents explain implementation and dated verification rather than duplicating roadmap entries.
+
+## Current authorized next cycle
+
+The owner moved the focused manual Recipe/Tickets and profile-sharing foundation ahead of the larger later Recipe Engine/Discovery program. This does not mark that future program complete or change ranking behavior. The next separately authorized major cycle is **STAYGRUBBY DESIGN SYSTEM + FULL UI/UX + MOTION REFINEMENT**, preserving these domain/services/routes while refining the complete native experience. Do not start it implicitly. Personal History/Stats, later discovery/Send to Friend/push/challenges/commerce and final Personalized Taste Intelligence remain planned; no AI infrastructure is required.

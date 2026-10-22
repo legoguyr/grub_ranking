@@ -244,3 +244,13 @@ Top Version is the local default; All Versions shows every eligible ranked attem
 Detail uses one same-family Edit Cook / Re-rank / Share action row at normal text sizes, with a readable vertical stack at accessibility sizes. Locked Share retains its lock and explanation. Profile permanently offers current Top 3 sharing after unlock. Normal Top 3 has no milestone pill; the first-unlock card alone may show SCORES UNLOCKED. A truthful new-#1 result offers optional Updated Top 3 while preserving the primary individual result/share action.
 
 `SGTheme.ColorToken.accent` uses readable red appearance variants, with a darker red filled-button token for white-text contrast. The app AccentColor asset is also red. Export/identity colors remain unchanged. The unlock bar uses an explicit shape-based ProgressViewStyle with the official Brand.red fill and neutral track, avoiding the system dark-mode monochrome substitution. Native Apple authorization and share-sheet semantics retain their own system appearance.
+
+## Recipes/Tickets, Kitchen links and Settings foundation
+
+New recipe screens use native List/Form/NavigationStack and existing design tokens where relevant. `RecipeContent`/DTOs/services, the shared provenance worker and `AppLinkRouter` hold identity, transport and routing independently from screen styling. Saving a Recipe/Ticket never invokes ranking; only the existing editable cooking form and engine do. Source attribution, recipe ownership and social inspiration remain distinct.
+
+My Kitchen/Profile gains Recipes & Tickets, native Share My Kitchen for discoverable identities, and Settings. Settings provides real account/profile, social, safety and support/about destinations. Sous Chefs exposes current friends, Find and actionable Requests directly; sent requests and blocked accounts use dedicated administrative destinations. Block/Report keep clear conventional labels.
+
+App-wide links are received above authentication, authorized within the account-ready native tree, and display unavailable states for invalid/private/blocked/deleted targets. Only profile links are enabled. Public landing pages are app-required doors, not browsable product content. End-to-end association/signing/deployment gates remain documented in the phase review.
+
+This foundation preserves upright-portrait and accessibility/Dynamic Type requirements. It prepares but does not implement the separately authorized **STAYGRUBBY DESIGN SYSTEM + FULL UI/UX + MOTION REFINEMENT** cycle.

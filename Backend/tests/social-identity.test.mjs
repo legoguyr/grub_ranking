@@ -5,7 +5,7 @@ try {
  const legacy=await rpc('social_identity','get');check(legacy.username===null&&!legacy.discoverable,'Legacy identity stays optional/private');
  const a=await rpc('social_identity','save',{displayName:'  Home   Cook  ',username:' @Home_Cook ',discoverable:true});
  check(a.displayName==='Home Cook'&&a.username==='home_cook'&&a.discoverable,'Normalized identity');
- check(Object.keys(a).sort().join(',')==='discoverable,displayName,username','Only intended self fields');
+ check(Object.keys(a).sort().join(',')==='automaticallyShareNewDishes,avatarPath,discoverable,displayName,username','Only intended self fields');
  for(const username of ['admin','StayGrubby','stay_grubby','system','support'])await rejects(()=>rpc('social_identity','save',{displayName:'A',username}),'23505');
  for(const username of ['ab','_abc','abc_','a__bc','a.bc','a-bc','a bc','école','a'.repeat(25)])await rejects(()=>rpc('social_identity','save',{displayName:'A',username}),'22023');
  await actor(1);await rejects(()=>rpc('social_identity','save',{displayName:'B',username:'HOME_COOK'}),'23505');

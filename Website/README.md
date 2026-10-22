@@ -17,7 +17,7 @@ python3 -m unittest discover -s Website -p 'test_*.py' -v
 python3 Website/build.py
 ```
 
-Only `Website/public` may be published. It contains exactly `index.html`, `privacy.html`, `support.html`, `404.html`, `_headers`, `assets/site.css`, and `assets/wordmark.png`. The output is ignored in Git and rebuilt from reviewed sources. Never publish the repository root, `StayGrubby`, `Backend`, `supabase`, backups, or internal documentation. A top-level 404 page prevents Pages' single-page-app fallback. Pages resolves `/privacy.html` to `/privacy` and `/support.html` to `/support`; no application router or directory listing is used.
+Only `Website/public` may be published. The original policy-site files are `index.html`, `privacy.html`, `support.html`, `404.html`, `_headers`, `assets/site.css`, and `assets/wordmark.png`; the current profile-link extension additionally emits `kitchen.html`, `_redirects`, and `.well-known/apple-app-site-association` as described below. The output is ignored in Git and rebuilt from reviewed sources. Never publish the repository root, `StayGrubby`, `Backend`, `supabase`, backups, or internal documentation. A top-level 404 page prevents Pages' single-page-app fallback. Pages resolves `/privacy.html` to `/privacy` and `/support.html` to `/support`; no application router or directory listing is used.
 
 ## Owner connection and publication
 
